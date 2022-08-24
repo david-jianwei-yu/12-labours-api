@@ -2,18 +2,36 @@ import json
 import requests
 import gspread
 
-from flask import Flask, abort, request, jsonify, Response
-from flask_cors import CORS
+from typing import Union
+
+from fastapi import FastAPI, Response, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse
+from pydantic import BaseModel
 from oauth2client.service_account import ServiceAccountCredentials
 
 from app.config import Config, SpreadSheetConfig, Gen3Config
 from app.dbtable import StateTable
 
-app = Flask(__name__)
-# set environment variable
-app.config["ENV"] = Config.DEPLOY_ENV
+app = FastAPI()
 
-CORS(app)
+#Cross orgins, allow any for now
+origins = [
+    '*',
+]
+
+#Add CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+statetable = None
+
+#CORS(app)
 
 BAD_REQUEST = 400
 NOT_FOUND = 404
@@ -36,33 +54,47 @@ GEN3_CREDENTIALS = {
     "key_id": Gen3Config.GEN3_KEY_ID
 }
 
-TOKEN = requests.post(
-    f"{Gen3Config.GEN3_ENDPOINT_URL}/user/credentials/cdis/access_token", json=GEN3_CREDENTIALS).json()
-HEADER = {"Authorization": "bearer " + TOKEN["access_token"]}
+HEADER = None
 
-try:
-    statetable = StateTable(Config.DATABASE_URL)
-except AttributeError:
-    statetable = None
+class ProgramItem(BaseModel):
+    program: Union[str, None] = None
+    project: Union[str, None] = None
+    format: Union[str, None] = None
+
+class GraphQLItem(BaseModel):
+    node_type: Union[str, None] = None
+    # Condition post format should looks like
+    # '(project_id: ["demo1-jenkins", ...], tissue_type: ["Contrived", "Normal", ...], ...)'
+    condition: Union[str, None] = None
+    # Field post format should looks like
+    # "submitter_id tissue_type tumor_code ..."
+    field: Union[str, None] = None
+
+@app.on_event("startup")
+async def start_up():
+    try:
+        global statetable
+        statetable = StateTable(Config.DATABASE_URL)
+    except AttributeError:
+        print("Encoutner an error setting up the database")
+        statetable = None
+
+    try:
+        global HEADER
+        TOKEN = requests.post(
+            f"{Gen3Config.GEN3_ENDPOINT_URL}/user/credentials/cdis/access_token", json=GEN3_CREDENTIALS).json()
+        HEADER = {"Authorization": "bearer " + TOKEN["access_token"]}
+    except Exception:
+        print("Encoutner an error while generating a token from GEN3")
 
 
-@app.errorhandler(404)
-def resource_not_found(e):
-    return jsonify(error=str(e)), 404
+@app.get("/", response_class=PlainTextResponse)
+async def root():
+    return "This is the fastapi backend."
 
 
-@app.before_first_request
-def start_up():
-    print("Initiate")
-
-
-@app.route("/")
-def flask():
-    return "This is the flask backend."
-
-
-@app.route("/health")
-def health():
+@app.get("/health", response_class=PlainTextResponse)
+async def health():
     return json.dumps({"status": "healthy"})
 
 
@@ -76,7 +108,7 @@ def get_share_link(table):
         if json_data and "state" in json_data:
             state = json_data["state"]
             uuid = table.pushState(state, commit)
-            return jsonify({"uuid": uuid})
+            return {"uuid": uuid}
         abort(400, description="State not specified")
     else:
         abort(404, description="Database not available")
@@ -89,27 +121,27 @@ def get_saved_state(table):
             uuid = json_data["uuid"]
             state = table.pullState(uuid)
             if state:
-                return jsonify({"state": table.pullState(uuid)})
+                return {"state": table.pullState(uuid)}
         abort(400, description="Key missing or did not find a match")
     else:
         abort(404, description="Database not available")
 
 
 # An example
-@app.route("/state/getshareid", methods=["POST"])
-def get_share_link():
+@app.put("/state/getshareid")
+async def get_share_link():
     return get_share_link(statetable)
 
 
 # Get the map state using the share link id.
-@app.route("/state/getstate", methods=["POST"])
-def get_state():
+@app.get("/state/getstate")
+async def get_state():
     return get_saved_state(statetable)
 
 
-@app.route("/spreadsheet")
+@app.get("/spreadsheet")
 # Connect to the google spreadsheet and get all spreadsheet data.
-def spreadsheet():
+async def spreadsheet():
     scope = [
         "https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"
@@ -119,12 +151,12 @@ def spreadsheet():
     client = gspread.authorize(credential)
     gsheet = client.open("organ_sheets").sheet1
     data = gsheet.get_all_records()
-    return jsonify(data)
+    return data
 
 
-@app.route("/program", methods=["GET"])
+@app.get("/program")
 # Get the program information from Gen3 Data Commons
-def program():
+async def program():
     try:
         res = requests.get(
             f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/", headers=HEADER)
@@ -137,21 +169,19 @@ def program():
         new_json_data = {"program": program_list}
         return new_json_data
     except Exception as e:
-        abort(NOT_FOUND, description=str(e))
+        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@app.route("/projects", methods=["POST"])
+@app.get("/projects/{program}")
 # Get all projects information from Gen3 Data Commons
-def project():
-    post_data = request.get_json()
-    program = post_data.get("program")
+def project(program: str):
     if program == None:
-        abort(BAD_REQUEST)
+        raise HTTPException(status_code=BAD_REQUEST, detail="Missing request")
 
+    res = requests.get(
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}", headers=HEADER)
     try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}", headers=HEADER)
-
+        res.raise_for_status()
         json_data = json.loads(res.content)
         project_list = []
         for ele in json_data["links"]:
@@ -160,16 +190,16 @@ def project():
         new_json_data = {"project": project_list}
         return new_json_data
     except Exception as e:
-        abort(NOT_FOUND, description=str(e))
+        raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-@app.route("/dictionary", methods=["GET"])
+@app.get("/dictionary")
 # Get all dictionary node from Gen3 Data Commons
 def dictionary():
+    res = requests.get(
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/_dictionary", headers=HEADER)
     try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/_dictionary", headers=HEADER)
-
+        res.raise_for_status()
         json_data = json.loads(res.content)
         dictionary_list = []
         for ele in json_data["links"]:
@@ -178,7 +208,7 @@ def dictionary():
         new_json_data = {"dictionary": dictionary_list}
         return new_json_data
     except Exception as e:
-        abort(NOT_FOUND, description=str(e))
+        raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
 def is_json(json_data):
@@ -188,98 +218,90 @@ def is_json(json_data):
         return False
     return True
 
-
-@app.route("/nodes/<node_type>", methods=["POST"])
+@app.post("/nodes/{node_type}")
 # Exports all records in a dictionary node
-def export_node(node_type):
-    post_data = request.get_json()
-    program = post_data.get("program")
-    project = post_data.get("project")
-    format = post_data.get("format")
-    if program == None or project == None or format == None:
-        abort(BAD_REQUEST)
+def export_node(node_type: str, item: ProgramItem):
+    if item.program == None or item.project == None or item.format == None:
+        raise HTTPException(status_code=BAD_REQUEST, detail="Missing one ore more fields in request body")
 
     res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}/{project}/export/?node_label={node_type}&format={format}", headers=HEADER)
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label={node_type}&format={item.format}", headers=HEADER)
+    try:
+        res.raise_for_status()
+        json_data = json.loads(res.content)
+        if is_json(res.content) and "data" in json_data and json_data["data"] != []:
+            return res.content
+        else:
+            raise HTTPException(status_code=NOT_FOUND, detail="Records cannot be found")
+    except Exception as e:
+        raise HTTPException(status_code=res.status_code, detail=str(e))
 
-    json_data = json.loads(res.content)
-    if is_json(res.content) and "data" in json_data and json_data["data"] != []:
-        return res.content
-    else:
-        abort(NOT_FOUND)
-
-
-@app.route("/records/<uuids>", methods=["POST"])
+@app.post("/records/{uuids}")
 # Exports one or more records(records must in one node), use comma to separate the uuids
 # e.g. uuid1,uuid2,uuid3
-def export_record(uuids):
-    post_data = request.get_json()
-    program = post_data.get("program")
-    project = post_data.get("project")
-    format = post_data.get("format")
-    if program == None or project == None or format == None:
-        abort(BAD_REQUEST)
+def export_record(uuids: str, item: ProgramItem):
+    if item.program == None or item.project == None or item.format == None:
+        raise HTTPException(status_code=BAD_REQUEST, detail="Missing one ore more fields in request body")
 
     res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}/{project}/export/?ids={uuids}&format={format}", headers=HEADER)
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?ids={uuids}&format={item.format}", headers=HEADER)
+    try:
+        res.raise_for_status()
+        json_data = json.loads(res.content)
+        if b"id" in res.content:
+            return res.content
+        else:
+            raise HTTPException(status_code=NOT_FOUND, detail=json_data["message"])
+    except Exception as e:
+        raise HTTPException(status_code=res.status_code, detail=str(e))
 
-    json_data = json.loads(res.content)
-    if b"id" in res.content:
-        return res.content
-    else:
-        abort(NOT_FOUND, description=json_data["message"])
-
-
-@app.route("/graphql", methods=["POST"])
+@app.post("/graphql")
 # Only used for filtering the files in a specific node for now
-def graphql_filter():
-    post_data = request.get_json()
-    node_type = post_data.get("node_type")
-    # Condition post format should looks like
-    # '(project_id: ["demo1-jenkins", ...], tissue_type: ["Contrived", "Normal", ...], ...)'
-    condition = post_data.get("condition")
-    # Field post format should looks like
-    # "submitter_id tissue_type tumor_code ..."
-    field = post_data.get("field")
-    if node_type == None or condition == None or field == None:
-        abort(BAD_REQUEST)
+def graphql_filter(item: GraphQLItem):
+    if item.node_type == None or item.condition == None or item.field == None:
+        raise HTTPException(status_code=BAD_REQUEST, detail="Missing one ore more fields in request body")
 
     query = {
         "query":
         """{""" +
-        f"""{node_type}{condition}""" +
+        f"""{item.node_type}{item.condition}""" +
         """{""" +
-        f"""{field}""" +
+        f"""{item.field}""" +
         """}""" +
         """}"""
     }
+
     res = requests.post(
         f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", json=query, headers=HEADER)
 
-    json_data = json.loads(res.content)
-    if json_data["data"] == None:
-        abort(NOT_FOUND, description=json_data["errors"])
-    else:
-        if json_data["data"][f"{node_type}"] == []:
-            abort(NOT_FOUND)
+    try:
+        res.raise_for_status()
+        json_data = json.loads(res.content)
+        if json_data["data"] == None:
+            raise HTTPException(status_code=NOT_FOUND, detail=json_data["errors"])
         else:
-            return res.content
+            if json_data["data"][f"{node_type}"] == []:
+                raise HTTPException(status_code=NOT_FOUND, detail="Data cannot be found for node_type")
+            else:
+                return res.content
+    except Exception as e:
+        raise HTTPException(status_code=res.status_code, detail=str(e))
 
-
-@app.route("/download/metadata/<program>/<project>/<uuid>/<format>/<filename>", methods=["GET"])
-def download_gen3_metadata_file(program, project, uuid, format, filename):
+@app.get("/download/metadata/{program}/{project}/{uuid}/{format}/{filename}")
+def download_gen3_metadata_file(program: str, project: str, uuid: str, format: str, filename:str):
     try:
         res = requests.get(
             f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}/{project}/export/?ids={uuid}&format={format}", headers=HEADER)
+        res.raise_for_status()
         if format == "json":
-            return Response(res.content,
-                            mimetype="application/json",
+            return Response(content=res.content,
+                            media_type="application/json",
                             headers={"Content-Disposition":
                                      f"attachment;filename={filename}.json"})
         else:
-            return Response(res.content,
-                            mimetype="text/csv",
+            return Response(content=res.content,
+                            media_type="text/csv",
                             headers={"Content-Disposition":
                                      f"attachment;filename={filename}.csv"})
     except Exception as e:
-        abort(NOT_FOUND, description=str(e))
+        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
