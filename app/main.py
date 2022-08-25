@@ -60,6 +60,7 @@ GEN3_CREDENTIALS = {
 }
 
 HEADER = None
+SESSION = None
 
 
 class ProgramItem(BaseModel):
@@ -89,7 +90,7 @@ async def start_up():
         global statetable
         statetable = StateTable(Config.DATABASE_URL)
     except AttributeError:
-        print("Encoutner an error setting up the database")
+        print("Encounter an error setting up the database")
         statetable = None
 
     try:
@@ -98,7 +99,20 @@ async def start_up():
             f"{Gen3Config.GEN3_ENDPOINT_URL}/user/credentials/cdis/access_token", json=GEN3_CREDENTIALS).json()
         HEADER = {"Authorization": "bearer " + TOKEN["access_token"]}
     except Exception:
-        print("Encoutner an error while generating a token from GEN3")
+        print("Encounter an error while generating a token from GEN3")
+
+    try:
+        # This function is used to connect to the iRODS server, it requires "host", "port", "user", "password" and "zone" environment variables.
+        global SESSION
+        SESSION = iRODSSession(host=iRODSConfig.IRODS_HOST,
+                               port=iRODSConfig.IRODS_PORT,
+                               user=iRODSConfig.IRODS_USER,
+                               password=iRODSConfig.IRODS_PASSWORD,
+                               zone=iRODSConfig.IRODS_ZONE)
+        print(SESSION)
+        # SESSION.connection_timeout = 10
+    except Exception:
+        print("Encounter an error while creating the iRODS session")
 
 
 @app.get("/", response_class=PlainTextResponse)
@@ -216,9 +230,10 @@ async def program():
     """
     Return the program information from Gen3 Data Commons
     """
+    res = requests.get(
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/", headers=HEADER)
     try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/", headers=HEADER)
+        res.raise_for_status()
         json_data = json.loads(res.content)
         program_list = []
         for ele in json_data["links"]:
@@ -302,14 +317,13 @@ async def get_gen3_node_records(node_type: str, item: ProgramItem):
     if item.program == None or item.project == None or item.format == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body")
-
     res = requests.get(
         f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label={node_type}&format={item.format}", headers=HEADER)
     try:
         res.raise_for_status()
         json_data = json.loads(res.content)
         if is_json(res.content) and "data" in json_data and json_data["data"] != []:
-            return res.content
+            return json_data
         else:
             raise HTTPException(status_code=NOT_FOUND,
                                 detail="Records cannot be found")
@@ -337,7 +351,7 @@ async def get_gen3_record(uuids: str, item: ProgramItem):
         res.raise_for_status()
         json_data = json.loads(res.content)
         if b"id" in res.content:
-            return res.content
+            return json_data
         else:
             raise HTTPException(status_code=NOT_FOUND,
                                 detail=json_data["message"])
@@ -353,6 +367,7 @@ async def graphql_filter(item: GraphQLItem):
 
     Condition post format should looks like:
     '(<field_name>: ["<attribute_name>"], ...], <field_name>: ["<attribute_name>", "<attribute_name>", ...], ...)'
+
     Field post format should looks like:
     "<field_name> <field_name> <field_name> ..."
     """
@@ -389,7 +404,7 @@ async def graphql_filter(item: GraphQLItem):
 
 
 @app.get("/download/metadata/{program}/{project}/{uuid}/{format}/{filename}")
-def download_gen3_metadata_file(program: str, project: str, uuid: str, format: str, filename: str):
+async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: str, filename: str):
     """
     Return a single file for a given uuid.
 
@@ -423,18 +438,6 @@ def download_gen3_metadata_file(program: str, project: str, uuid: str, format: s
 #
 
 
-def get_irods_session():
-    """
-    This function is used to connect to the iRODS server, it requires "host", "port", "user", "password" and "zone" environment variables.
-    """
-    session = iRODSSession(host=iRODSConfig.IRODS_HOST,
-                           port=iRODSConfig.IRODS_PORT,
-                           user=iRODSConfig.IRODS_USER,
-                           password=iRODSConfig.IRODS_PASSWORD,
-                           zone=iRODSConfig.IRODS_ZONE)
-    return session
-
-
 def get_data_list(collect):
     collect_list = []
     for ele in collect:
@@ -446,48 +449,51 @@ def get_data_list(collect):
     return collect_list
 
 
-@app.route("/irods", methods=["GET", "POST"])
-def get_irods_collections():
+@app.get("/irods")
+async def get_irods_collections():
     """
-    Return collections from a folder.
-
-    "GET" method will return all collections from the root folder
-    "POST" method will return all collections from the required folder
+    Return all collections from the root folder.
     """
-    session = get_irods_session()
     try:
-        if request.method == "GET":
-            collect = session.collections.get(
-                f"{iRODSConfig.IRODS_ENDPOINT_URL}")
-        else:
-            post_data = request.get_json()
-            path = post_data.get("path")
-            if path == None:
-                abort(BAD_REQUEST)
-
-            collect = session.collections.get(path)
+        collect = SESSION.collections.get(
+            f"{iRODSConfig.IRODS_ENDPOINT_URL}")
     except Exception as e:
-        abort(NOT_FOUND, description=str(e))
-
+        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
     folders = get_data_list(collect.subcollections)
     files = get_data_list(collect.data_objects)
     return {"folders": folders, "files": files}
 
 
-@app.route("/download/data/<suffix>", methods=["GET"])
-def download_irods_data_file(suffix):
+@app.post("/irods")
+async def get_irods_collections(item: CollectionItem):
+    """
+    Return all collections from the required folder.
+    """
+    try:
+        if item.path == None:
+            raise HTTPException(status_code=BAD_REQUEST,
+                                detail="Missing field in request body")
+
+        collect = SESSION.collections.get(item.path)
+        folders = get_data_list(collect.subcollections)
+        files = get_data_list(collect.data_objects)
+        return {"folders": folders, "files": files}
+    except Exception as e:
+        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+
+
+@app.get("/download/data/{suffix}")
+async def download_irods_data_file(suffix: str):
     """
     Return a specific download file from iRODS.
 
     :param suffix: Required iRODS file path.
     :return: A file with data.
     """
-    session = get_irods_session()
     url_suffix = suffix.replace("&", "/")
     try:
-        file = session.data_objects.get(
+        file = SESSION.data_objects.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{url_suffix}")
-
         with file.open("r") as f:
             if suffix.endswith(".xlsx"):
                 download_path = os.path.join(
@@ -500,9 +506,10 @@ def download_irods_data_file(suffix):
                     content = pd.read_csv(f).to_csv()
                 else:
                     content = f.read()
-            return Response(content,
-                            mimetype=mimetypes.guess_type(file.name)[0],
+            return Response(content=content,
+                            media_type=mimetypes.guess_type(file.name)[
+                                0],
                             headers={"Content-Disposition":
                                      f"attachment;filename={file.name}"})
     except Exception as e:
-        abort(NOT_FOUND, description=str(e))
+        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
