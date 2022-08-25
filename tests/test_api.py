@@ -2,12 +2,13 @@ import json
 import pytest
 from app import app
 from app.config import Config
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
 def client():
-    app.config["TESTING"] = True
-    return app.test_client()
+    with TestClient(app) as client:
+        return client
 
 
 def test_get_gen3_program(client):
