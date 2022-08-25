@@ -1,11 +1,12 @@
 # 12-labours-api
-API services for 12 Labours App
+Query API services for 12 Labours App
 
 # Overview
-This is the API service which is build as a Flask Application.
+This is the API service providing query and data requests for the 12 Labours projects. This is currently implemented using fastapi.
+
 # Requirements
 
-## Python 3
+## Python 3.6 or above
 Make sure you have python 3 installed `python3 --version`
 
 ## Running the app
@@ -13,7 +14,7 @@ Make sure you have python 3 installed `python3 --version`
 python3 -m venv ./venv
 . ./venv/bin/activate
 pip install -r requirements.txt
-gunicorn main:app
+uvicorn main:app
 ```
 
 # Testing
