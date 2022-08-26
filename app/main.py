@@ -63,7 +63,15 @@ HEADER = None
 SESSION = None
 
 
-class ProgramItem(BaseModel):
+class S3Item(BaseModel):
+    suffix: Union[str, None] = None
+
+
+class ProjectItem(BaseModel):
+    program: Union[str, None] = None
+
+
+class RecordItem(BaseModel):
     program: Union[str, None] = None
     project: Union[str, None] = None
     format: Union[str, None] = None
@@ -80,7 +88,6 @@ class GraphQLItem(BaseModel):
 
 
 class CollectionItem(BaseModel):
-    suffix: Union[str, None] = None
     path: Union[str, None] = None
 
 
@@ -109,7 +116,6 @@ async def start_up():
                                user=iRODSConfig.IRODS_USER,
                                password=iRODSConfig.IRODS_PASSWORD,
                                zone=iRODSConfig.IRODS_ZONE)
-        print(SESSION)
         # SESSION.connection_timeout = 10
     except Exception:
         print("Encounter an error while creating the iRODS session")
@@ -185,7 +191,7 @@ async def spreadsheet():
 
 
 @app.post("/s3")
-async def s3(item: CollectionItem):
+async def s3(item: S3Item):
     """
     Return the s3 data from s3 url location.
     """
@@ -226,7 +232,7 @@ async def download_s3_data(suffix: str):
 
 @app.get("/program")
 # Get the program information from Gen3 Data Commons
-async def program():
+async def get_gen3_program():
     """
     Return the program information from Gen3 Data Commons
     """
@@ -247,7 +253,7 @@ async def program():
 
 @app.post("/project")
 # Get all projects information from Gen3 Data Commons
-async def get_gen3_project(item: ProgramItem):
+async def get_gen3_project(item: ProjectItem):
     """
     Return project information in the Gen3 program
     """
@@ -272,7 +278,7 @@ async def get_gen3_project(item: ProgramItem):
 
 @app.get("/dictionary")
 # Get all dictionary node from Gen3 Data Commons
-async def dictionary():
+async def get_gen3_dictionary():
     """
     Return all dictionary node from Gen3 Data Commons
     """
@@ -305,9 +311,9 @@ def is_json(json_data):
     return True
 
 
-@app.post("/nodes/{node_type}")
+@app.post("/records/{node_type}")
 # Exports all records in a dictionary node
-async def get_gen3_node_records(node_type: str, item: ProgramItem):
+async def get_gen3_node_records(node_type: str, item: RecordItem):
     """
     Return all records in a dictionary node.
 
@@ -331,10 +337,10 @@ async def get_gen3_node_records(node_type: str, item: ProgramItem):
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-@app.post("/records/{uuids}")
+@app.post("/record/{uuids}")
 # Exports one or more records(records must in one node), use comma to separate the uuids
 # e.g. uuid1,uuid2,uuid3
-async def get_gen3_record(uuids: str, item: ProgramItem):
+async def get_gen3_record(uuids: str, item: RecordItem):
     """
     Return the fields of one or more records in a dictionary node.
 
