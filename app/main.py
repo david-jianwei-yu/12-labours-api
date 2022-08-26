@@ -455,7 +455,7 @@ def get_data_list(collect):
     return collect_list
 
 
-@app.get("/irods")
+@app.get("/collection")
 async def get_irods_collections():
     """
     Return all collections from the root folder.
@@ -470,7 +470,7 @@ async def get_irods_collections():
     return {"folders": folders, "files": files}
 
 
-@app.post("/irods")
+@app.post("/collection")
 async def get_irods_collections(item: CollectionItem):
     """
     Return all collections from the required folder.
