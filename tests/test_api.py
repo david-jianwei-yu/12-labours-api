@@ -159,7 +159,7 @@ def test_download_gen3_metadata_file(client):
 
 def test_get_irods_collections(client):
     # GET
-    response = client.get("/irods")
+    response = client.get("/collection")
 
     assert response.status_code == 200
     assert response.content_type == "application/json"
@@ -170,19 +170,19 @@ def test_get_irods_collections(client):
     test_post_data_pass = {
         "path": "/tempZone/home/rods/datasets"
     }
-    response = client.post("/irods", json=test_post_data_pass)
+    response = client.post("/collection", json=test_post_data_pass)
 
     assert response.status_code == 200
 
     test_post_data_failed_1 = {}
-    response = client.post("/irods", json=test_post_data_failed_1)
+    response = client.post("/collection", json=test_post_data_failed_1)
 
     assert response.status_code == 404
 
     test_post_data_failed_2 = {
         "path": "/tempZone/home/rods/data"
     }
-    response = client.post("/irods", json=test_post_data_failed_2)
+    response = client.post("/collection", json=test_post_data_failed_2)
 
     assert response.status_code == 404
 

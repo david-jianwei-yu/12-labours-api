@@ -501,17 +501,7 @@ async def download_irods_data_file(suffix: str):
         file = SESSION.data_objects.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{url_suffix}")
         with file.open("r") as f:
-            if suffix.endswith(".xlsx"):
-                download_path = os.path.join(
-                    os.path.expanduser('~'), "Downloads")
-                pd.read_excel(f).to_excel(f"{download_path}/{file.name}")
-                # content = pd.read_excel(f).to_csv()
-                return "Successfully download!"
-            else:
-                if suffix.endswith(".csv"):
-                    content = pd.read_csv(f).to_csv()
-                else:
-                    content = f.read()
+            content = f.read()
             return Response(content=content,
                             media_type=mimetypes.guess_type(file.name)[
                                 0],
