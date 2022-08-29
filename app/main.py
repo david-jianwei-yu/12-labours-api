@@ -73,11 +73,8 @@ class RecordItem(BaseModel):
 
 class GraphQLItem(BaseModel):
     node_type: Union[str, None] = None
-    # Condition post format should looks like
-    # '(project_id: ["demo1-jenkins", ...], tissue_type: ["Contrived", "Normal", ...], ...)'
-    condition: Union[str, None] = None
-    # Field post format should looks like
-    # "submitter_id tissue_type tumor_code ..."
+    filter: Union[str, None] = None
+    search: Union[str, None] = None
     field: Union[str, None] = None
 
 
@@ -306,24 +303,27 @@ async def get_gen3_record(uuids: str, item: RecordItem):
 
 @app.post("/graphql")
 # Only used for filtering the files in a specific node for now
-async def graphql_filter(item: GraphQLItem):
+async def graphql_query(item: GraphQLItem):
     """
     Return filtered metadata records. The query uses GraphQL query.
 
-    Condition post format should looks like:
-    '(<field_name>: ["<attribute_name>"], ...], <field_name>: ["<attribute_name>", "<attribute_name>", ...], ...)'
+    filter post format should looks like:
+    '<field_name>: ["<attribute_name>"], ...], ...'
+
+    search post format should looks like:
+    '"<keyword>"'
 
     Field post format should looks like:
     "<field_name> <field_name> <field_name> ..."
     """
-    if item.node_type == None or item.condition == None or item.field == None:
+    if item.node_type == None or item.search == None or item.field == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body")
 
     query = {
         "query":
         """{""" +
-        f"""{item.node_type}{item.condition}""" +
+        f"""{item.node_type}({item.filter}, quick_search: {item.search})""" +
         """{""" +
         f"""{item.field}""" +
         """}""" +
