@@ -65,10 +65,6 @@ class S3Item(BaseModel):
     suffix: Union[str, None] = None
 
 
-class ProjectItem(BaseModel):
-    program: Union[str, None] = None
-
-
 class RecordItem(BaseModel):
     program: Union[str, None] = None
     project: Union[str, None] = None
@@ -170,59 +166,6 @@ async def get_state():
     return get_saved_state(statetable)
 
 
-@app.get("/spreadsheet")
-# Connect to the google spreadsheet and get all spreadsheet data.
-async def spreadsheet():
-    """
-    Return the spreadsheet data.
-    """
-    scope = [
-        "https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"
-    ]
-    credential = ServiceAccountCredentials.from_json_keyfile_dict(
-        SPREADSHEET_CREDENTIALS, scope)
-    client = gspread.authorize(credential)
-    gsheet = client.open("organ_sheets").sheet1
-    data = gsheet.get_all_records()
-    return data
-
-
-@app.post("/s3")
-async def s3(item: S3Item):
-    """
-    Return the s3 data from s3 url location.
-    """
-    if item.suffix == None:
-        raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing field in request body")
-
-    try:
-        res = requests.get(f"{S3Config.S3_ENDPOINT_URL}/{item.suffix}")
-        return res.content
-    except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
-
-
-@app.get("/download/s3data/{suffix}")
-async def download_s3_data(suffix: str):
-    """
-    Return a single download file for a given suffix.
-
-    :param suffix: Part of the s3 location.
-    :return: The file content.
-    """
-    url_suffix = suffix.replace("&", "/")
-    try:
-        res = requests.get(f"{S3Config.S3_ENDPOINT_URL}/{url_suffix}")
-        return Response(res.content,
-                        mimetype="application/json",
-                        headers={"Content-Disposition":
-                                 f"attachment;filename={suffix}.json"})
-    except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
-
-
 #
 # Gen3 Data Commons
 #
@@ -249,25 +192,21 @@ async def get_gen3_program():
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@app.post("/project")
+@app.get("/project/{program}")
 # Get all projects information from Gen3 Data Commons
-async def get_gen3_project(item: ProjectItem):
+async def get_gen3_project(program: str):
     """
     Return project information in the Gen3 program
     """
-    if item.program == None:
-        raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing field in request body")
-
     res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}", headers=HEADER)
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}", headers=HEADER)
     try:
         res.raise_for_status()
         json_data = json.loads(res.content)
         project_list = []
         for ele in json_data["links"]:
             project_list.append(ele.replace(
-                f"/v0/submission/{item.program}/", ""))
+                f"/v0/submission/{program}/", ""))
         new_json_data = {"project": project_list}
         return new_json_data
     except Exception as e:
@@ -500,10 +439,11 @@ async def download_irods_data_file(suffix: str):
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{url_suffix}")
         with file.open("r") as f:
             content = f.read()
-            return Response(content=content,
-                            media_type=mimetypes.guess_type(file.name)[
-                                0],
-                            headers={"Content-Disposition":
-                                     f"attachment;filename={file.name}"})
+            f.close()
+        return Response(content=content,
+                        media_type=mimetypes.guess_type(file.name)[
+                            0],
+                        headers={"Content-Disposition":
+                                 f"attachment;filename={file.name}"})
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
