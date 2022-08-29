@@ -2,8 +2,6 @@ import json
 import requests
 import gspread
 import mimetypes
-import pandas as pd
-import os
 
 from app.config import Config, S3Config, SpreadSheetConfig, Gen3Config, S3Config, iRODSConfig
 from app.dbtable import StateTable
