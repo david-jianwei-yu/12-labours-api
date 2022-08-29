@@ -196,7 +196,9 @@ async def get_gen3_program():
 # Get all projects information from Gen3 Data Commons
 async def get_gen3_project(program: str):
     """
-    Return project information in the Gen3 program
+    Return project information.
+
+    :param program: Gen3 program name
     """
     res = requests.get(
         f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}", headers=HEADER)

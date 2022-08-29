@@ -25,28 +25,9 @@ def test_get_gen3_program(client):
 
 
 def test_get_gen3_project(client):
-    test_data_pass = {
-        "program": "demo1",
-    }
-    response = client.post("/project", json=test_data_pass)
+    response = client.get("/project/demo1")
     assert response.status_code == 200
     assert b"project" in response.data
-
-    # The project might be added or removed
-    # If this test failed, check Gen3 project.
-    res = json.loads(response.data.decode())
-    assert len(res["project"]) == 1
-    assert res["project"] == ["12L"]
-
-    test_data_failed_400 = {}
-    response = client.post("/project", json=test_data_failed_400)
-    assert response.status_code == 400
-
-    test_data_failed_404 = {
-        "program": "demo2",
-    }
-    response = client.post("/project", json=test_data_failed_404)
-    assert response.status_code == 404
 
 
 def test_get_gen3_dictionary(client):
@@ -100,7 +81,7 @@ def test_get_gen3_record(client):
         "project": "jenkins",
         "format": "json",
     }
-    response = client.post(f"/records/{UUID}", json=test_data_pass)
+    response = client.post(f"/record/{UUID}", json=test_data_pass)
     assert response.status_code == 200
     assert b"id" in response.data
 
