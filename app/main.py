@@ -1,18 +1,16 @@
 import json
 import requests
-import gspread
 import mimetypes
 
-from app.config import Config, S3Config, SpreadSheetConfig, Gen3Config, S3Config, iRODSConfig
+from app.config import Config, Gen3Config, iRODSConfig
 from app.dbtable import StateTable
 
 from typing import Union
 
 from fastapi import FastAPI, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse
+from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse, StreamingResponse
 from pydantic import BaseModel
-from oauth2client.service_account import ServiceAccountCredentials
 
 from irods.session import iRODSSession
 
@@ -38,19 +36,6 @@ statetable = None
 
 BAD_REQUEST = 400
 NOT_FOUND = 404
-
-SPREADSHEET_CREDENTIALS = {
-    "type": SpreadSheetConfig.SHEET_TYPE,
-    "project_id": SpreadSheetConfig.SHEET_PROJECT_ID,
-    "private_key_id": SpreadSheetConfig.SHEET_PRIVATE_KEY_ID,
-    "private_key": SpreadSheetConfig.SHEET_PRIVATE_KEY.replace("\\n", "\n"),
-    "client_email": SpreadSheetConfig.SHEET_CLIENT_EMAIL,
-    "client_id": SpreadSheetConfig.SHEET_CLIENT_ID,
-    "auth_uri": SpreadSheetConfig.SHEET_AUTH_URI,
-    "token_uri": SpreadSheetConfig.SHEET_TOKEN_URI,
-    "auth_provider_x509_cert_url": SpreadSheetConfig.SHEET_AUTH_PROVIDER_X509_CERT_URL,
-    "client_x509_cert_url": SpreadSheetConfig.SHEET_CLIENT_X509_CERT_URL
-}
 
 GEN3_CREDENTIALS = {
     "api_key": Gen3Config.GEN3_API_KEY,
@@ -107,7 +92,7 @@ async def start_up():
                                user=iRODSConfig.IRODS_USER,
                                password=iRODSConfig.IRODS_PASSWORD,
                                zone=iRODSConfig.IRODS_ZONE)
-        # SESSION.connection_timeout = 10
+        # SESSION.connection_timeout =
     except Exception:
         print("Encounter an error while creating the iRODS session")
 
@@ -259,6 +244,7 @@ async def get_gen3_node_records(node_type: str, item: RecordItem):
     if item.program == None or item.project == None or item.format == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body")
+
     res = requests.get(
         f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label={node_type}&format={item.format}", headers=HEADER)
     try:
@@ -364,9 +350,9 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
     :param filename: name of the file.
     :return: A JSON or CSV file containing the metadata.
     """
+    res = requests.get(
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}/{project}/export/?ids={uuid}&format={format}", headers=HEADER)
     try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}/{project}/export/?ids={uuid}&format={format}", headers=HEADER)
         res.raise_for_status()
         if format == "json":
             return Response(content=res.content,
@@ -418,15 +404,35 @@ async def get_irods_collections(item: CollectionItem):
     """
     Return all collections from the required folder.
     """
-    try:
-        if item.path == None:
-            raise HTTPException(status_code=BAD_REQUEST,
-                                detail="Missing field in request body")
+    if item.path == None:
+        raise HTTPException(status_code=BAD_REQUEST,
+                            detail="Missing field in request body")
 
+    try:
         collect = SESSION.collections.get(item.path)
         folders = get_data_list(collect.subcollections)
         files = get_data_list(collect.data_objects)
         return {"folders": folders, "files": files}
+    except Exception as e:
+        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+
+
+@app.get("/preview/data/{suffix}")
+async def preview_irods_data_file(suffix: str):
+    """
+    Used to preview most types of the data file.
+
+    :param suffix: Required iRODS file path.
+    """
+    url_suffix = suffix.replace("&", "/")
+    try:
+        file = SESSION.data_objects.get(
+            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{url_suffix}")
+
+        def iterfile():
+            with file.open("r") as file_like:
+                yield from file_like
+        return StreamingResponse(iterfile(), media_type=mimetypes.guess_type(file.name)[0])
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
@@ -445,10 +451,8 @@ async def download_irods_data_file(suffix: str):
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{url_suffix}")
         with file.open("r") as f:
             content = f.read()
-            f.close()
         return Response(content=content,
-                        media_type=mimetypes.guess_type(file.name)[
-                            0],
+                        media_type=mimetypes.guess_type(file.name)[0],
                         headers={"Content-Disposition":
                                  f"attachment;filename={file.name}"})
     except Exception as e:
