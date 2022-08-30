@@ -320,10 +320,14 @@ async def graphql_query(item: GraphQLItem):
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body")
 
+    if item.filter == None:
+        filter = ""
+    else:
+        filter = item.filter
     query = {
         "query":
         """{""" +
-        f"""{item.node_type}({item.filter}, quick_search: {item.search})""" +
+        f"""{item.node_type}({filter}, quick_search: {item.search})""" +
         """{""" +
         f"""{item.field}""" +
         """}""" +
