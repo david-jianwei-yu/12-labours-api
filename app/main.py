@@ -282,7 +282,7 @@ async def get_gen3_record(uuids: str, item: RecordItem):
             return json_data
         else:
             raise HTTPException(status_code=NOT_FOUND,
-                                detail=json_data["message"])
+                                detail="Record can not be found, please check the uuid of the record")
     except Exception as e:
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
@@ -325,15 +325,11 @@ async def graphql_query(item: GraphQLItem):
     try:
         res.raise_for_status()
         json_data = json.loads(res.content)
-        if json_data["data"] == None:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail=json_data["errors"])
+        if json_data["data"][f"{item.node_type}"] != []:
+            return json_data
         else:
-            if json_data["data"][f"{item.node_type}"] == []:
-                raise HTTPException(status_code=NOT_FOUND,
-                                    detail="Data cannot be found for node_type")
-            else:
-                return res.content
+            raise HTTPException(status_code=NOT_FOUND,
+                                detail="Data cannot be found in current node")
     except Exception as e:
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
@@ -385,7 +381,7 @@ def get_data_list(collect):
 
 
 @app.get("/collection")
-async def get_irods_collections():
+async def get_irods_root_collections():
     """
     Return all collections from the root folder.
     """
