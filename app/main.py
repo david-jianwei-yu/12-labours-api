@@ -87,7 +87,7 @@ async def start_up():
             f"{Gen3Config.GEN3_ENDPOINT_URL}/user/credentials/cdis/access_token", json=GEN3_CREDENTIALS).json()
         HEADER = {"Authorization": "bearer " + TOKEN["access_token"]}
     except Exception:
-        print("Encounter an error while generating a token from GEN3")
+        print("Encounter an error while generating a token from GEN3.")
 
     try:
         # This function is used to connect to the iRODS server, it requires "host", "port", "user", "password" and "zone" environment variables.
@@ -99,7 +99,7 @@ async def start_up():
                                zone=iRODSConfig.IRODS_ZONE)
         # SESSION.connection_timeout =
     except Exception:
-        print("Encounter an error while creating the iRODS session")
+        print("Encounter an error while creating the iRODS session.")
 
 
 @ app.get("/", response_class=PlainTextResponse)
@@ -242,7 +242,7 @@ async def get_gen3_node_records(node_type: str, item: RecordItem):
     """
     if item.program == None or item.project == None or item.format == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body")
+                            detail="Missing one ore more fields in request body.")
 
     res = requests.get(
         f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label={node_type}&format={item.format}", headers=HEADER)
@@ -253,7 +253,7 @@ async def get_gen3_node_records(node_type: str, item: RecordItem):
             return json_data
         else:
             raise HTTPException(status_code=NOT_FOUND,
-                                detail="Records cannot be found")
+                                detail="Records cannot be found.")
     except Exception as e:
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
@@ -281,7 +281,7 @@ async def get_gen3_record(uuids: str, item: RecordItem):
             return json_data
         else:
             raise HTTPException(status_code=NOT_FOUND,
-                                detail="Record can not be found, please check the uuid of the record")
+                                detail="Record can not be found, please check the uuid of the record.")
     except Exception as e:
         raise HTTPException(status_code=res.status_code, detail=str(e))
 

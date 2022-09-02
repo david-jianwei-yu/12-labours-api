@@ -7,3 +7,4 @@ python-irodsclient==1.1.4
 requests==2.28.1
 uvicorn==0.18.2
 SQLAlchemy==1.4.39
+sgqlc==16.0
