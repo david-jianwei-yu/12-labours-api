@@ -1,6 +1,7 @@
 import json
 import requests
 import mimetypes
+import re
 
 from app.config import Config, Gen3Config, iRODSConfig
 from app.dbtable import StateTable
@@ -13,6 +14,11 @@ from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse, Str
 from pydantic import BaseModel
 
 from irods.session import iRODSSession
+
+from sgqlc.operation import Operation
+from sgqlc.endpoint.http import HTTPEndpoint
+
+from app.schema.slide_schema import Query as SlideQuery
 
 app = FastAPI()
 
@@ -57,17 +63,16 @@ class RecordItem(BaseModel):
 
 
 class GraphQLItem(BaseModel):
-    node_type: Union[str, None] = None
-    filter: Union[str, None] = None
+    node: Union[str, None] = None
+    filter: Union[dict, None] = None
     search: Union[str, None] = None
-    field: Union[str, None] = None
 
 
 class CollectionItem(BaseModel):
     path: Union[str, None] = None
 
 
-@app.on_event("startup")
+@ app.on_event("startup")
 async def start_up():
     try:
         global statetable
@@ -97,12 +102,12 @@ async def start_up():
         print("Encounter an error while creating the iRODS session")
 
 
-@app.get("/", response_class=PlainTextResponse)
+@ app.get("/", response_class=PlainTextResponse)
 async def root():
     return "This is the fastapi backend."
 
 
-@app.get("/health", response_class=PlainTextResponse)
+@ app.get("/health", response_class=PlainTextResponse)
 async def health():
     return json.dumps({"status": "healthy"})
 
@@ -137,13 +142,13 @@ def get_saved_state(table):
 
 
 # An example
-@app.put("/state/getshareid")
+@ app.put("/state/getshareid")
 async def get_share_link():
     return get_share_link(statetable)
 
 
 # Get the map state using the share link id.
-@app.get("/state/getstate")
+@ app.get("/state/getstate")
 async def get_state():
     return get_saved_state(statetable)
 
@@ -153,7 +158,7 @@ async def get_state():
 #
 
 
-@app.get("/program")
+@ app.get("/program")
 # Get the program information from Gen3 Data Commons
 async def get_gen3_program():
     """
@@ -174,7 +179,7 @@ async def get_gen3_program():
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@app.get("/project/{program}")
+@ app.get("/project/{program}")
 # Get all projects information from Gen3 Data Commons
 async def get_gen3_project(program: str):
     """
@@ -197,7 +202,7 @@ async def get_gen3_project(program: str):
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-@app.get("/dictionary")
+@ app.get("/dictionary")
 # Get all dictionary node from Gen3 Data Commons
 async def get_gen3_dictionary():
     """
@@ -219,12 +224,6 @@ async def get_gen3_dictionary():
 
 
 def is_json(json_data):
-    """
-    Returns true if the given string is a valid json.
-
-    :param json_data: The input data need to be checked.
-    :return: True if the string can be parsed as valid json.
-    """
     try:
         json.loads(json_data)
     except ValueError:
@@ -232,7 +231,7 @@ def is_json(json_data):
     return True
 
 
-@app.post("/records/{node_type}")
+@ app.post("/records/{node_type}")
 # Exports all records in a dictionary node
 async def get_gen3_node_records(node_type: str, item: RecordItem):
     """
@@ -259,7 +258,7 @@ async def get_gen3_node_records(node_type: str, item: RecordItem):
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-@app.post("/record/{uuids}")
+@ app.post("/record/{uuids}")
 # Exports one or more records(records must in one node), use comma to separate the uuids
 # e.g. uuid1,uuid2,uuid3
 async def get_gen3_record(uuids: str, item: RecordItem):
@@ -287,54 +286,58 @@ async def get_gen3_record(uuids: str, item: RecordItem):
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-@app.post("/graphql")
+def convert_query(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+def generate_query(item):
+    """
+    Return a query string for a given item.
+    :param item: The item contains node, filter, and search.
+
+    If no filter is specified, the query will require the entire filter element to return all the metadata.
+    """
+    match item.node:
+        case "slide":
+            query = Operation(SlideQuery)
+            slide_query = "{" + convert_query(str(query.slide(
+                additional_metadata=item.filter["additional_metadata"], file_type=item.filter["file_type"], quick_search=item.search))) + "}"
+            return slide_query
+        case _:
+            raise HTTPException(status_code=NOT_FOUND,
+                                detail="Query cannot be generated.")
+
+
+@ app.post("/graphql")
 # Only used for filtering the files in a specific node for now
 async def graphql_query(item: GraphQLItem):
     """
     Return filtered metadata records. The query uses GraphQL query.
 
     filter post format should looks like:
-    '<field_name>: ["<attribute_name>"], ...], ...'
+    {"<filed_name>": ["<attribute_name>"], ...}
 
     search post format should looks like:
-    '"<keyword>"'
-
-    Field post format should looks like:
-    "<field_name> <field_name> <field_name> ..."
+    "<keyword>"
     """
-    if item.node_type == None or item.search == None or item.field == None:
+    print(item)
+    if item.node == None or item.filter == None or item.search == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body")
+                            detail="Missing one ore more fields in request body.")
 
-    if item.filter == None:
-        filter = ""
+    query = generate_query(item)
+    endpoint = HTTPEndpoint(
+        url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
+    result = endpoint(query=query)
+    if item.node in query:
+        return result
     else:
-        filter = item.filter
-    query = {
-        "query":
-        """{""" +
-        f"""{item.node_type}({filter}, quick_search: {item.search})""" +
-        """{""" +
-        f"""{item.field}""" +
-        """}""" +
-        """}"""
-    }
-
-    res = requests.post(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", json=query, headers=HEADER)
-    try:
-        res.raise_for_status()
-        json_data = json.loads(res.content)
-        if json_data["data"][f"{item.node_type}"] != []:
-            return json_data
-        else:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="Data cannot be found in current node")
-    except Exception as e:
-        raise HTTPException(status_code=res.status_code, detail=str(e))
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="Data cannot be found in the node.")
 
 
-@app.get("/download/metadata/{program}/{project}/{uuid}/{format}/{filename}")
+@ app.get("/download/metadata/{program}/{project}/{uuid}/{format}/{filename}")
 async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: str, filename: str):
     """
     Return a single file for a given uuid.
@@ -380,7 +383,7 @@ def get_data_list(collect):
     return collect_list
 
 
-@app.get("/collection")
+@ app.get("/collection")
 async def get_irods_root_collections():
     """
     Return all collections from the root folder.
@@ -395,7 +398,7 @@ async def get_irods_root_collections():
     return {"folders": folders, "files": files}
 
 
-@app.post("/collection")
+@ app.post("/collection")
 async def get_irods_collections(item: CollectionItem):
     """
     Return all collections from the required folder.
@@ -413,7 +416,7 @@ async def get_irods_collections(item: CollectionItem):
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@app.get("/preview/data/{suffix}")
+@ app.get("/preview/data/{suffix}")
 async def preview_irods_data_file(suffix: str):
     """
     Used to preview most types of the data file.
@@ -433,7 +436,7 @@ async def preview_irods_data_file(suffix: str):
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@app.get("/download/data/{suffix}")
+@ app.get("/download/data/{suffix}")
 async def download_irods_data_file(suffix: str):
     """
     Return a specific download file from iRODS.
