@@ -47,7 +47,7 @@ def test_get_gen3_node_records(client):
     response = client.post(f"/records/{NODE_TYPE}", json=test_data_failed_400)
     assert response.status_code == 400
     assert response.json() == {
-        "detail": "Missing one ore more fields in request body"}
+        "detail": "Missing one ore more fields in request body."}
 
     test_data_failed_403 = {
         "program": "demo",
@@ -77,14 +77,14 @@ def test_get_gen3_record(client):
     response = client.post(f"/record/{UUID}", json=test_data_pass)
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json() == [{'id': 'ccc2e137-acc4-4703-9954-be61fa4b638a', 'experiments': [{'node_id': '76a33dd9-757c-491d-a1c7-78333dca2995', 'submitter_id': 'dataset-217-version-2'}], 'samples': [
-    ], 'type': 'slide', 'project_id': 'demo1-12L', 'submitter_id': 'dataset-217-version-2-derivative-scaffold_context_info-json', 'description': 'NA', 'file_type': 'json', 'filename': 'derivative/scaffold_context_info.json', 'timestamp': 'NA', 'additional_metadata': 'derivative'}]
+    assert response.json()[
+        0]["submitter_id"] == "dataset-217-version-2-derivative-scaffold_context_info-json"
 
     test_data_failed_400 = {}
     response = client.post(f"/record/{UUID}", json=test_data_failed_400)
     assert response.status_code == 400
     assert response.json() == {
-        "detail": "Missing one ore more fields in request body"}
+        "detail": "Missing one ore more fields in request body."}
 
     test_data_failed_403 = {
         "program": "demo",
@@ -105,10 +105,11 @@ def test_get_gen3_record(client):
 
 def test_graphql_query(client):
     test_data_pass = {
-        "node_type": "slide",
-        "filter": 'project_id: ["demo1-12L"], timestamp: "NA"',
-        "search": '""',
-        "field": "id",
+        "node": "slide",
+        "filter": {
+            "file_type": ["jpeg", ".xlsx", ".txt"],
+        },
+        "search": "",
     }
     response = client.post("/graphql", json=test_data_pass)
     assert response.status_code == 200
@@ -117,15 +118,18 @@ def test_graphql_query(client):
     test_data_failed_400 = {}
     response = client.post("/graphql", json=test_data_failed_400)
     assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Missing one ore more fields in request body."}
 
-    # test_data_failed_404 = {
-    #     "node_type": "slide",
-    #     "filter": 'project_id: "demo1-12L", timestamp: "None"',
-    #     "search": '""',
-    #     "field": "id",
-    # }
-    # response = client.post("/graphql", json=test_data_failed_404)
-    # assert response.status_code == 404
+    test_data_failed_404 = {
+        "node": "slides",
+        "filter": {
+            "file_type": ["jpeg", ".xlsx", ".txt"],
+        },
+        "search": "",
+    }
+    response = client.post("/graphql", json=test_data_failed_404)
+    assert response.status_code == 404
 
 
 def test_download_gen3_metadata_file(client):
@@ -138,8 +142,8 @@ def test_download_gen3_metadata_file(client):
         f"/download/metadata/{PROG_NAME}/{PROJ_NAME}/{UUID}/{FORM}/{NAME}")
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json() == [{'id': 'ccc2e137-acc4-4703-9954-be61fa4b638a', 'experiments': [{'node_id': '76a33dd9-757c-491d-a1c7-78333dca2995', 'submitter_id': 'dataset-217-version-2'}], 'samples': [
-    ], 'type': 'slide', 'project_id': 'demo1-12L', 'submitter_id': 'dataset-217-version-2-derivative-scaffold_context_info-json', 'description': 'NA', 'file_type': 'json', 'filename': 'derivative/scaffold_context_info.json', 'timestamp': 'NA', 'additional_metadata': 'derivative'}]
+    assert response.json()[
+        0]["submitter_id"] == "dataset-217-version-2-derivative-scaffold_context_info-json"
 
 
 def test_get_irods_root_collections(client):
@@ -163,7 +167,7 @@ def test_get_irodst_collections(client):
     test_post_data_failed_400 = {}
     response = client.post("/collection", json=test_post_data_failed_400)
     assert response.status_code == 400
-    assert response.json() == {"detail": "Missing field in request body"}
+    assert response.json() == {"detail": "Missing field in request body."}
 
     test_post_data_failed_404 = {
         "path": "/tempZone/home/rods/data"

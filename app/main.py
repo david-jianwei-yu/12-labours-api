@@ -6,19 +6,18 @@ import re
 from app.config import Config, Gen3Config, iRODSConfig
 from app.dbtable import StateTable
 
-from typing import Union
-
 from fastapi import FastAPI, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse, StreamingResponse
+
+from typing import Union
 from pydantic import BaseModel
 
 from irods.session import iRODSSession
 
 from sgqlc.operation import Operation
 from sgqlc.endpoint.http import HTTPEndpoint
-
-from app.schema.slide_schema import Query as SlideQuery
+from app.sgqlc_schema import Query
 
 app = FastAPI()
 
@@ -50,10 +49,6 @@ GEN3_CREDENTIALS = {
 
 HEADER = None
 SESSION = None
-
-
-class S3Item(BaseModel):
-    suffix: Union[str, None] = None
 
 
 class RecordItem(BaseModel):
@@ -223,21 +218,13 @@ async def get_gen3_dictionary():
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-def is_json(json_data):
-    try:
-        json.loads(json_data)
-    except ValueError:
-        return False
-    return True
-
-
-@ app.post("/records/{node_type}")
+@ app.post("/records/{node}")
 # Exports all records in a dictionary node
-async def get_gen3_node_records(node_type: str, item: RecordItem):
+async def get_gen3_node_records(node: str, item: RecordItem):
     """
     Return all records in a dictionary node.
 
-    :param node_type: The dictionary node to export.
+    :param node: The dictionary node to export.
     :return: A list of json object containing all records in the dictionary node.
     """
     if item.program == None or item.project == None or item.format == None:
@@ -245,15 +232,15 @@ async def get_gen3_node_records(node_type: str, item: RecordItem):
                             detail="Missing one ore more fields in request body.")
 
     res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label={node_type}&format={item.format}", headers=HEADER)
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label={node}&format={item.format}", headers=HEADER)
     try:
         res.raise_for_status()
         json_data = json.loads(res.content)
-        if is_json(res.content) and "data" in json_data and json_data["data"] != []:
+        if b"id" in res.content:
             return json_data
         else:
             raise HTTPException(status_code=NOT_FOUND,
-                                detail="Records cannot be found.")
+                                detail="Node records cannot be found.")
     except Exception as e:
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
@@ -270,7 +257,7 @@ async def get_gen3_record(uuids: str, item: RecordItem):
     """
     if item.program == None or item.project == None or item.format == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body")
+                            detail="Missing one ore more fields in request body.")
 
     res = requests.get(
         f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?ids={uuids}&format={item.format}", headers=HEADER)
@@ -286,31 +273,35 @@ async def get_gen3_record(uuids: str, item: RecordItem):
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-def convert_query(name):
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+def convert_query(query):
+    new_query = re.sub(r'_[A-Z]', lambda x:  x.group(0).lower(),
+                       re.sub('([a-z])([A-Z])', r'\1_\2', query))
+    return new_query
 
 
 def generate_query(item):
-    """
-    Return a query string for a given item.
-    :param item: The item contains node, filter, and search.
-
-    If no filter is specified, the query will require the entire filter element to return all the metadata.
-    """
+    query = Operation(Query)
     match item.node:
         case "slide":
-            query = Operation(SlideQuery)
-            slide_query = "{" + convert_query(str(query.slide(
-                additional_metadata=item.filter["additional_metadata"], file_type=item.filter["file_type"], quick_search=item.search))) + "}"
-            return slide_query
+            if "file_type" in item.filter:
+                slide_query = "{" + convert_query(str(query.slide(
+                    file_type=item.filter["file_type"], quick_search=item.search))) + "}"
+                return slide_query
+            else:
+                raise HTTPException(status_code=NOT_FOUND,
+                                    detail="The filter attributes cannot be empty.")
+        case "case":
+            if "sex" in item.filter and "species" in item.filter:
+                case_query = "{" + convert_query(str(query.case(
+                    sex=item.filter["sex"], species=item.filter["species"], quick_search=item.search))) + "}"
+                return case_query
         case _:
             raise HTTPException(status_code=NOT_FOUND,
                                 detail="Query cannot be generated.")
 
 
 @ app.post("/graphql")
-# Only used for filtering the files in a specific node for now
+# Only used for filtering and searching the files in a specific node
 async def graphql_query(item: GraphQLItem):
     """
     Return filtered metadata records. The query uses GraphQL query.
@@ -321,7 +312,6 @@ async def graphql_query(item: GraphQLItem):
     search post format should looks like:
     "<keyword>"
     """
-    print(item)
     if item.node == None or item.filter == None or item.search == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
@@ -330,7 +320,7 @@ async def graphql_query(item: GraphQLItem):
     endpoint = HTTPEndpoint(
         url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
     result = endpoint(query=query)
-    if item.node in query:
+    if result["data"] is not None and result["data"][item.node] != []:
         return result
     else:
         raise HTTPException(status_code=NOT_FOUND,
@@ -372,7 +362,7 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
 #
 
 
-def get_data_list(collect):
+def get_collection_list(collect):
     collect_list = []
     for ele in collect:
         collect_list.append({
@@ -393,8 +383,8 @@ async def get_irods_root_collections():
             f"{iRODSConfig.IRODS_ENDPOINT_URL}")
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
-    folders = get_data_list(collect.subcollections)
-    files = get_data_list(collect.data_objects)
+    folders = get_collection_list(collect.subcollections)
+    files = get_collection_list(collect.data_objects)
     return {"folders": folders, "files": files}
 
 
@@ -405,12 +395,12 @@ async def get_irods_collections(item: CollectionItem):
     """
     if item.path == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing field in request body")
+                            detail="Missing field in request body.")
 
     try:
         collect = SESSION.collections.get(item.path)
-        folders = get_data_list(collect.subcollections)
-        files = get_data_list(collect.data_objects)
+        folders = get_collection_list(collect.subcollections)
+        files = get_collection_list(collect.data_objects)
         return {"folders": folders, "files": files}
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
