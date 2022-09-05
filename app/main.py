@@ -406,17 +406,16 @@ async def get_irods_collections(item: CollectionItem):
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@ app.get("/preview/data/{suffix}")
-async def preview_irods_data_file(suffix: str):
+@ app.get("/preview/data/{file_path:path}")
+async def preview_irods_data_file(file_path: str):
     """
     Used to preview most types of the data file.
 
-    :param suffix: Required iRODS file path.
+    :param file_path: Required iRODS file path.
     """
-    url_suffix = suffix.replace("&", "/")
     try:
         file = SESSION.data_objects.get(
-            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{url_suffix}")
+            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{file_path}")
 
         def iterfile():
             with file.open("r") as file_like:
@@ -426,18 +425,17 @@ async def preview_irods_data_file(suffix: str):
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@ app.get("/download/data/{suffix}")
-async def download_irods_data_file(suffix: str):
+@ app.get("/download/data/{file_path:path}")
+async def download_irods_data_file(file_path: str):
     """
     Return a specific download file from iRODS.
 
-    :param suffix: Required iRODS file path.
+    :param file_path: Required iRODS file path.
     :return: A file with data.
     """
-    url_suffix = suffix.replace("&", "/")
     try:
         file = SESSION.data_objects.get(
-            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{url_suffix}")
+            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{file_path}")
         with file.open("r") as f:
             content = f.read()
         return Response(content=content,
