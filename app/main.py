@@ -285,7 +285,7 @@ def generate_query(item):
         case "slide":
             if "file_type" in item.filter:
                 slide_query = "{" + convert_query(str(query.slide(
-                    file_type=item.filter["file_type"], quick_search=item.search))) + "}"
+                    file_type=item.filter["file_type"]))) + "}"
                 return slide_query
             else:
                 raise HTTPException(status_code=NOT_FOUND,
@@ -293,11 +293,16 @@ def generate_query(item):
         case "case":
             if "sex" in item.filter and "species" in item.filter:
                 case_query = "{" + convert_query(str(query.case(
-                    sex=item.filter["sex"], species=item.filter["species"], quick_search=item.search))) + "}"
+                    sex=item.filter["sex"], species=item.filter["species"]))) + "}"
                 return case_query
         case _:
             raise HTTPException(status_code=NOT_FOUND,
                                 detail="Query cannot be generated.")
+
+
+def search_keyword(keyword, result):
+    print(keyword)
+    print(result)
 
 
 @ app.post("/graphql")
@@ -321,7 +326,11 @@ async def graphql_query(item: GraphQLItem):
         url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
     result = endpoint(query=query)
     if result["data"] is not None and result["data"][item.node] != []:
-        return result
+        if item.search != "":
+            search_result = search_keyword(item.search, result)
+            return result
+        else:
+            return result
     else:
         raise HTTPException(status_code=NOT_FOUND,
                             detail="Data cannot be found in the node.")
@@ -420,7 +429,10 @@ async def preview_irods_data_file(file_path: str):
         def iterfile():
             with file.open("r") as file_like:
                 yield from file_like
-        return StreamingResponse(iterfile(), media_type=mimetypes.guess_type(file.name)[0])
+        return StreamingResponse(iterfile(),
+                                 media_type=mimetypes.guess_type(file.name)[0],
+                                 headers={"Content-Disposition":
+                                 f"attachment;filename={file.name}"})
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
@@ -438,6 +450,7 @@ async def download_irods_data_file(file_path: str):
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{file_path}")
         with file.open("r") as f:
             content = f.read()
+            print(type(content))
         return Response(content=content,
                         media_type=mimetypes.guess_type(file.name)[0],
                         headers={"Content-Disposition":
