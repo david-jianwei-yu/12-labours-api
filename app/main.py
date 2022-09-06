@@ -300,9 +300,20 @@ def generate_query(item):
                                 detail="Query cannot be generated.")
 
 
-def search_keyword(keyword, result):
-    print(keyword)
-    print(result)
+def search_keyword(node, keyword, result):
+    search_result = []
+    keyword_list = re.findall('([0-9a-zA-Z]+)', keyword)
+    for ele in result["data"][node]:
+        count = 0
+        for word in keyword_list:
+            if str.encode(word) in json.dumps(ele).encode('utf-8'):
+                count += 1
+                search_result.append(ele)
+    sorted_result = sorted(
+        search_result, key=search_result.count, reverse=True)
+    result = []
+    [result.append(x) for x in sorted_result if x not in result]
+    return {"data": {node: result}}
 
 
 @ app.post("/graphql")
@@ -327,8 +338,8 @@ async def graphql_query(item: GraphQLItem):
     result = endpoint(query=query)
     if result["data"] is not None and result["data"][item.node] != []:
         if item.search != "":
-            search_result = search_keyword(item.search, result)
-            return result
+            search_result = search_keyword(item.node, item.search, result)
+            return search_result
         else:
             return result
     else:
@@ -415,32 +426,10 @@ async def get_irods_collections(item: CollectionItem):
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@ app.get("/preview/data/{file_path:path}")
-async def preview_irods_data_file(file_path: str):
+@ app.get("/{action}/data/{file_path:path}")
+async def download_irods_data_file(action: str, file_path: str):
     """
-    Used to preview most types of the data file.
-
-    :param file_path: Required iRODS file path.
-    """
-    try:
-        file = SESSION.data_objects.get(
-            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{file_path}")
-
-        def iterfile():
-            with file.open("r") as file_like:
-                yield from file_like
-        return StreamingResponse(iterfile(),
-                                 media_type=mimetypes.guess_type(file.name)[0],
-                                 headers={"Content-Disposition":
-                                 f"attachment;filename={file.name}"})
-    except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
-
-
-@ app.get("/download/data/{file_path:path}")
-async def download_irods_data_file(file_path: str):
-    """
-    Return a specific download file from iRODS.
+    Return a specific download file from iRODS or a preview of most types data.
 
     :param file_path: Required iRODS file path.
     :return: A file with data.
@@ -448,12 +437,14 @@ async def download_irods_data_file(file_path: str):
     try:
         file = SESSION.data_objects.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{file_path}")
-        with file.open("r") as f:
-            content = f.read()
-            print(type(content))
-        return Response(content=content,
-                        media_type=mimetypes.guess_type(file.name)[0],
-                        headers={"Content-Disposition":
-                                 f"attachment;filename={file.name}"})
+        if action == "preview":
+            with file.open("r") as f:
+                content = f.read()
+            return Response(content=content, media_type=mimetypes.guess_type(file.name)[0],)
+        elif action == "download":
+            def iterfile():
+                with file.open("r") as file_like:
+                    yield from file_like
+            return StreamingResponse(iterfile(), media_type=mimetypes.guess_type(file.name)[0], headers={"Content-Disposition": f"attachment;filename={file.name}"})
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
