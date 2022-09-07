@@ -400,27 +400,27 @@ async def get_irods_collections(item: CollectionItem):
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@ app.get("/{action}/data/{file_path:path}")
-async def download_irods_data_file(action: str, file_path: str):
+@ app.get("/download/data/{file_path:path}")
+async def download_irods_data_file(file_path: str):
     """
     Return a specific download file from iRODS or a preview of most types data.
 
-    :param action: Must be one of the following action - "download" or "preview".
     :param file_path: Required iRODS file path.
     :return: A file with data.
     """
+    chunk_size = 1024*1024
     try:
         file = SESSION.data_objects.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{file_path}")
-        if action == "preview":
-            with file.open("r") as f:
-                content = f.read()
-            return Response(content=content, media_type=mimetypes.guess_type(file.name)[0])
-        elif action == "download":
-            def iterfile():
-                with file.open("r") as file_like:
-                    yield from file_like
-            return StreamingResponse(iterfile(), media_type=mimetypes.guess_type(file.name)[0], headers={"Content-Disposition":
-                                                                                                         f"attachment;filename={file.name}"})
+
+        def iterate_file():
+            with file.open("r") as file_like:
+                chunk = file_like.read(chunk_size)
+                while chunk:
+                    yield chunk
+                    chunk = file_like.read(chunk_size)
+        return StreamingResponse(iterate_file(),
+                                 media_type=mimetypes.guess_type(file.name)[0],
+                                 headers={"Content-Disposition": f"attachment;filename={file.name}"})
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
