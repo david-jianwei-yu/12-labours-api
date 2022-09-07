@@ -275,7 +275,7 @@ async def get_gen3_record(uuids: str, item: RecordItem):
 
 def search_keyword(node, keyword, result):
     search_result = []
-    keyword_list = re.findall('([0-9a-zA-Z]+)', keyword)
+    keyword_list = re.findall('([-_0-9a-zA-Z]+)', keyword)
     for ele in result["data"][node]:
         count = 0
         for word in keyword_list:
@@ -405,6 +405,7 @@ async def download_irods_data_file(action: str, file_path: str):
     """
     Return a specific download file from iRODS or a preview of most types data.
 
+    :param action: Must be one of the following action - "download" or "preview".
     :param file_path: Required iRODS file path.
     :return: A file with data.
     """
