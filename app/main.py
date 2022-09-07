@@ -8,16 +8,16 @@ from app.dbtable import StateTable
 
 from fastapi import FastAPI, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse, StreamingResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
 
 from typing import Union
 from pydantic import BaseModel
 
 from irods.session import iRODSSession
 
-from sgqlc.operation import Operation
 from sgqlc.endpoint.http import HTTPEndpoint
-from app.sgqlc_schema import Query
+from app.sgqlc import Generator
+
 
 app = FastAPI()
 
@@ -273,33 +273,6 @@ async def get_gen3_record(uuids: str, item: RecordItem):
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-def convert_query(query):
-    new_query = re.sub(r'_[A-Z]', lambda x:  x.group(0).lower(),
-                       re.sub('([a-z])([A-Z])', r'\1_\2', query))
-    return new_query
-
-
-def generate_query(item):
-    query = Operation(Query)
-    match item.node:
-        case "slide":
-            if "file_type" in item.filter:
-                slide_query = "{" + convert_query(str(query.slide(
-                    file_type=item.filter["file_type"]))) + "}"
-                return slide_query
-            else:
-                raise HTTPException(status_code=NOT_FOUND,
-                                    detail="The filter attributes cannot be empty.")
-        case "case":
-            if "sex" in item.filter and "species" in item.filter:
-                case_query = "{" + convert_query(str(query.case(
-                    sex=item.filter["sex"], species=item.filter["species"]))) + "}"
-                return case_query
-        case _:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="Query cannot be generated.")
-
-
 def search_keyword(node, keyword, result):
     search_result = []
     keyword_list = re.findall('([0-9a-zA-Z]+)', keyword)
@@ -332,7 +305,8 @@ async def graphql_query(item: GraphQLItem):
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
-    query = generate_query(item)
+    g = Generator()
+    query = g.generate_query(item)
     endpoint = HTTPEndpoint(
         url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
     result = endpoint(query=query)
@@ -440,11 +414,12 @@ async def download_irods_data_file(action: str, file_path: str):
         if action == "preview":
             with file.open("r") as f:
                 content = f.read()
-            return Response(content=content, media_type=mimetypes.guess_type(file.name)[0],)
+            return Response(content=content, media_type=mimetypes.guess_type(file.name)[0])
         elif action == "download":
             def iterfile():
                 with file.open("r") as file_like:
                     yield from file_like
-            return StreamingResponse(iterfile(), media_type=mimetypes.guess_type(file.name)[0], headers={"Content-Disposition": f"attachment;filename={file.name}"})
+            return StreamingResponse(iterfile(), media_type=mimetypes.guess_type(file.name)[0], headers={"Content-Disposition":
+                                                                                                         f"attachment;filename={file.name}"})
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
