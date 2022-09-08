@@ -2,18 +2,23 @@ from sgqlc.types.relay import Node
 from sgqlc.types import String, Type, Field, list_of
 
 
+class ExperimentNode(Node):
+    submitter_id = String
+
+
 class DatasetDescriptionNode(Node):
     id = String
+    experiments = list_of(ExperimentNode)
     submitter_id = String
-    contributor_affiliation = String
-    contributor_name = String
-    contributor_orcid = String
-    contributor_role = String
+    contributor_affiliation = list_of(String)
+    contributor_name = list_of(String)
+    contributor_orcid = list_of(String)
+    contributor_role = list_of(String)
     dataset_type = String
     identifier = String
     identifier_description = String
     identifier_type = String
-    keywords = String
+    keywords = list_of(String)
     metadata_version = String
     number_of_samples = String
     number_of_subjects = String
@@ -28,47 +33,32 @@ class DatasetDescriptionNode(Node):
     title = String
     acknowledgments = String
     funding = String
-    study_collection_title = String
 
 
-class CaseNode(Node):
-    id = String
-    submitter_id = String
-    age = String
-    age_category = String
-    rrid_for_strain = String
-    sex = String
-    species = String
-    protocol_title = String
-    protocol_url_or_doi = String
-
-
-class SlideNode(Node):
-    id = String
+class ManifestNode(Node):
     submitter_id = String
     description = String
     file_type = String
     filename = String
-    additional_metadata = String
+    timestamp = String
+    additional_types = String
+    is_source_of = String
+    is_derived_from = String
+    supplemental_json_metadata = String
+    id = String
 
 
 class Query(Type):
-    case = Field(
-        CaseNode,
-        args={
-            'sex': list_of(String),
-            'species': list_of(String),
-        }
-    )
     datasetDescription = Field(
         DatasetDescriptionNode,
         args={
+            'first': int,
             'study_organ_system': list_of(String),
         }
     )
-    slide = Field(
-        SlideNode,
+    manifest = Field(
+        ManifestNode,
         args={
-            'file_type': list_of(String),
+            'first': int,
         }
     )
