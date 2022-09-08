@@ -275,11 +275,11 @@ async def get_gen3_record(uuids: str, item: RecordItem):
 
 def search_keyword(node, keyword, result):
     search_result = []
-    keyword_list = re.findall('([-_0-9a-zA-Z]+)', keyword)
+    keyword_list = re.findall('([-0-9a-zA-Z]+)', keyword)
     for ele in result["data"][node]:
         count = 0
         for word in keyword_list:
-            if str.encode(word) in json.dumps(ele).encode('utf-8'):
+            if word.lower() in json.dumps(ele).lower():
                 count += 1
                 search_result.append(ele)
     sorted_result = sorted(

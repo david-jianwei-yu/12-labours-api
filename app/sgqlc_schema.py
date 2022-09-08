@@ -58,20 +58,17 @@ class Query(Type):
         args={
             'sex': list_of(String),
             'species': list_of(String),
-            'quick_search': String,
         }
     )
     datasetDescription = Field(
         DatasetDescriptionNode,
         args={
             'study_organ_system': list_of(String),
-            'quick_search': String,
         }
     )
     slide = Field(
         SlideNode,
         args={
             'file_type': list_of(String),
-            'quick_search': String,
         }
     )
