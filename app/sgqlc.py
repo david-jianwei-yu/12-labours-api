@@ -26,9 +26,14 @@ class Generator:
                     raise HTTPException(status_code=NOT_FOUND,
                                         detail="The filter does not exist.")
             case "manifest":
-                manifest_query = "{" + \
-                    self.convert_query(str(query.manifest(first=0))) + "}"
-                return manifest_query
+                if "additional_types" in item.filter:
+                    manifest_query = "{" + \
+                        self.convert_query(str(query.manifest(
+                            first=0, additional_types=item.filter["additional_types"]))) + "}"
+                    return manifest_query
+                else:
+                    raise HTTPException(status_code=NOT_FOUND,
+                                        detail="The filter does not exist.")
             case _:
                 raise HTTPException(status_code=NOT_FOUND,
                                     detail="Query cannot be generated.")

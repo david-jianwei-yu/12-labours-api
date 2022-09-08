@@ -60,5 +60,6 @@ class Query(Type):
         ManifestNode,
         args={
             'first': int,
+            'additional_types': list_of(String)
         }
     )
