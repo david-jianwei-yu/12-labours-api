@@ -26,9 +26,6 @@ def test_get_gen3_project(client):
 def test_get_gen3_dictionary(client):
     response = client.get("/dictionary")
     assert response.status_code == 200
-    assert len(response.json()["dictionary"]) == 20
-    assert response.json() == {"dictionary": ["root", "data_release", "slide_count", "case", "resource", "code_description", "performance", "experiment", "program", "experimental_metadata",
-                                              "core_metadata_collection", "project", "code_parameter", "slide", "dataset_description", "submission", "sample", "slide_image", "aliquot", "_all"]}
 
 
 def test_get_gen3_node_records(client):
@@ -105,9 +102,9 @@ def test_get_gen3_record(client):
 
 def test_graphql_query(client):
     test_data_pass = {
-        "node": "slide",
+        "node": "manifest",
         "filter": {
-            "file_type": ["jpeg", ".xlsx", ".txt"],
+            "additional_types": ["application/x.vnd.abi.scaffold.meta+json"],
         },
         "search": "",
     }
@@ -122,9 +119,9 @@ def test_graphql_query(client):
         "detail": "Missing one ore more fields in request body."}
 
     test_data_failed_404 = {
-        "node": "slides",
+        "node": "irods",
         "filter": {
-            "file_type": ["jpeg", ".xlsx", ".txt"],
+            "additional_types": ["application/x.vnd.abi.scaffold.meta+json"],
         },
         "search": "",
     }
@@ -149,9 +146,6 @@ def test_download_gen3_metadata_file(client):
 def test_get_irods_root_collections(client):
     response = client.get("/collection")
     assert response.status_code == 200
-    assert len(response.json()) == 2
-    assert response.json() == {'files': [], 'folders': [{'id': 10014, 'name': 'datasets', 'path': '/tempZone/home/rods/datasets'}, {
-        'id': 10068, 'name': 'uploads', 'path': '/tempZone/home/rods/uploads'}]}
 
 
 def test_get_irodst_collections(client):
@@ -160,9 +154,6 @@ def test_get_irodst_collections(client):
     }
     response = client.post("/collection", json=test_post_data_pass)
     assert response.status_code == 200
-    assert len(response.json()) == 2
-    assert response.json() == {'files': [], 'folders': [{'id': 10030, 'name': 'dataset-217-version-2', 'path': '/tempZone/home/rods/datasets/dataset-217-version-2'}, {'id': 10031, 'name': 'dataset-264-version-1', 'path': '/tempZone/home/rods/datasets/dataset-264-version-1'}]} != {
-        'folders': [{'id': 10030, 'name': 'dataset-217-version-2', 'path': '/tempZone/home/rods/datasets/dataset...ion-2'}, {'id': 10031, 'name': 'dataset-264-version-1', 'path': '/tempZone/home/rods/datasets/dataset-264-version-1'}]}
 
     test_post_data_failed_400 = {}
     response = client.post("/collection", json=test_post_data_failed_400)
@@ -177,16 +168,16 @@ def test_get_irodst_collections(client):
 
 
 def test_preview_irods_data_file(client):
-    SUFFIX = "datasets&dataset-217-version-2&derivative&scaffold_context_info.json"
-    response = client.get(f"/preview/data/{SUFFIX}")
+    FILEPATH = "datasets/dataset-217-version-2/derivative/scaffold_context_info.json"
+    response = client.get(f"/preview/data/{FILEPATH}")
     assert response.status_code == 200
     assert response.json() == {"description": "Annotated brainstem scaffold for pig available for registration of segmented neural anatomical-functional mapping of neural circuits.",
                                "heading": "Generic pig brainstem scaffold", "id": "sparc.science.context_data", "samples": [], "version": "0.1.0", "views": []}
 
 
 def test_download_irods_data_file(client):
-    SUFFIX = "datasets&dataset-217-version-2&derivative&scaffold_context_info.json"
-    response = client.get(f"/download/data/{SUFFIX}")
+    FILEPATH = "datasets/dataset-217-version-2/derivative/scaffold_context_info.json"
+    response = client.get(f"/download/data/{FILEPATH}")
     assert response.status_code == 200
     assert response.json() == {"description": "Annotated brainstem scaffold for pig available for registration of segmented neural anatomical-functional mapping of neural circuits.",
                                "heading": "Generic pig brainstem scaffold", "id": "sparc.science.context_data", "samples": [], "version": "0.1.0", "views": []}
