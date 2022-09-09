@@ -36,7 +36,9 @@ class DatasetDescriptionNode(Node):
 
 
 class ManifestNode(Node):
+    id = String
     submitter_id = String
+    experiments = list_of(ExperimentNode)
     description = String
     file_type = String
     filename = String
@@ -45,7 +47,6 @@ class ManifestNode(Node):
     is_source_of = String
     is_derived_from = String
     supplemental_json_metadata = String
-    id = String
 
 
 class Query(Type):
