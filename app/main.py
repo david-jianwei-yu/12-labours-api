@@ -18,6 +18,7 @@ from irods.session import iRODSSession
 from sgqlc.endpoint.http import HTTPEndpoint
 from app.sgqlc import Generator
 
+from app.mime_types import MAPPED_MIME_TYPES
 
 app = FastAPI()
 
@@ -276,7 +277,7 @@ async def get_gen3_record(uuids: str, item: RecordItem):
 def search_keyword(node, keyword, result):
     search_result = []
     keyword_list = re.findall('([-0-9a-zA-Z]+)', keyword)
-    for ele in result["data"][node]:
+    for ele in result[node]:
         count = 0
         for word in keyword_list:
             if word.lower() in json.dumps(ele).lower():
@@ -284,9 +285,17 @@ def search_keyword(node, keyword, result):
                 search_result.append(ele)
     sorted_result = sorted(
         search_result, key=search_result.count, reverse=True)
-    result = []
-    [result.append(x) for x in sorted_result if x not in result]
-    return {"data": {node: result}}
+    output_result = []
+    [output_result.append(x) for x in sorted_result if x not in output_result]
+    return {node: output_result}
+
+
+def convert_mime_type(node, result):
+    for ele in result[node]:
+        mime_type_key = result_value = ele["additional_types"]
+        if result_value is not None and mime_type_key in MAPPED_MIME_TYPES:
+            ele["additional_types"] = MAPPED_MIME_TYPES[mime_type_key]
+    return result
 
 
 @ app.post("/graphql")
@@ -309,8 +318,10 @@ async def graphql_query(item: GraphQLItem):
     query = g.generate_query(item)
     endpoint = HTTPEndpoint(
         url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
-    result = endpoint(query=query)
-    if result["data"] is not None and result["data"][item.node] != []:
+    result = endpoint(query=query)["data"]
+    if result is not None and result[item.node] != []:
+        if item.node == "manifest":
+            result = convert_mime_type(item.node, result)
         if item.search != "":
             search_result = search_keyword(item.node, item.search, result)
             return search_result
