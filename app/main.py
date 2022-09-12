@@ -290,14 +290,6 @@ def search_keyword(node, keyword, result):
     return {node: output_result}
 
 
-def convert_mime_type(node, result):
-    for ele in result[node]:
-        mime_type_key = result_value = ele["additional_types"]
-        if result_value is not None and mime_type_key in MAPPED_MIME_TYPES:
-            ele["additional_types"] = MAPPED_MIME_TYPES[mime_type_key]
-    return result
-
-
 @ app.post("/graphql")
 # Only used for filtering and searching the files in a specific node
 async def graphql_query(item: GraphQLItem):
@@ -320,8 +312,6 @@ async def graphql_query(item: GraphQLItem):
         url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
     result = endpoint(query=query)["data"]
     if result is not None and result[item.node] != []:
-        if item.node == "manifest":
-            result = convert_mime_type(item.node, result)
         if item.search != "":
             search_result = search_keyword(item.node, item.search, result)
             return search_result
