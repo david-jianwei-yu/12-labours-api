@@ -64,6 +64,11 @@ class GraphQLItem(BaseModel):
     search: Union[str, None] = None
 
 
+class FilterItem(BaseModel):
+    program: Union[str, None] = None
+    project: Union[str, None] = None
+
+
 class CollectionItem(BaseModel):
     path: Union[str, None] = None
 
@@ -320,6 +325,50 @@ async def graphql_query(item: GraphQLItem):
     else:
         raise HTTPException(status_code=NOT_FOUND,
                             detail="Data cannot be found in the node.")
+
+
+def generate_mime_type_filter_data(data):
+    result = {}
+    for ele in data["data"]:
+        dataset_value = ele["experiments"][0]["submitter_id"]
+        if "additional_types" in ele.keys():
+            mime_type_key = ele["additional_types"]
+            if mime_type_key in MAPPED_MIME_TYPES:
+                # Convert the value name with more readable word
+                ele["additional_types"] = MAPPED_MIME_TYPES[mime_type_key]
+                # Re-assign the value
+                mime_type_key = ele["additional_types"]
+                if mime_type_key not in result.keys():
+                    result[mime_type_key] = [dataset_value]
+                else:
+                    # Avoid duplicate value
+                    if dataset_value not in result[mime_type_key]:
+                        result[mime_type_key].append(dataset_value)
+    return result
+
+
+@app.post("/filter/mimetypes")
+async def mime_types_filter(item: FilterItem):
+    """
+    Return the support data for frontend mime type filter.
+    """
+    if item.program == None or item.project == None:
+        raise HTTPException(status_code=BAD_REQUEST,
+                            detail="Missing one ore more fields in request body.")
+
+    res = requests.get(
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label=manifest&format=json", headers=HEADER)
+    try:
+        res.raise_for_status()
+        json_data = json.loads(res.content)
+        if b"id" in res.content:
+            filter_result = generate_mime_type_filter_data(json_data)
+            return filter_result
+        else:
+            raise HTTPException(status_code=NOT_FOUND,
+                                detail="Node records cannot be found.")
+    except Exception as e:
+        raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
 @ app.get("/download/metadata/{program}/{project}/{uuid}/{format}/{filename}")
