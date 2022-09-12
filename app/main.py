@@ -340,11 +340,11 @@ def generate_mime_type_filter_data(data):
                 # Re-assign the value
                 mime_type_key = ele["additional_types"]
                 if mime_type_key not in result.keys():
-                    result[mime_type_key] = [dataset_value]
+                    result[mime_type_key] = dataset_value
                 else:
                     # Avoid duplicate value
                     if dataset_value not in result[mime_type_key]:
-                        result[mime_type_key].append(dataset_value)
+                        result[mime_type_key] += ", " + dataset_value
     return {"data": result}
 
 
