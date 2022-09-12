@@ -44,8 +44,8 @@ class ManifestNode(Node):
     filename = String
     timestamp = String
     additional_types = String
-    is_source_of = String
-    is_derived_from = String
+    is_source_of = list_of(String)
+    is_derived_from = list_of(String)
     supplemental_json_metadata = String
 
 

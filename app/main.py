@@ -335,7 +335,8 @@ def generate_mime_type_filter_data(data):
             mime_type_key = ele["additional_types"]
             if mime_type_key in MAPPED_MIME_TYPES:
                 # Convert the value name with more readable word
-                ele["additional_types"] = MAPPED_MIME_TYPES[mime_type_key]
+                ele["additional_types"] = re.sub(
+                    '(_[A-Z]+)', '', MAPPED_MIME_TYPES[mime_type_key]).capitalize()
                 # Re-assign the value
                 mime_type_key = ele["additional_types"]
                 if mime_type_key not in result.keys():
@@ -344,7 +345,7 @@ def generate_mime_type_filter_data(data):
                     # Avoid duplicate value
                     if dataset_value not in result[mime_type_key]:
                         result[mime_type_key].append(dataset_value)
-    return result
+    return {"data": result}
 
 
 @app.post("/filter/mimetypes")
