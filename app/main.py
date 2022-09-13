@@ -59,6 +59,8 @@ class RecordItem(BaseModel):
 
 
 class GraphQLItem(BaseModel):
+    number: Union[int, None] = None
+    page: Union[int, None] = None
     node: Union[str, None] = None
     filter: Union[dict, None] = None
     search: Union[str, None] = None
@@ -279,10 +281,10 @@ async def get_gen3_record(uuids: str, item: RecordItem):
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-def search_keyword(node, keyword, result):
+def search_keyword(node, keyword, data):
     search_result = []
     keyword_list = re.findall('([-0-9a-zA-Z]+)', keyword)
-    for ele in result[node]:
+    for ele in data[node]:
         count = 0
         for word in keyword_list:
             if word.lower() in json.dumps(ele).lower():
@@ -293,6 +295,17 @@ def search_keyword(node, keyword, result):
     output_result = []
     [output_result.append(x) for x in sorted_result if x not in output_result]
     return {node: output_result}
+
+
+def pagination(number, node, data):
+    node_count = f"_{node}_count"
+    endpoint = HTTPEndpoint(
+        url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
+    # get the total number of the records
+    total = endpoint(query="{"+node_count+"}")["data"][node_count]
+    # calculate the total page number
+    page = int(total/number)+1
+    return {"data": data[node], "page": page, "total": total}
 
 
 @ app.post("/graphql")
@@ -318,10 +331,9 @@ async def graphql_query(item: GraphQLItem):
     result = endpoint(query=query)["data"]
     if result is not None and result[item.node] != []:
         if item.search != "":
-            search_result = search_keyword(item.node, item.search, result)
-            return search_result
-        else:
-            return result
+            result = search_keyword(item.node, item.search, result)
+        result = pagination(item.number, item.node, result)
+        return result
     else:
         raise HTTPException(status_code=NOT_FOUND,
                             detail="Data cannot be found in the node.")
@@ -407,9 +419,9 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
 #
 
 
-def get_collection_list(collect):
+def get_collection_list(data):
     collect_list = []
-    for ele in collect:
+    for ele in data:
         collect_list.append({
             "id": ele.id,
             "name": ele.name,

@@ -20,20 +20,20 @@ class Generator:
             case "dataset_description":
                 if "study_organ_system" in item.filter:
                     dataset_description_query = self.convert_query(query.datasetDescription(
-                        first=0, study_organ_system=item.filter["study_organ_system"]))
+                        first=item.number, offset=(item.page-1)*item.number, study_organ_system=item.filter["study_organ_system"]))
                     return dataset_description_query
                 else:
                     dataset_description_query = self.convert_query(
-                        query.datasetDescription(first=0))
+                        query.datasetDescription(first=item.number, offset=(item.page-1)*item.number))
                     return dataset_description_query
             case "manifest":
                 if "additional_types" in item.filter:
                     manifest_query = self.convert_query(query.manifest(
-                        first=0, additional_types=item.filter["additional_types"]))
+                        first=item.number, offset=(item.page-1)*item.number, additional_types=item.filter["additional_types"]))
                     return manifest_query
                 else:
                     manifest_query = self.convert_query(
-                        query.manifest(first=0))
+                        query.manifest(first=item.number, offset=(item.page-1)*item.number))
                     return manifest_query
             case _:
                 raise HTTPException(status_code=NOT_FOUND,

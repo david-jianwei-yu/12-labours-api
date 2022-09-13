@@ -54,6 +54,7 @@ class Query(Type):
         DatasetDescriptionNode,
         args={
             'first': int,
+            'offset': int,
             'study_organ_system': list_of(String),
         }
     )
@@ -61,6 +62,7 @@ class Query(Type):
         ManifestNode,
         args={
             'first': int,
+            'offset': int,
             'additional_types': list_of(String)
         }
     )
