@@ -59,8 +59,6 @@ class RecordItem(BaseModel):
 
 
 class GraphQLItem(BaseModel):
-    number: Union[int, None] = None
-    page: Union[int, None] = None
     node: Union[str, None] = None
     filter: Union[dict, None] = None
     search: Union[str, None] = None
@@ -281,22 +279,6 @@ async def get_gen3_record(uuids: str, item: RecordItem):
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-def search_keyword(node, keyword, data):
-    search_result = []
-    keyword_list = re.findall('([-0-9a-zA-Z]+)', keyword)
-    for ele in data[node]:
-        count = 0
-        for word in keyword_list:
-            if word.lower() in json.dumps(ele).lower():
-                count += 1
-                search_result.append(ele)
-    sorted_result = sorted(
-        search_result, key=search_result.count, reverse=True)
-    output_result = []
-    [output_result.append(x) for x in sorted_result if x not in output_result]
-    return {node: output_result}
-
-
 def pagination(number, node, data):
     node_count = f"_{node}_count"
     endpoint = HTTPEndpoint(
@@ -306,6 +288,22 @@ def pagination(number, node, data):
     # calculate the total page number
     page = int(total/number)+1
     return {"data": data[node], "page": page, "total": total}
+
+
+def search_keyword(keyword, data):
+    search_result = []
+    keyword_list = re.findall('([-0-9a-zA-Z]+)', keyword)
+    for ele in data["data"]:
+        count = 0
+        for word in keyword_list:
+            if word.lower() in json.dumps(ele).lower():
+                count += 1
+                search_result.append(ele)
+    sorted_result = sorted(
+        search_result, key=search_result.count, reverse=True)
+    output_result = []
+    [output_result.append(x) for x in sorted_result if x not in output_result]
+    return {"data": output_result}
 
 
 @ app.post("/graphql")
@@ -330,9 +328,9 @@ async def graphql_query(item: GraphQLItem):
         url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
     result = endpoint(query=query)["data"]
     if result is not None and result[item.node] != []:
+        result = {"data": result[item.node]}
         if item.search != "":
-            result = search_keyword(item.node, item.search, result)
-        result = pagination(item.number, item.node, result)
+            result = search_keyword(item.search, result)
         return result
     else:
         raise HTTPException(status_code=NOT_FOUND,
@@ -352,11 +350,11 @@ def generate_mime_type_filter_data(data):
                 # Re-assign the value
                 mime_type_key = ele["additional_types"]
                 if mime_type_key not in result.keys():
-                    result[mime_type_key] = dataset_value
+                    result[mime_type_key] = [dataset_value]
                 else:
                     # Avoid duplicate value
                     if dataset_value not in result[mime_type_key]:
-                        result[mime_type_key] += ", " + dataset_value
+                        result[mime_type_key].append(dataset_value)
     return {"data": result}
 
 

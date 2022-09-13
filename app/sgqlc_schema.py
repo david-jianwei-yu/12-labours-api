@@ -1,29 +1,32 @@
 from sgqlc.types.relay import Node
-from sgqlc.types import String, Type, Field, list_of
-
-
-class ExperimentNode(Node):
-    submitter_id = String
+from sgqlc.types import String, Int, Boolean, Type, Field, list_of
 
 
 class DatasetDescriptionNode(Node):
     id = String
-    experiments = list_of(ExperimentNode)
     submitter_id = String
+    type = String
+    project_id = String
+    created_datetime = String
+    updated_datetime = String
+    acknowledgments = String
     contributor_affiliation = list_of(String)
     contributor_name = list_of(String)
     contributor_orcid = list_of(String)
     contributor_role = list_of(String)
     dataset_type = String
+    funding = String
     identifier = String
     identifier_description = String
     identifier_type = String
     keywords = list_of(String)
     metadata_version = String
-    number_of_samples = String
-    number_of_subjects = String
+    number_of_samples = Int
+    number_of_subjects = Int
     relation_type = String
+    state = String
     study_approach = String
+    study_collection_title = String
     study_data_collection = String
     study_organ_system = String
     study_primary_conclusion = String
@@ -31,38 +34,74 @@ class DatasetDescriptionNode(Node):
     study_technique = String
     subtitle = String
     title = String
-    acknowledgments = String
-    funding = String
 
 
 class ManifestNode(Node):
     id = String
     submitter_id = String
-    experiments = list_of(ExperimentNode)
+    type = String
+    project_id = String
+    created_datetime = String
+    updated_datetime = String
+    additional_metadata = String
+    additional_types = String
     description = String
     file_type = String
     filename = String
-    timestamp = String
-    additional_types = String
-    is_source_of = list_of(String)
     is_derived_from = list_of(String)
+    is_source_of = list_of(String)
+    state = String
     supplemental_json_metadata = String
+    timestamp = String
+
+
+class ExperimentNode(Node):
+    id = String
+    submitter_id = String
+    type = String
+    project_id = String
+    created_datetime = String
+    updated_datetime = String
+    associated_experiment = String
+    copy_numbers_identified = Boolean
+    data_description = String
+    experimental_description = String
+    experimental_intent = String
+    indels_identified = Boolean
+    marker_panel_description = String
+    number_experimental_group = Int
+    number_samples_per_experimental_group = Int
+    somatic_mutations_identified = Boolean
+    state = String
+    type_of_data = String
+    type_of_sample = String
+    type_of_specimen = String
+    dataset_descriptions = list_of(DatasetDescriptionNode)
+    manifests = list_of(ManifestNode)
 
 
 class Query(Type):
+    experiment = Field(
+        ExperimentNode,
+        args={
+            "first": Int,
+            "offset": Int,
+            "submitter_id": list_of(String),
+        }
+    )
     datasetDescription = Field(
         DatasetDescriptionNode,
         args={
-            'first': int,
-            'offset': int,
-            'study_organ_system': list_of(String),
+            "first": Int,
+            "offset": Int,
+            "study_organ_system": list_of(String),
         }
     )
     manifest = Field(
         ManifestNode,
         args={
-            'first': int,
-            'offset': int,
-            'additional_types': list_of(String)
+            "first": Int,
+            "offset": Int,
+            "additional_types": list_of(String)
         }
     )
