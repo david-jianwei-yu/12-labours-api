@@ -16,9 +16,11 @@ from pydantic import BaseModel
 from irods.session import iRODSSession
 
 from sgqlc.endpoint.http import HTTPEndpoint
-from app.sgqlc import Generator
+from app.sgqlc import SimpleGraphQLClient
 
 from app.mime_types import MAPPED_MIME_TYPES
+
+from fastapi_pagination import Page, add_pagination, paginate
 
 app = FastAPI()
 
@@ -62,6 +64,10 @@ class GraphQLItem(BaseModel):
     node: Union[str, None] = None
     filter: Union[dict, None] = None
     search: Union[str, None] = None
+
+
+class Data(BaseModel):
+    data: Union[dict, None] = None
 
 
 class FilterItem(BaseModel):
@@ -279,21 +285,10 @@ async def get_gen3_record(uuids: str, item: RecordItem):
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-def pagination(number, node, data):
-    node_count = f"_{node}_count"
-    endpoint = HTTPEndpoint(
-        url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
-    # get the total number of the records
-    total = endpoint(query="{"+node_count+"}")["data"][node_count]
-    # calculate the total page number
-    page = int(total/number)+1
-    return {"data": data[node], "page": page, "total": total}
-
-
 def search_keyword(keyword, data):
     search_result = []
     keyword_list = re.findall('([-0-9a-zA-Z]+)', keyword)
-    for ele in data["data"]:
+    for ele in data:
         count = 0
         for word in keyword_list:
             if word.lower() in json.dumps(ele).lower():
@@ -303,10 +298,18 @@ def search_keyword(keyword, data):
         search_result, key=search_result.count, reverse=True)
     output_result = []
     [output_result.append(x) for x in sorted_result if x not in output_result]
-    return {"data": output_result}
+    return output_result
 
 
-@ app.post("/graphql")
+TEMP_DATA = {
+    "node": "",
+    "filter": {},
+    "search": "",
+    "data": []
+}
+
+
+@ app.post("/graphql", response_model=Page[Data])
 # Only used for filtering and searching the files in a specific node
 async def graphql_query(item: GraphQLItem):
     """
@@ -322,19 +325,33 @@ async def graphql_query(item: GraphQLItem):
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
-    g = Generator()
-    query = g.generate_query(item)
-    endpoint = HTTPEndpoint(
-        url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
-    result = endpoint(query=query)["data"]
-    if result is not None and result[item.node] != []:
-        result = {"data": result[item.node]}
-        if item.search != "":
-            result = search_keyword(item.search, result)
-        return result
+    if (TEMP_DATA["node"] == "" and TEMP_DATA["filter"] == {} and TEMP_DATA["search"] == "") or (TEMP_DATA["filter"] != item.filter or TEMP_DATA["node"] != item.node or TEMP_DATA["search"] != item.search):
+
+        TEMP_DATA["node"] = item.node
+        TEMP_DATA["filter"] = item.filter
+        TEMP_DATA["search"] = item.search
+        TEMP_DATA["data"] = []
+
+        sgqlc = SimpleGraphQLClient()
+        query = sgqlc.generate_query(item)
+        endpoint = HTTPEndpoint(
+            url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
+        result = endpoint(query=query)["data"]
+        if result is not None and result[item.node] != []:
+            result = result[item.node]
+            if item.search != "":
+                result = search_keyword(item.search, result)
+
+            for ele in result:
+                TEMP_DATA["data"].append(Data(data=ele))
+
+            return paginate(TEMP_DATA["data"])
+        else:
+            raise HTTPException(status_code=NOT_FOUND,
+                                detail="Data cannot be found in the node.")
     else:
-        raise HTTPException(status_code=NOT_FOUND,
-                            detail="Data cannot be found in the node.")
+        return paginate(TEMP_DATA["data"])
+add_pagination(app)
 
 
 def generate_mime_type_filter_data(data):
@@ -382,8 +399,8 @@ async def mime_types_filter(item: FilterItem):
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-@ app.get("/download/metadata/{program}/{project}/{uuid}/{format}/{filename}")
-async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: str, filename: str):
+@ app.get("/download/metadata/{program}/{project}/{uuid}/{format}")
+async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: str):
     """
     Return a single file for a given uuid.
 
@@ -402,12 +419,12 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
             return Response(content=res.content,
                             media_type="application/json",
                             headers={"Content-Disposition":
-                                     f"attachment;filename={filename}.json"})
+                                     f"attachment;filename={uuid}.json"})
         else:
             return Response(content=res.content,
                             media_type="text/csv",
                             headers={"Content-Disposition":
-                                     f"attachment;filename={filename}.csv"})
+                                     f"attachment;filename={uuid}.csv"})
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
