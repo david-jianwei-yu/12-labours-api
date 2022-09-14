@@ -370,7 +370,7 @@ async def mime_types_filter(item: FilterItem):
         json_data = json.loads(res.content)
         if b"id" in res.content:
             f = Filter()
-            filter_result = f.generate_mime_type_filter_data(json_data)
+            filter_result = f.generate_mimetypes_filter_data(json_data)
             return filter_result
         else:
             raise HTTPException(status_code=NOT_FOUND,
