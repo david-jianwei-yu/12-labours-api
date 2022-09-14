@@ -35,4 +35,4 @@ class Filter:
                     result["Others"] = [ele]
                 else:
                     result["Others"].append(ele)
-        return {"data": result}
+        return result

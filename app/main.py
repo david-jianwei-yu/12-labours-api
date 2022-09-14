@@ -43,6 +43,7 @@ statetable = None
 # CORS(app)
 
 BAD_REQUEST = 400
+FORBIDDEN = 403
 NOT_FOUND = 404
 
 GEN3_CREDENTIALS = {
@@ -57,7 +58,6 @@ SESSION = None
 class RecordItem(BaseModel):
     program: Union[str, None] = None
     project: Union[str, None] = None
-    format: Union[str, None] = None
 
 
 class GraphQLItem(BaseModel):
@@ -68,11 +68,6 @@ class GraphQLItem(BaseModel):
 
 class GraphQLData(BaseModel):
     data: Union[dict, None] = None
-
-
-class FilterItem(BaseModel):
-    program: Union[str, None] = None
-    project: Union[str, None] = None
 
 
 class CollectionItem(BaseModel):
@@ -171,10 +166,9 @@ async def get_gen3_program():
     """
     Return the program information from Gen3 Data Commons
     """
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = requests.get(
+            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/", headers=HEADER)
         json_data = json.loads(res.content)
         program_list = []
         for ele in json_data["links"]:
@@ -194,10 +188,9 @@ async def get_gen3_project(program: str):
 
     :param program: Gen3 program name
     """
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = requests.get(
+            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}", headers=HEADER)
         json_data = json.loads(res.content)
         project_list = []
         for ele in json_data["links"]:
@@ -215,10 +208,9 @@ async def get_gen3_dictionary():
     """
     Return all dictionary node from Gen3 Data Commons
     """
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/_dictionary", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = requests.get(
+            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/_dictionary", headers=HEADER)
         json_data = json.loads(res.content)
         dictionary_list = []
         for ele in json_data["links"]:
@@ -239,22 +231,22 @@ async def get_gen3_node_records(node: str, item: RecordItem):
     :param node: The dictionary node to export.
     :return: A list of json object containing all records in the dictionary node.
     """
-    if item.program == None or item.project == None or item.format == None:
+    if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label={node}&format={item.format}", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = requests.get(
+            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label={node}&format=json", headers=HEADER)
         json_data = json.loads(res.content)
-        if b"id" in res.content:
+        if b"data" in res.content and json_data["data"] != []:
             return json_data
         else:
             raise HTTPException(status_code=NOT_FOUND,
                                 detail="Node records cannot be found.")
-    except Exception as e:
-        raise HTTPException(status_code=res.status_code, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=FORBIDDEN,
+                            detail="Invalid program or project name.")
 
 
 @ app.post("/record/{uuids}")
@@ -267,32 +259,30 @@ async def get_gen3_record(uuids: str, item: RecordItem):
     :param uuids: uuids of the records (use comma to separate the uuids e.g. uuid1,uuid2,uuid3).
     :return: A list of json object
     """
-    if item.program == None or item.project == None or item.format == None:
+    if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?ids={uuids}&format={item.format}", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = requests.get(
+            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?ids={uuids}&format=json", headers=HEADER)
         json_data = json.loads(res.content)
         if b"id" in res.content:
             return json_data
         else:
             raise HTTPException(status_code=NOT_FOUND,
                                 detail="Record can not be found, please check the uuid of the record.")
-    except Exception as e:
-        raise HTTPException(status_code=res.status_code, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=FORBIDDEN,
+                            detail="Invalid program or project name.")
 
 
 def search_keyword(keyword, data):
     search_result = []
     keyword_list = re.findall('([-0-9a-zA-Z]+)', keyword)
     for ele in data:
-        count = 0
         for word in keyword_list:
             if word.lower() in json.dumps(ele).lower():
-                count += 1
                 search_result.append(ele)
     sorted_result = sorted(
         search_result, key=search_result.count, reverse=True)
@@ -355,7 +345,7 @@ add_pagination(app)
 
 
 @app.post("/filter/mimetypes")
-async def mime_types_filter(item: FilterItem):
+async def mime_types_filter(item: RecordItem):
     """
     Return the support data for frontend mime type filter.
     """
@@ -363,20 +353,20 @@ async def mime_types_filter(item: FilterItem):
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label=manifest&format=json", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = requests.get(
+            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label=manifest&format=json", headers=HEADER)
         json_data = json.loads(res.content)
-        if b"id" in res.content:
+        if b"data" in res.content and json_data["data"] != []:
             f = Filter()
             filter_result = f.generate_mimetypes_filter_data(json_data)
             return filter_result
         else:
             raise HTTPException(status_code=NOT_FOUND,
                                 detail="Mimetypes filter data cannot be generated.")
-    except Exception as e:
-        raise HTTPException(status_code=res.status_code, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=FORBIDDEN,
+                            detail="Invalid program or project name.")
 
 
 @ app.get("/download/metadata/{program}/{project}/{uuid}/{format}")
@@ -390,10 +380,9 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
     :param format: format of the file (must be one of the following: json, tsv).
     :return: A JSON or CSV file containing the metadata.
     """
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}/{project}/export/?ids={uuid}&format={format}", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = requests.get(
+            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}/{project}/export/?ids={uuid}&format={format}", headers=HEADER)
         if format == "json":
             return Response(content=res.content,
                             media_type="application/json",
