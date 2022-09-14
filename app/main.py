@@ -18,7 +18,7 @@ from irods.session import iRODSSession
 from sgqlc.endpoint.http import HTTPEndpoint
 from app.sgqlc import SimpleGraphQLClient
 
-from app.mime_types import MAPPED_MIME_TYPES
+from app.filter import Filter
 
 from fastapi_pagination import Page, add_pagination, paginate
 
@@ -66,7 +66,7 @@ class GraphQLItem(BaseModel):
     search: Union[str, None] = None
 
 
-class Data(BaseModel):
+class GraphQLData(BaseModel):
     data: Union[dict, None] = None
 
 
@@ -309,7 +309,7 @@ TEMP_DATA = {
 }
 
 
-@ app.post("/graphql", response_model=Page[Data])
+@ app.post("/graphql", response_model=Page[GraphQLData])
 # Only used for filtering and searching the files in a specific node
 async def graphql_query(item: GraphQLItem):
     """
@@ -343,7 +343,7 @@ async def graphql_query(item: GraphQLItem):
                 result = search_keyword(item.search, result)
 
             for ele in result:
-                TEMP_DATA["data"].append(Data(data=ele))
+                TEMP_DATA["data"].append(GraphQLData(data=ele))
 
             return paginate(TEMP_DATA["data"])
         else:
@@ -352,27 +352,6 @@ async def graphql_query(item: GraphQLItem):
     else:
         return paginate(TEMP_DATA["data"])
 add_pagination(app)
-
-
-def generate_mime_type_filter_data(data):
-    result = {}
-    for ele in data["data"]:
-        dataset_value = ele["experiments"][0]["submitter_id"]
-        if "additional_types" in ele.keys():
-            mime_type_key = ele["additional_types"]
-            if mime_type_key in MAPPED_MIME_TYPES:
-                # Convert the value name with more readable word
-                ele["additional_types"] = re.sub(
-                    '(_[A-Z]+)', '', MAPPED_MIME_TYPES[mime_type_key]).capitalize()
-                # Re-assign the value
-                mime_type_key = ele["additional_types"]
-                if mime_type_key not in result.keys():
-                    result[mime_type_key] = [dataset_value]
-                else:
-                    # Avoid duplicate value
-                    if dataset_value not in result[mime_type_key]:
-                        result[mime_type_key].append(dataset_value)
-    return {"data": result}
 
 
 @app.post("/filter/mimetypes")
@@ -390,11 +369,12 @@ async def mime_types_filter(item: FilterItem):
         res.raise_for_status()
         json_data = json.loads(res.content)
         if b"id" in res.content:
-            filter_result = generate_mime_type_filter_data(json_data)
+            f = Filter()
+            filter_result = f.generate_mime_type_filter_data(json_data)
             return filter_result
         else:
             raise HTTPException(status_code=NOT_FOUND,
-                                detail="Node records cannot be found.")
+                                detail="Mimetypes filter data cannot be generated.")
     except Exception as e:
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
@@ -408,7 +388,6 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
     :param project: project name.
     :param uuid: uuid of the file.
     :param format: format of the file (must be one of the following: json, tsv).
-    :param filename: name of the file.
     :return: A JSON or CSV file containing the metadata.
     """
     res = requests.get(
@@ -478,17 +457,17 @@ async def get_irods_collections(item: CollectionItem):
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@ app.get("/preview/data/{file_path:path}")
-async def preview_irods_data_file(file_path: str):
+@ app.get("/preview/data/{filepath:path}")
+async def preview_irods_data_file(filepath: str):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
 
-    :param file_path: Required iRODS file path.
+    :param filepath: Required iRODS file path.
     """
     chunk_size = 1024*1024
     try:
         file = SESSION.data_objects.get(
-            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{file_path}")
+            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{filepath}")
 
         def iterate_file():
             with file.open("r") as file_like:
@@ -502,18 +481,18 @@ async def preview_irods_data_file(file_path: str):
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@ app.get("/download/data/{file_path:path}")
-async def download_irods_data_file(file_path: str):
+@ app.get("/download/data/{filepath:path}")
+async def download_irods_data_file(filepath: str):
     """
     Return a specific download file from iRODS or a preview of most types data.
 
-    :param file_path: Required iRODS file path.
+    :param filepath: Required iRODS file path.
     :return: A file with data.
     """
     chunk_size = 1024*1024
     try:
         file = SESSION.data_objects.get(
-            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{file_path}")
+            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{filepath}")
 
         def iterate_file():
             with file.open("r") as file_like:

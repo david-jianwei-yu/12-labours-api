@@ -92,7 +92,6 @@ class Query(Type):
         ExperimentNode,
         args={
             "first": Int,
-            "offset": Int,
             "submitter_id": list_of(String),
         }
     )
@@ -100,15 +99,11 @@ class Query(Type):
         DatasetDescriptionNode,
         args={
             "first": Int,
-            "offset": Int,
-            "study_organ_system": list_of(String),
         }
     )
     manifest = Field(
         ManifestNode,
         args={
             "first": Int,
-            "offset": Int,
-            "additional_types": list_of(String)
         }
     )

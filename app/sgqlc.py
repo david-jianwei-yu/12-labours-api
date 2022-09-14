@@ -27,23 +27,15 @@ class SimpleGraphQLClient:
                         first=0, submitter_id=filter["submitter_id"]))
                 else:
                     experiment_query = self.convert_query(
-                        node, query.experiment(first=0, ))
+                        node, query.experiment(first=0))
                 return experiment_query
             case "dataset_description":
-                if "study_organ_system" in filter:
-                    dataset_description_query = self.convert_query(node, query.datasetDescription(
-                        first=0, study_organ_system=filter["study_organ_system"]))
-                else:
-                    dataset_description_query = self.convert_query(
-                        node, query.datasetDescription(first=0, ))
+                dataset_description_query = self.convert_query(
+                    node, query.datasetDescription(first=0))
                 return dataset_description_query
             case "manifest":
-                if "additional_types" in filter:
-                    manifest_query = self.convert_query(node, query.manifest(
-                        first=0, additional_types=filter["additional_types"]))
-                else:
-                    manifest_query = self.convert_query(
-                        node, query.manifest(first=0, ))
+                manifest_query = self.convert_query(
+                    node, query.manifest(first=0))
                 return manifest_query
             case _:
                 raise HTTPException(status_code=NOT_FOUND,
