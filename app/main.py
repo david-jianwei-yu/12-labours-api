@@ -332,7 +332,8 @@ async def graphql_query(item: GraphQLItem):
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
-    item = merge_item_filter(item)
+    if item.node == "experiment":
+        item = merge_item_filter(item)
     sgqlc = SimpleGraphQLClient()
     query = sgqlc.generate_query(item)
     endpoint = HTTPEndpoint(
@@ -343,7 +344,9 @@ async def graphql_query(item: GraphQLItem):
         #     result = search_keyword(item.search, result)
         pagination_result = {
             "data": result[item.node],
+            # Maximum number of records display in one page
             "limit": item.limit,
+            # The number of records display in current page
             "size": len(result[item.node]),
             "page": item.page,
             "total": result["total"]

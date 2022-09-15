@@ -55,6 +55,7 @@ class ManifestNode(Node):
     file_type = String
     filename = String
     is_derived_from = list_of(String)
+    is_described_by = list_of(String)
     is_source_of = list_of(String)
     state = String
     supplemental_json_metadata = String
@@ -98,6 +99,7 @@ class Query(Type):
         args={
             "first": Int,
             "offset": Int,
+            "quick_search": String,
             "submitter_id": list_of(String),
         }
     )
@@ -106,6 +108,7 @@ class Query(Type):
         args={
             "first": Int,
             "offset": Int,
+            "quick_search": String,
         }
     )
     manifest = Field(
@@ -113,5 +116,7 @@ class Query(Type):
         args={
             "first": Int,
             "offset": Int,
+            "quick_search": String,
+            "additional_types": list_of(String)
         }
     )
