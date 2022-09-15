@@ -318,6 +318,7 @@ async def graphql_query(item: GraphQLItem):
         pagination_result = {
             "data": result[item.node],
             "limit": item.limit,
+            "size": len(result[item.node]),
             "page": item.page,
             "total": result["total"]
         }
@@ -326,11 +327,16 @@ async def graphql_query(item: GraphQLItem):
         raise HTTPException(status_code=NOT_FOUND,
                             detail="Data cannot be found in the node.")
 
+#
+# Gen3 Filter
+#
+f = Filter()
+
 
 @app.post("/filter/mimetypes")
-async def mime_types_filter(item: RecordItem):
+async def mimetypes_filter(item: RecordItem):
     """
-    Return the support data for frontend mime type filter.
+    Return the support data for frontend mimetypes filter.
     """
     if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
@@ -341,12 +347,59 @@ async def mime_types_filter(item: RecordItem):
             f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label=manifest&format=json", headers=HEADER)
         json_data = json.loads(res.content)
         if b"data" in res.content and json_data["data"] != []:
-            f = Filter()
             filter_result = f.generate_mimetypes_filter_data(json_data)
             return filter_result
         else:
             raise HTTPException(status_code=NOT_FOUND,
                                 detail="Mimetypes filter data cannot be generated.")
+    except Exception:
+        raise HTTPException(status_code=FORBIDDEN,
+                            detail="Invalid program or project name.")
+
+
+@app.post("/filter/anatomy")
+async def anatomy_filter(item: RecordItem):
+    """
+    Return the support data for frontend anatomy filter.
+    """
+    if item.program == None or item.project == None:
+        raise HTTPException(status_code=BAD_REQUEST,
+                            detail="Missing one ore more fields in request body.")
+
+    try:
+        res = requests.get(
+            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label=dataset_description&format=json", headers=HEADER)
+        json_data = json.loads(res.content)
+        if b"data" in res.content and json_data["data"] != []:
+            filter_result = f.generate_anatomy_filter_data(json_data)
+            return filter_result
+        else:
+            raise HTTPException(status_code=NOT_FOUND,
+                                detail="Anatomy filter data cannot be generated.")
+    except Exception:
+        raise HTTPException(status_code=FORBIDDEN,
+                            detail="Invalid program or project name.")
+
+
+@app.post("/filter/species")
+async def species_filter(item: RecordItem):
+    """
+    Return the support data for frontend species filter.
+    """
+    if item.program == None or item.project == None:
+        raise HTTPException(status_code=BAD_REQUEST,
+                            detail="Missing one ore more fields in request body.")
+
+    try:
+        res = requests.get(
+            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label=dataset_description&format=json", headers=HEADER)
+        json_data = json.loads(res.content)
+        if b"data" in res.content and json_data["data"] != []:
+            filter_result = f.generate_species_filter_data(json_data)
+            return filter_result
+        else:
+            raise HTTPException(status_code=NOT_FOUND,
+                                detail="Species filter data cannot be generated.")
     except Exception:
         raise HTTPException(status_code=FORBIDDEN,
                             detail="Invalid program or project name.")

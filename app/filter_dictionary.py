@@ -24,3 +24,22 @@ MAPPED_MIME_TYPES = {
     # "image/vnd.ome.xml+jp2": "BIOLUCIDA_2D",
     # "video/mp4": "VIDEO"
 }
+
+ANATOMY = {
+    "colon": "COLON",
+    "liver": "LIVER",
+    "stomach": "STOMACH",
+    "lung": "LUNG",
+    "bladder": "BLADDER",
+    "pancreas": "PANCREAS",
+    "heart": "HEART",
+    "brainstem": "BRAINSTEM"
+}
+
+SPECIES = {
+    "rat": "RAT",
+    "human": "HUMAN",
+    "pig": "PIG",
+    "mouse": "MOUSE",
+    "cat": "CAT"
+}
