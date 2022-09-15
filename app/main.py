@@ -291,6 +291,26 @@ def search_keyword(keyword, data):
     return output_result
 
 
+def merge_item_filter(item):
+    count_filter = 0
+    id_list = []
+    id_dict = {}
+    filter_dict = {"submitter_id": []}
+    for key in item.filter.keys():
+        count_filter += 1
+        id_list += item.filter[key]
+    for ele in id_list:
+        if ele not in id_dict.keys():
+            id_dict[ele] = 1
+        else:
+            id_dict[ele] += 1
+    for id in id_dict.keys():
+        if id_dict[id] == count_filter:
+            filter_dict["submitter_id"].append(id)
+    item.filter = filter_dict
+    return item
+
+
 @ app.post("/graphql")
 # Only used for filtering and searching the files in a specific node
 async def graphql_query(item: GraphQLItem):
@@ -307,6 +327,7 @@ async def graphql_query(item: GraphQLItem):
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
+    item = merge_item_filter(item)
     sgqlc = SimpleGraphQLClient()
     query = sgqlc.generate_query(item)
     endpoint = HTTPEndpoint(
