@@ -49,7 +49,7 @@ class Filter:
                     if anatomy_key in ANATOMY:
                         anatomy_value = ANATOMY[anatomy_key].capitalize()
                         if anatomy_key not in result.keys():
-                            result[anatomy_value] = dataset_value
+                            result[anatomy_value] = [dataset_value]
                         else:
                             if dataset_value not in result[anatomy_value]:
                                 result[anatomy_value].append(dataset_value)
@@ -79,7 +79,7 @@ class Filter:
                     if species_key in SPECIES:
                         species_value = SPECIES[species_key].capitalize()
                         if species_key not in result.keys():
-                            result[species_value] = dataset_value
+                            result[species_value] = [dataset_value]
                         else:
                             if dataset_value not in result[species_value]:
                                 result[species_value].append(dataset_value)
