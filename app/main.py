@@ -20,8 +20,6 @@ from app.sgqlc import SimpleGraphQLClient
 
 from app.filter import Filter
 
-from fastapi_pagination import Page, add_pagination, paginate
-
 app = FastAPI()
 
 # Cross orgins, allow any for now
@@ -61,6 +59,8 @@ class RecordItem(BaseModel):
 
 
 class GraphQLItem(BaseModel):
+    limit: Union[int, None] = None
+    page: Union[int, None] = None
     node: Union[str, None] = None
     filter: Union[dict, None] = None
     search: Union[str, None] = None
@@ -291,15 +291,7 @@ def search_keyword(keyword, data):
     return output_result
 
 
-TEMP_DATA = {
-    "node": "",
-    "filter": {},
-    "search": "",
-    "data": []
-}
-
-
-@ app.post("/graphql", response_model=Page[GraphQLData])
+@ app.post("/graphql")
 # Only used for filtering and searching the files in a specific node
 async def graphql_query(item: GraphQLItem):
     """
@@ -311,37 +303,28 @@ async def graphql_query(item: GraphQLItem):
     search post format should looks like:
     "<keyword>"
     """
-    if item.node == None or item.filter == None or item.search == None:
+    if item.limit == None or item.page == None or item.node == None or item.filter == None or item.search == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
-    if (TEMP_DATA["node"] == "" and TEMP_DATA["filter"] == {} and TEMP_DATA["search"] == "") or (TEMP_DATA["filter"] != item.filter or TEMP_DATA["node"] != item.node or TEMP_DATA["search"] != item.search):
-
-        TEMP_DATA["node"] = item.node
-        TEMP_DATA["filter"] = item.filter
-        TEMP_DATA["search"] = item.search
-        TEMP_DATA["data"] = []
-
-        sgqlc = SimpleGraphQLClient()
-        query = sgqlc.generate_query(item)
-        endpoint = HTTPEndpoint(
-            url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
-        result = endpoint(query=query)["data"]
-        if result is not None and result[item.node] != []:
-            result = result[item.node]
-            if item.search != "":
-                result = search_keyword(item.search, result)
-
-            for ele in result:
-                TEMP_DATA["data"].append(GraphQLData(data=ele))
-
-            return paginate(TEMP_DATA["data"])
-        else:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="Data cannot be found in the node.")
+    sgqlc = SimpleGraphQLClient()
+    query = sgqlc.generate_query(item)
+    endpoint = HTTPEndpoint(
+        url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
+    result = endpoint(query=query)["data"]
+    if result is not None and result[item.node] != []:
+        # if item.search != "":
+        #     result = search_keyword(item.search, result)
+        pagination_result = {
+            "data": result[item.node],
+            "limit": item.limit,
+            "page": item.page,
+            "total": result["total"]
+        }
+        return pagination_result
     else:
-        return paginate(TEMP_DATA["data"])
-add_pagination(app)
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="Data cannot be found in the node.")
 
 
 @app.post("/filter/mimetypes")

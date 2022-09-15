@@ -62,6 +62,11 @@ class ManifestNode(Node):
     experiments = list_of(SubExperimentNode)
 
 
+class SubManifestNode(Node):
+    id = String
+    submitter_id = String
+
+
 class ExperimentNode(Node):
     id = String
     submitter_id = String
@@ -84,7 +89,7 @@ class ExperimentNode(Node):
     type_of_sample = String
     type_of_specimen = String
     dataset_descriptions = list_of(DatasetDescriptionNode)
-    manifests = list_of(ManifestNode)
+    manifests = list_of(SubManifestNode)
 
 
 class Query(Type):
@@ -92,6 +97,7 @@ class Query(Type):
         ExperimentNode,
         args={
             "first": Int,
+            "offset": Int,
             "submitter_id": list_of(String),
         }
     )
@@ -99,11 +105,13 @@ class Query(Type):
         DatasetDescriptionNode,
         args={
             "first": Int,
+            "offset": Int,
         }
     )
     manifest = Field(
         ManifestNode,
         args={
             "first": Int,
+            "offset": Int,
         }
     )
