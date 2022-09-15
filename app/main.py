@@ -277,18 +277,18 @@ async def get_gen3_record(uuids: str, item: RecordItem):
                             detail="Invalid program or project name.")
 
 
-def search_keyword(keyword, data):
-    search_result = []
-    keyword_list = re.findall('([-0-9a-zA-Z]+)', keyword)
-    for ele in data:
-        for word in keyword_list:
-            if word.lower() in json.dumps(ele).lower():
-                search_result.append(ele)
-    sorted_result = sorted(
-        search_result, key=search_result.count, reverse=True)
-    output_result = []
-    [output_result.append(x) for x in sorted_result if x not in output_result]
-    return output_result
+# def search_keyword(keyword, data):
+#     search_result = []
+#     keyword_list = re.findall('([-0-9a-zA-Z]+)', keyword)
+#     for ele in data:
+#         for word in keyword_list:
+#             if word.lower() in json.dumps(ele).lower():
+#                 search_result.append(ele)
+#     sorted_result = sorted(
+#         search_result, key=search_result.count, reverse=True)
+#     output_result = []
+#     [output_result.append(x) for x in sorted_result if x not in output_result]
+#     return output_result
 
 
 def merge_item_filter(item):
@@ -296,18 +296,23 @@ def merge_item_filter(item):
     id_list = []
     id_dict = {}
     filter_dict = {"submitter_id": []}
-    for key in item.filter.keys():
-        count_filter += 1
-        id_list += item.filter[key]
-    for ele in id_list:
-        if ele not in id_dict.keys():
-            id_dict[ele] = 1
-        else:
-            id_dict[ele] += 1
-    for id in id_dict.keys():
-        if id_dict[id] == count_filter:
-            filter_dict["submitter_id"].append(id)
-    item.filter = filter_dict
+    if item.filter != {}:
+        # Merge all dict value
+        for key in item.filter.keys():
+            count_filter += 1
+            id_list += item.filter[key]
+        # Create a id dict to count the frequency of occurrence
+        for ele in id_list:
+            if ele not in id_dict.keys():
+                id_dict[ele] = 1
+            else:
+                id_dict[ele] += 1
+        # Find the matched id and add them into the dict with key submitter_id
+        for id in id_dict.keys():
+            if id_dict[id] == count_filter:
+                filter_dict["submitter_id"].append(id)
+        # Replace the filter with created dict
+        item.filter = filter_dict
     return item
 
 
