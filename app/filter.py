@@ -9,9 +9,10 @@ class Filter:
         for ele in data["data"]:
             dataset_value = ele["experiments"][0]["submitter_id"]
             if "additional_types" in ele.keys():
-                mimetype_key = ele["additional_types"]
+                mimetype_key = ele["additional_types"].lower()
                 if mimetype_key in MAPPED_MIME_TYPES:
                     # Convert the value name with more readable word
+                    # *** Regex needs UPDATE if more mimetypes are used ***
                     ele["additional_types"] = re.sub(
                         '(_[A-Z]+)', '', MAPPED_MIME_TYPES[mimetype_key]).capitalize()
                     # Re-assign the value

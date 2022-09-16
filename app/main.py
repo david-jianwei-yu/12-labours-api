@@ -292,24 +292,22 @@ async def get_gen3_record(uuids: str, item: RecordItem):
 
 
 def merge_item_filter(item):
+    # AND relationship
     count_filter = 0
-    id_list = []
     id_dict = {}
     filter_dict = {"submitter_id": []}
     if item.filter != {}:
-        # Merge all dict value
+        # Create a id dict to count the frequency of occurrence
         for key in item.filter.keys():
             count_filter += 1
-            id_list += item.filter[key]
-        # Create a id dict to count the frequency of occurrence
-        for ele in id_list:
-            if ele not in id_dict.keys():
-                id_dict[ele] = 1
-            else:
-                id_dict[ele] += 1
+            for ele in item.filter[key]:
+                if ele not in id_dict.keys():
+                    id_dict[ele] = 1
+                else:
+                    id_dict[ele] += 1
         # Find the matched id and add them into the dict with key submitter_id
         for id in id_dict.keys():
-            if id_dict[id] == count_filter:
+            if id_dict[id] == max(id_dict.values()):
                 filter_dict["submitter_id"].append(id)
         # Replace the filter with created dict
         item.filter = filter_dict
