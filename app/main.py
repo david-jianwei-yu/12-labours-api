@@ -320,6 +320,9 @@ async def graphql_query(item: GraphQLItem):
     """
     Return filtered metadata records. The query uses GraphQL query.
 
+    Default limit = 50
+    Default page = 1
+
     filter post format should looks like:
     {"<filed_name>": ["<attribute_name>"], ...}
 
@@ -330,6 +333,12 @@ async def graphql_query(item: GraphQLItem):
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
+    # Set default records display number
+    if item.limit == None:
+        item.limit = 50
+    # Set default display page
+    if item.page == None:
+        item.page = 1
     if item.node == "experiment":
         item = merge_item_filter(item)
     sgqlc = SimpleGraphQLClient()
