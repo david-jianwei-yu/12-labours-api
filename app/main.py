@@ -328,7 +328,7 @@ async def graphql_query(item: GraphQLItem):
     search post format should looks like:
     "<keyword>"
     """
-    if item.limit == None or item.page == None or item.node == None or item.filter == None or item.search == None:
+    if item.node == None or item.filter == None or item.search == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
