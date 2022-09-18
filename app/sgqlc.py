@@ -29,27 +29,26 @@ class SimpleGraphQLClient:
 
     def generate_query(self, item):
         query = Operation(Query)
-        match item.node:
-            case "experiment":
-                if "submitter_id" in item.filter:
-                    experiment_query = self.convert_query(item, query.experiment(
-                        first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search, submitter_id=item.filter["submitter_id"]))
-                else:
-                    experiment_query = self.convert_query(
-                        item, query.experiment(first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search))
-                return experiment_query
-            case "dataset_description":
-                dataset_description_query = self.convert_query(
-                    item, query.datasetDescription(first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search))
-                return dataset_description_query
-            case "manifest":
-                if "additional_types" in item.filter:
-                    manifest_query = self.convert_query(item, query.manifest(
-                        first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search, additional_types=item.filter["additional_types"]))
-                else:
-                    manifest_query = self.convert_query(
-                        item, query.manifest(first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search))
-                return manifest_query
-            case _:
-                raise HTTPException(status_code=NOT_FOUND,
-                                    detail="Query cannot be generated.")
+        if item.node == "experiment":
+            if "submitter_id" in item.filter:
+                experiment_query = self.convert_query(item, query.experiment(
+                    first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search, submitter_id=item.filter["submitter_id"]))
+            else:
+                experiment_query = self.convert_query(
+                    item, query.experiment(first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search))
+            return experiment_query
+        elif item.node == "dataset_description":
+            dataset_description_query = self.convert_query(
+                item, query.datasetDescription(first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search))
+            return dataset_description_query
+        elif item.node == "manifest":
+            if "additional_types" in item.filter:
+                manifest_query = self.convert_query(item, query.manifest(first=item.limit, offset=(
+                    item.page-1)*item.limit, quick_search=item.search, additional_types=item.filter["additional_types"]))
+            else:
+                manifest_query = self.convert_query(item, query.manifest(
+                    first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search))
+            return manifest_query
+        else:
+            raise HTTPException(status_code=NOT_FOUND,
+                                detail="Query cannot be generated.")
