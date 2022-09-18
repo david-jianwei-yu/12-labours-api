@@ -121,19 +121,19 @@ def test_graphql_query(client):
     assert response.status_code == 404
 
 
-def test_mimetypes_filter(client):
+def test_generate_filters(client):
     test_data_pass = {
         "program": "demo1",
         "project": "12L",
     }
-    response = client.post("/filter/mimetypes", json=test_data_pass)
+    response = client.post("/filters", json=test_data_pass)
     assert response.status_code == 200
 
     test_data_failed_403 = {
         "program": "demo",
         "project": "12L",
     }
-    response = client.post("/filter/mimetypes", json=test_data_failed_403)
+    response = client.post("/filters", json=test_data_failed_403)
     assert response.status_code == 403
 
 
