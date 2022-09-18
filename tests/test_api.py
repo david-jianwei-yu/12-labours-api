@@ -174,17 +174,10 @@ def test_get_irodst_collections(client):
     assert response.status_code == 404
 
 
-def test_preview_irods_data_file(client):
+def test_get_irods_data_file(client):
+    ACTION = "preview"
     FILEPATH = "datasets/dataset-217-version-2/derivative/scaffold_context_info.json"
-    response = client.get(f"/preview/data/{FILEPATH}")
-    assert response.status_code == 200
-    assert response.json() == {"description": "Annotated brainstem scaffold for pig available for registration of segmented neural anatomical-functional mapping of neural circuits.",
-                               "heading": "Generic pig brainstem scaffold", "id": "sparc.science.context_data", "samples": [], "version": "0.1.0", "views": []}
-
-
-def test_download_irods_data_file(client):
-    FILEPATH = "datasets/dataset-217-version-2/derivative/scaffold_context_info.json"
-    response = client.get(f"/download/data/{FILEPATH}")
+    response = client.get(f"/{ACTION}/data/{FILEPATH}")
     assert response.status_code == 200
     assert response.json() == {"description": "Annotated brainstem scaffold for pig available for registration of segmented neural anatomical-functional mapping of neural circuits.",
                                "heading": "Generic pig brainstem scaffold", "id": "sparc.science.context_data", "samples": [], "version": "0.1.0", "views": []}

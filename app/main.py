@@ -477,35 +477,14 @@ async def get_irods_collections(item: CollectionItem):
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@ app.get("/preview/data/{filepath:path}")
-async def preview_irods_data_file(filepath: str):
+@ app.get("/{action}/data/{filepath:path}")
+async def get_irods_data_file(action: str, filepath: str):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
-
-    :param filepath: Required iRODS file path.
-    """
-    chunk_size = 1024*1024
-    try:
-        file = SESSION.data_objects.get(
-            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{filepath}")
-
-        def iterate_file():
-            with file.open("r") as file_like:
-                chunk = file_like.read(chunk_size)
-                while chunk:
-                    yield chunk
-                    chunk = file_like.read(chunk_size)
-        return StreamingResponse(iterate_file(),
-                                 media_type=mimetypes.guess_type(file.name)[0])
-    except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
-
-
-@ app.get("/download/data/{filepath:path}")
-async def download_irods_data_file(filepath: str):
-    """
+    OR
     Return a specific download file from iRODS or a preview of most types data.
 
+    :param action: Action should be either preview or download.
     :param filepath: Required iRODS file path.
     :return: A file with data.
     """
@@ -520,8 +499,16 @@ async def download_irods_data_file(filepath: str):
                 while chunk:
                     yield chunk
                     chunk = file_like.read(chunk_size)
-        return StreamingResponse(iterate_file(),
-                                 media_type=mimetypes.guess_type(file.name)[0],
-                                 headers={"Content-Disposition": f"attachment;filename={file.name}"})
+        if action == "preview":
+            return StreamingResponse(iterate_file(),
+                                     media_type=mimetypes.guess_type(file.name)[0])
+        elif action == "download":
+            return StreamingResponse(iterate_file(),
+                                     media_type=mimetypes.guess_type(file.name)[
+                0],
+                headers={"Content-Disposition": f"attachment;filename={file.name}"})
+        else:
+            raise HTTPException(status_code=NOT_FOUND,
+                                detail="The action is not provided in this API.")
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
