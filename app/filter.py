@@ -3,6 +3,16 @@ from app.filter_dictionary import MAPPED_MIME_TYPES, ANATOMY, SPECIES
 
 
 class Filter:
+    def get_filter_data(self, filter, data):
+        match filter:
+            case "DATA TYPES":
+                filter_result = self.generate_mimetypes_filter_data(data)
+            case "ANATOMICAL STRUCTURE":
+                filter_result = self.generate_anatomy_filter_data(data)
+            case "SPECIES":
+                filter_result = self.generate_species_filter_data(data)
+        return filter_result
+
     def generate_mimetypes_filter_data(self, data):
         result = {}
         others = []

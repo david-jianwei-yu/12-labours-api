@@ -1,7 +1,6 @@
 import json
 import requests
 import mimetypes
-import re
 
 from app.config import Config, Gen3Config, iRODSConfig
 from app.dbtable import StateTable
@@ -366,76 +365,36 @@ async def graphql_query(item: GraphQLItem):
 #
 # Gen3 Filter
 #
-f = Filter()
+filter_list = {
+    "manifest": ["DATA TYPES"],
+    "dataset_description": ["ANATOMICAL STRUCTURE", "SPECIES"],
+}
 
 
-@app.post("/filter/mimetypes")
-async def mimetypes_filter(item: RecordItem):
+@app.post("/filters")
+async def generate_filters(item: RecordItem):
     """
-    Return the support data for frontend mimetypes filter.
-    """
-    if item.program == None or item.project == None:
-        raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body.")
-
-    try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label=manifest&format=json", headers=HEADER)
-        json_data = json.loads(res.content)
-        if b"data" in res.content and json_data["data"] != []:
-            filter_result = f.generate_mimetypes_filter_data(json_data)
-            return filter_result
-        else:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="Mimetypes filter data cannot be generated.")
-    except Exception:
-        raise HTTPException(status_code=FORBIDDEN,
-                            detail="Invalid program or project name.")
-
-
-@app.post("/filter/anatomy")
-async def anatomy_filter(item: RecordItem):
-    """
-    Return the support data for frontend anatomy filter.
+    Return the support data for frontend filters.
     """
     if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
     try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label=dataset_description&format=json", headers=HEADER)
-        json_data = json.loads(res.content)
-        if b"data" in res.content and json_data["data"] != []:
-            filter_result = f.generate_anatomy_filter_data(json_data)
-            return filter_result
-        else:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="Anatomy filter data cannot be generated.")
-    except Exception:
-        raise HTTPException(status_code=FORBIDDEN,
-                            detail="Invalid program or project name.")
-
-
-@app.post("/filter/species")
-async def species_filter(item: RecordItem):
-    """
-    Return the support data for frontend species filter.
-    """
-    if item.program == None or item.project == None:
-        raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body.")
-
-    try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label=dataset_description&format=json", headers=HEADER)
-        json_data = json.loads(res.content)
-        if b"data" in res.content and json_data["data"] != []:
-            filter_result = f.generate_species_filter_data(json_data)
-            return filter_result
-        else:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="Species filter data cannot be generated.")
+        filters_result = {}
+        for node in filter_list:
+            for filter in filter_list[node]:
+                res = requests.get(
+                    f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label={node}&format=json", headers=HEADER)
+                json_data = json.loads(res.content)
+                if b"data" in res.content and json_data["data"] != []:
+                    f = Filter()
+                    filters_result[filter] = f.get_filter_data(
+                        filter, json_data)
+                else:
+                    raise HTTPException(status_code=NOT_FOUND,
+                                        detail="Mimetypes filter data cannot be generated.")
+        return filters_result
     except Exception:
         raise HTTPException(status_code=FORBIDDEN,
                             detail="Invalid program or project name.")
