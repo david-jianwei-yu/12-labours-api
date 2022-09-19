@@ -400,7 +400,7 @@ async def generate_filters(item: RecordItem):
                             detail="Invalid program or project name.")
 
 
-@ app.get("/download/metadata/{program}/{project}/{uuid}/{format}")
+@ app.get("/metadata/download/{program}/{project}/{uuid}/{format}")
 async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: str):
     """
     Return a single file for a given uuid.
@@ -419,11 +419,14 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
                             media_type="application/json",
                             headers={"Content-Disposition":
                                      f"attachment;filename={uuid}.json"})
-        else:
+        elif format == "tsv":
             return Response(content=res.content,
                             media_type="text/csv",
                             headers={"Content-Disposition":
                                      f"attachment;filename={uuid}.csv"})
+        else:
+            raise HTTPException(status_code=NOT_FOUND,
+                                detail="Wrong data format is required.")
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
@@ -452,10 +455,10 @@ async def get_irods_root_collections():
     try:
         collect = SESSION.collections.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}")
+        folders = get_collection_list(collect.subcollections)
+        files = get_collection_list(collect.data_objects)
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
-    folders = get_collection_list(collect.subcollections)
-    files = get_collection_list(collect.data_objects)
     return {"folders": folders, "files": files}
 
 
@@ -477,7 +480,7 @@ async def get_irods_collections(item: CollectionItem):
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@ app.get("/{action}/data/{filepath:path}")
+@ app.get("/data/{action}/{filepath:path}")
 async def get_irods_data_file(action: str, filepath: str):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).

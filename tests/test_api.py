@@ -143,7 +143,7 @@ def test_download_gen3_metadata_file(client):
     UUID = "fcf89c10-20ae-43a9-afb4-a7b107a2b541"
     FORM = "json"
     response = client.get(
-        f"/download/metadata/{PROG_NAME}/{PROJ_NAME}/{UUID}/{FORM}")
+        f"/metadata/download/{PROG_NAME}/{PROJ_NAME}/{UUID}/{FORM}")
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[
@@ -177,7 +177,7 @@ def test_get_irodst_collections(client):
 def test_get_irods_data_file(client):
     ACTION = "preview"
     FILEPATH = "datasets/dataset-217-version-2/derivative/scaffold_context_info.json"
-    response = client.get(f"/{ACTION}/data/{FILEPATH}")
+    response = client.get(f"/data/{ACTION}/{FILEPATH}")
     assert response.status_code == 200
     assert response.json() == {"description": "Annotated brainstem scaffold for pig available for registration of segmented neural anatomical-functional mapping of neural circuits.",
                                "heading": "Generic pig brainstem scaffold", "id": "sparc.science.context_data", "samples": [], "version": "0.1.0", "views": []}
