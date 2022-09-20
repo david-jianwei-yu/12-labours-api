@@ -12,6 +12,27 @@ class Filter:
             filter_result = self.generate_species_filter_data(data)
         return filter_result
 
+    def add_main_dict(self, key, value, result):
+        if key not in result.keys():
+            result[key] = [value]
+        else:
+            # Avoid duplicate value
+            if value not in result[key]:
+                result[key].append(value)
+
+    def append_others_list(self, value, list):
+        # Avoid duplicate value
+        if value not in list:
+            list.append(value)
+
+    def add_others_dict(self, result, others):
+        for ele in others:
+            if not any(ele in val for val in result.values()):
+                if "Others" not in result.keys():
+                    result["Others"] = [ele]
+                else:
+                    result["Others"].append(ele)
+
     def generate_mimetypes_filter_data(self, data):
         result = {}
         others = []
@@ -26,25 +47,13 @@ class Filter:
                         '(_[A-Z]+)', '', MAPPED_MIME_TYPES[mimetype_key]).capitalize()
                     # Re-assign the value
                     mimetype_key = ele["additional_types"]
-                    if mimetype_key not in result.keys():
-                        result[mimetype_key] = [dataset_value]
-                    else:
-                        # Avoid duplicate value
-                        if dataset_value not in result[mimetype_key]:
-                            result[mimetype_key].append(dataset_value)
+                    self.add_main_dict(mimetype_key, dataset_value, result)
                 else:
-                    if dataset_value not in others:
-                        others.append(dataset_value)
+                    self.append_others_list(dataset_value, others)
             else:
-                if dataset_value not in others:
-                    others.append(dataset_value)
+                self.append_others_list(dataset_value, others)
         # Add items which not meet above condition
-        for ele in others:
-            if not any(ele in val for val in result.values()):
-                if "Others" not in result.keys():
-                    result["Others"] = [ele]
-                else:
-                    result["Others"].append(ele)
+        self.add_others_dict(result, others)
         return result
 
     def generate_anatomy_filter_data(self, data):
@@ -55,26 +64,14 @@ class Filter:
             if "keywords" in ele.keys():
                 keywords = re.findall('([a-zA-Z]+)', ele["keywords"])
                 for kwd in keywords:
-                    anatomy_key = kwd
-                    if anatomy_key in ANATOMY:
-                        anatomy_value = ANATOMY[anatomy_key].capitalize()
-                        if anatomy_key not in result.keys():
-                            result[anatomy_value] = [dataset_value]
-                        else:
-                            if dataset_value not in result[anatomy_value]:
-                                result[anatomy_value].append(dataset_value)
+                    if kwd in ANATOMY:
+                        anatomy_key = ANATOMY[kwd].capitalize()
+                        self.add_main_dict(anatomy_key, dataset_value, result)
                     else:
-                        if dataset_value not in others:
-                            others.append(dataset_value)
+                        self.append_others_list(dataset_value, others)
             else:
-                if dataset_value not in others:
-                    others.append(dataset_value)
-        for ele in others:
-            if not any(ele in val for val in result.values()):
-                if "Others" not in result.keys():
-                    result["Others"] = [ele]
-                else:
-                    result["Others"].append(ele)
+                self.append_others_list(dataset_value, others)
+        self.add_others_dict(result, others)
         return result
 
     def generate_species_filter_data(self, data):
@@ -85,24 +82,12 @@ class Filter:
             if "keywords" in ele.keys():
                 keywords = re.findall('([a-zA-Z]+)', ele["keywords"])
                 for kwd in keywords:
-                    species_key = kwd
-                    if species_key in SPECIES:
-                        species_value = SPECIES[species_key].capitalize()
-                        if species_key not in result.keys():
-                            result[species_value] = [dataset_value]
-                        else:
-                            if dataset_value not in result[species_value]:
-                                result[species_value].append(dataset_value)
+                    if kwd in SPECIES:
+                        species_key = SPECIES[kwd].capitalize()
+                        self.add_main_dict(species_key, dataset_value, result)
                     else:
-                        if dataset_value not in others:
-                            others.append(dataset_value)
+                        self.append_others_list(dataset_value, others)
             else:
-                if dataset_value not in others:
-                    others.append(dataset_value)
-        for ele in others:
-            if not any(ele in val for val in result.values()):
-                if "Others" not in result.keys():
-                    result["Others"] = [ele]
-                else:
-                    result["Others"].append(ele)
+                self.append_others_list(dataset_value, others)
+        self.add_others_dict(result, others)
         return result

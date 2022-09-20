@@ -41,5 +41,6 @@ SPECIES = {
     "human": "HUMAN",
     "pig": "PIG",
     "mouse": "MOUSE",
-    "cat": "CAT"
+    "cat": "CAT",
+    "sheep": "SHEEP"
 }

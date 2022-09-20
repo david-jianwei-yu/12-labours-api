@@ -19,7 +19,9 @@ from app.sgqlc import SimpleGraphQLClient
 
 from app.filter import Filter
 
-app = FastAPI()
+app = FastAPI(
+    title="12 Labours Portal APIs"
+)
 
 # Cross orgins, allow any for now
 origins = [
@@ -34,22 +36,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-statetable = None
-
-# CORS(app)
-
-BAD_REQUEST = 400
-FORBIDDEN = 403
-NOT_FOUND = 404
-
-GEN3_CREDENTIALS = {
-    "api_key": Gen3Config.GEN3_API_KEY,
-    "key_id": Gen3Config.GEN3_KEY_ID
-}
-
-HEADER = None
-SESSION = None
 
 
 class RecordItem(BaseModel):
@@ -73,6 +59,28 @@ class CollectionItem(BaseModel):
     path: Union[str, None] = None
 
 
+BAD_REQUEST = 400
+UNAUTHORIZED = 401
+FORBIDDEN = 403
+NOT_FOUND = 404
+
+GEN3_CREDENTIALS = {
+    "api_key": Gen3Config.GEN3_API_KEY,
+    "key_id": Gen3Config.GEN3_KEY_ID
+}
+
+statetable = None
+HEADER = None
+SESSION = None
+
+
+def get_gen3_header():
+    global HEADER
+    TOKEN = requests.post(
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/user/credentials/cdis/access_token", json=GEN3_CREDENTIALS).json()
+    HEADER = {"Authorization": "bearer " + TOKEN["access_token"]}
+
+
 @ app.on_event("startup")
 async def start_up():
     try:
@@ -83,10 +91,7 @@ async def start_up():
         statetable = None
 
     try:
-        global HEADER
-        TOKEN = requests.post(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/user/credentials/cdis/access_token", json=GEN3_CREDENTIALS).json()
-        HEADER = {"Authorization": "bearer " + TOKEN["access_token"]}
+        get_gen3_header()
     except Exception:
         print("Encounter an error while generating a token from GEN3.")
 
@@ -158,6 +163,9 @@ async def get_state():
 # Gen3 Data Commons
 #
 
+def gen3_request(path):
+    return requests.get(f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{path}", headers=HEADER)
+
 
 @ app.get("/program")
 # Get the program information from Gen3 Data Commons
@@ -166,8 +174,10 @@ async def get_gen3_program():
     Return the program information from Gen3 Data Commons
     """
     try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/", headers=HEADER)
+        res = gen3_request("")
+        if res.status_code == UNAUTHORIZED:
+            get_gen3_header()
+            res = gen3_request("")
         json_data = json.loads(res.content)
         program_list = []
         for ele in json_data["links"]:
@@ -176,7 +186,7 @@ async def get_gen3_program():
         new_json_data = {"program": program_list}
         return new_json_data
     except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
 @ app.get("/project/{program}")
@@ -188,8 +198,7 @@ async def get_gen3_project(program: str):
     :param program: Gen3 program name
     """
     try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}", headers=HEADER)
+        res = gen3_request(f"{program}")
         json_data = json.loads(res.content)
         project_list = []
         for ele in json_data["links"]:
@@ -208,8 +217,7 @@ async def get_gen3_dictionary():
     Return all dictionary node from Gen3 Data Commons
     """
     try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/_dictionary", headers=HEADER)
+        res = gen3_request("_dictionary")
         json_data = json.loads(res.content)
         dictionary_list = []
         for ele in json_data["links"]:
@@ -235,8 +243,8 @@ async def get_gen3_node_records(node: str, item: RecordItem):
                             detail="Missing one ore more fields in request body.")
 
     try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label={node}&format=json", headers=HEADER)
+        res = gen3_request(
+            f"{item.program}/{item.project}/export/?node_label={node}&format=json")
         json_data = json.loads(res.content)
         if b"data" in res.content and json_data["data"] != []:
             return json_data
@@ -263,8 +271,8 @@ async def get_gen3_record(uuids: str, item: RecordItem):
                             detail="Missing one ore more fields in request body.")
 
     try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?ids={uuids}&format=json", headers=HEADER)
+        res = gen3_request(
+            f"{item.program}/{item.project}/export/?ids={uuids}&format=json")
         json_data = json.loads(res.content)
         if b"id" in res.content:
             return json_data
@@ -310,7 +318,6 @@ def merge_item_filter(item):
                 filter_dict["submitter_id"].append(id)
         # Replace the filter with created dict
         item.filter = filter_dict
-    return item
 
 
 @ app.post("/graphql")
@@ -339,7 +346,7 @@ async def graphql_query(item: GraphQLItem):
     if item.page == None:
         item.page = 1
     if item.node == "experiment":
-        item = merge_item_filter(item)
+        merge_item_filter(item)
     sgqlc = SimpleGraphQLClient()
     query = sgqlc.generate_query(item)
     endpoint = HTTPEndpoint(
@@ -384,8 +391,8 @@ async def generate_filters(item: RecordItem):
         filters_result = {}
         for node in filter_list:
             for filter in filter_list[node]:
-                res = requests.get(
-                    f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label={node}&format=json", headers=HEADER)
+                res = gen3_request(
+                    f"{item.program}/{item.project}/export/?node_label={node}&format=json")
                 json_data = json.loads(res.content)
                 if b"data" in res.content and json_data["data"] != []:
                     f = Filter()
@@ -412,8 +419,8 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
     :return: A JSON or CSV file containing the metadata.
     """
     try:
-        res = requests.get(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}/{project}/export/?ids={uuid}&format={format}", headers=HEADER)
+        res = gen3_request(
+            f"{program}/{project}/export/?ids={uuid}&format={format}")
         if format == "json":
             return Response(content=res.content,
                             media_type="application/json",
