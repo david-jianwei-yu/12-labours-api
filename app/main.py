@@ -194,15 +194,16 @@ class GraphQLItem(BaseModel):
         }
 
 
-def check_gen3_header():
+def update_gen3_header_when_unauthorized():
     res = requests.get(
         f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/", headers=HEADER)
-    return res.status_code
+    if res.status_code == UNAUTHORIZED:
+        return get_gen3_header()
+    return
 
 
 def gen3_request(path=""):
-    if check_gen3_header() == UNAUTHORIZED:
-        get_gen3_header()
+    update_gen3_header_when_unauthorized()
     return requests.get(f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{path}", headers=HEADER)
 
 
@@ -379,8 +380,7 @@ async def graphql_query(item: GraphQLItem):
         merge_item_filter(item)
     sgqlc = SimpleGraphQLClient()
     query = sgqlc.generate_query(item)
-    if check_gen3_header() == UNAUTHORIZED:
-        get_gen3_header()
+    update_gen3_header_when_unauthorized()
     endpoint = HTTPEndpoint(
         url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
     result = endpoint(query=query)["data"]
