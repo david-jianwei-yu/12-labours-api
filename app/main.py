@@ -199,6 +199,9 @@ async def get_gen3_project(program: str):
     """
     try:
         res = gen3_request(f"{program}")
+        if res.status_code == UNAUTHORIZED:
+            get_gen3_header()
+            res = gen3_request(f"{program}")
         json_data = json.loads(res.content)
         project_list = []
         for ele in json_data["links"]:
