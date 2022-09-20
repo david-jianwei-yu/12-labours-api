@@ -163,7 +163,16 @@ async def get_state():
 # Gen3 Data Commons
 #
 
-def gen3_request(path):
+
+def check_gen3_header():
+    res = requests.get(
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/", headers=HEADER)
+    return res.status_code
+
+
+def gen3_request(path=""):
+    if check_gen3_header() == UNAUTHORIZED:
+        get_gen3_header()
     return requests.get(f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{path}", headers=HEADER)
 
 
@@ -174,10 +183,7 @@ async def get_gen3_program():
     Return the program information from Gen3 Data Commons
     """
     try:
-        res = gen3_request("")
-        if res.status_code == UNAUTHORIZED:
-            get_gen3_header()
-            res = gen3_request("")
+        res = gen3_request()
         json_data = json.loads(res.content)
         program_list = []
         for ele in json_data["links"]:
@@ -199,9 +205,6 @@ async def get_gen3_project(program: str):
     """
     try:
         res = gen3_request(f"{program}")
-        if res.status_code == UNAUTHORIZED:
-            get_gen3_header()
-            res = gen3_request(f"{program}")
         json_data = json.loads(res.content)
         project_list = []
         for ele in json_data["links"]:
@@ -352,6 +355,8 @@ async def graphql_query(item: GraphQLItem):
         merge_item_filter(item)
     sgqlc = SimpleGraphQLClient()
     query = sgqlc.generate_query(item)
+    if check_gen3_header() == UNAUTHORIZED:
+        get_gen3_header()
     endpoint = HTTPEndpoint(
         url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
     result = endpoint(query=query)["data"]
@@ -405,9 +410,8 @@ async def generate_filters(item: RecordItem):
                     raise HTTPException(status_code=NOT_FOUND,
                                         detail="Mimetypes filter data cannot be generated.")
         return filters_result
-    except Exception:
-        raise HTTPException(status_code=FORBIDDEN,
-                            detail="Invalid program or project name.")
+    except Exception as e:
+        raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}")
