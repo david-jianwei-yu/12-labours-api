@@ -19,6 +19,8 @@ from app.sgqlc import SimpleGraphQLClient
 
 from app.filter import Filter
 
+from enum import Enum
+
 app = FastAPI(
     title="12 Labours Portal APIs"
 )
@@ -44,15 +46,11 @@ class RecordItem(BaseModel):
 
 
 class GraphQLItem(BaseModel):
-    limit: Union[int, None] = None
-    page: Union[int, None] = None
+    limit: Union[int, None] = 50
+    page: Union[int, None] = 1
     node: Union[str, None] = None
     filter: Union[dict, None] = None
     search: Union[str, None] = None
-
-
-class GraphQLData(BaseModel):
-    data: Union[dict, None] = None
 
 
 class CollectionItem(BaseModel):
@@ -162,6 +160,23 @@ async def get_state():
 #
 # Gen3 Data Commons
 #
+class program(str, Enum):
+    program = "demo1"
+
+
+class project(str, Enum):
+    project = "12L"
+
+
+class node(str, Enum):
+    experiment = "experiment"
+    dataset_description = "dataset_description"
+    manifest = "manifest"
+
+
+class format(str, Enum):
+    json = "json"
+    tsv = "tsv"
 
 
 def check_gen3_header():
@@ -197,7 +212,7 @@ async def get_gen3_program():
 
 @ app.get("/project/{program}")
 # Get all projects information from Gen3 Data Commons
-async def get_gen3_project(program: str):
+async def get_gen3_project(program: program):
     """
     Return project information.
 
@@ -237,7 +252,7 @@ async def get_gen3_dictionary():
 
 @ app.post("/records/{node}")
 # Exports all records in a dictionary node
-async def get_gen3_node_records(node: str, item: RecordItem):
+async def get_gen3_node_records(node: node, item: RecordItem):
     """
     Return all records in a dictionary node.
 
@@ -345,12 +360,6 @@ async def graphql_query(item: GraphQLItem):
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
-    # Set default records display number
-    if item.limit == None:
-        item.limit = 50
-    # Set default display page
-    if item.page == None:
-        item.page = 1
     if item.node == "experiment":
         merge_item_filter(item)
     sgqlc = SimpleGraphQLClient()
@@ -415,7 +424,7 @@ async def generate_filters(item: RecordItem):
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}")
-async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: str):
+async def download_gen3_metadata_file(program: program, project: project, uuid: str, format: format):
     """
     Return a single file for a given uuid.
 
@@ -448,6 +457,9 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
 #
 # iRODS
 #
+class action(str, Enum):
+    preview = "preview"
+    download = "download"
 
 
 def get_collection_list(data):
@@ -495,7 +507,7 @@ async def get_irods_collections(item: CollectionItem):
 
 
 @ app.get("/data/{action}/{filepath:path}")
-async def get_irods_data_file(action: str, filepath: str):
+async def get_irods_data_file(action: action, filepath: str):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
     OR
