@@ -5,7 +5,7 @@ import mimetypes
 from app.config import Config, Gen3Config, iRODSConfig
 from app.dbtable import StateTable
 
-from fastapi import FastAPI, Response, HTTPException
+from fastapi import FastAPI, Response, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse
 
@@ -38,23 +38,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-class RecordItem(BaseModel):
-    program: Union[str, None] = None
-    project: Union[str, None] = None
-
-
-class GraphQLItem(BaseModel):
-    limit: Union[int, None] = 50
-    page: Union[int, None] = 1
-    node: Union[str, None] = None
-    filter: Union[dict, None] = None
-    search: Union[str, None] = None
-
-
-class CollectionItem(BaseModel):
-    path: Union[str, None] = None
 
 
 BAD_REQUEST = 400
@@ -177,6 +160,38 @@ class node(str, Enum):
 class format(str, Enum):
     json = "json"
     tsv = "tsv"
+
+
+class RecordItem(BaseModel):
+    program: Union[str, None] = None
+    project: Union[str, None] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "program": "demo1",
+                "project": "12L",
+            }
+        }
+
+
+class GraphQLItem(BaseModel):
+    limit: Union[int, None] = 50
+    page: Union[int, None] = 1
+    node: Union[str, None] = None
+    filter: Union[dict, None] = None
+    search: Union[str, None] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "limit": 50,
+                "page": 1,
+                "node": "experiment",
+                "filter": {},
+                "search": ""
+            }
+        }
 
 
 def check_gen3_header():
@@ -395,7 +410,7 @@ filter_list = {
 }
 
 
-@app.post("/filters")
+@ app.post("/filters")
 async def generate_filters(item: RecordItem):
     """
     Return the support data for frontend filters.
@@ -460,6 +475,17 @@ async def download_gen3_metadata_file(program: program, project: project, uuid: 
 class action(str, Enum):
     preview = "preview"
     download = "download"
+
+
+class CollectionItem(BaseModel):
+    path: Union[str, None] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "path": "/tempZone/home/rods/datasets",
+            }
+        }
 
 
 def get_collection_list(data):
