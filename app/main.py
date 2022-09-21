@@ -360,16 +360,14 @@ def merge_item_filter(item):
 # Only used for filtering and searching the files in a specific node
 async def graphql_query(item: GraphQLItem):
     """
-    Return filtered metadata records. The query uses GraphQL query.
+    Return filtered/searched metadata records. The query uses GraphQL query.
 
     Default limit = 50
     Default page = 1
 
-    filter post format should looks like:
-    {"<filed_name>": ["<attribute_name>"], ...}
+    filter post format should looks like: {"<filed_name>": ["<attribute_name>", ...], ...}
 
-    search post format should looks like:
-    "<keyword>"
+    search post format should looks like: "\<string\>"
     """
     if item.node == None or item.filter == None or item.search == None:
         raise HTTPException(status_code=BAD_REQUEST,
