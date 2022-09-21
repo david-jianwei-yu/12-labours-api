@@ -5,16 +5,24 @@ import mimetypes
 from app.config import Config, Gen3Config, iRODSConfig
 from app.dbtable import StateTable
 
-from typing import Union
-
 from fastapi import FastAPI, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse, StreamingResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
+
+from typing import Union
 from pydantic import BaseModel
+from enum import Enum
 
 from irods.session import iRODSSession
 
-app = FastAPI()
+from sgqlc.endpoint.http import HTTPEndpoint
+from app.sgqlc import SimpleGraphQLClient
+from app.filter import Filter
+
+
+app = FastAPI(
+    title="12 Labours Portal APIs"
+)
 
 # Cross orgins, allow any for now
 origins = [
@@ -30,11 +38,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-statetable = None
-
-# CORS(app)
 
 BAD_REQUEST = 400
+UNAUTHORIZED = 401
+FORBIDDEN = 403
 NOT_FOUND = 404
 
 GEN3_CREDENTIALS = {
@@ -42,32 +49,19 @@ GEN3_CREDENTIALS = {
     "key_id": Gen3Config.GEN3_KEY_ID
 }
 
+statetable = None
 HEADER = None
 SESSION = None
 
 
-class S3Item(BaseModel):
-    suffix: Union[str, None] = None
+def get_gen3_header():
+    global HEADER
+    TOKEN = requests.post(
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/user/credentials/cdis/access_token", json=GEN3_CREDENTIALS).json()
+    HEADER = {"Authorization": "bearer " + TOKEN["access_token"]}
 
 
-class RecordItem(BaseModel):
-    program: Union[str, None] = None
-    project: Union[str, None] = None
-    format: Union[str, None] = None
-
-
-class GraphQLItem(BaseModel):
-    node_type: Union[str, None] = None
-    filter: Union[str, None] = None
-    search: Union[str, None] = None
-    field: Union[str, None] = None
-
-
-class CollectionItem(BaseModel):
-    path: Union[str, None] = None
-
-
-@app.on_event("startup")
+@ app.on_event("startup")
 async def start_up():
     try:
         global statetable
@@ -77,12 +71,9 @@ async def start_up():
         statetable = None
 
     try:
-        global HEADER
-        TOKEN = requests.post(
-            f"{Gen3Config.GEN3_ENDPOINT_URL}/user/credentials/cdis/access_token", json=GEN3_CREDENTIALS).json()
-        HEADER = {"Authorization": "bearer " + TOKEN["access_token"]}
+        get_gen3_header()
     except Exception:
-        print("Encounter an error while generating a token from GEN3")
+        print("Encounter an error while generating a token from GEN3.")
 
     try:
         # This function is used to connect to the iRODS server, it requires "host", "port", "user", "password" and "zone" environment variables.
@@ -94,15 +85,15 @@ async def start_up():
                                zone=iRODSConfig.IRODS_ZONE)
         # SESSION.connection_timeout =
     except Exception:
-        print("Encounter an error while creating the iRODS session")
+        print("Encounter an error while creating the iRODS session.")
 
 
-@app.get("/", response_class=PlainTextResponse)
+@ app.get("/", response_class=PlainTextResponse)
 async def root():
     return "This is the fastapi backend."
 
 
-@app.get("/health", response_class=PlainTextResponse)
+@ app.get("/health", response_class=PlainTextResponse)
 async def health():
     return json.dumps({"status": "healthy"})
 
@@ -137,13 +128,13 @@ def get_saved_state(table):
 
 
 # An example
-@app.put("/state/getshareid")
+@ app.put("/state/getshareid")
 async def get_share_link():
     return get_share_link(statetable)
 
 
 # Get the map state using the share link id.
-@app.get("/state/getstate")
+@ app.get("/state/getstate")
 async def get_state():
     return get_saved_state(statetable)
 
@@ -151,18 +142,78 @@ async def get_state():
 #
 # Gen3 Data Commons
 #
+class program(str, Enum):
+    program = "demo1"
 
 
-@app.get("/program")
+class project(str, Enum):
+    project = "12L"
+
+
+class node(str, Enum):
+    experiment = "experiment"
+    dataset_description = "dataset_description"
+    manifest = "manifest"
+
+
+class format(str, Enum):
+    json = "json"
+    tsv = "tsv"
+
+
+class RecordItem(BaseModel):
+    program: Union[str, None] = None
+    project: Union[str, None] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "program": "demo1",
+                "project": "12L",
+            }
+        }
+
+
+class GraphQLItem(BaseModel):
+    limit: Union[int, None] = 50
+    page: Union[int, None] = 1
+    node: Union[str, None] = None
+    filter: Union[dict, None] = None
+    search: Union[str, None] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "limit": 50,
+                "page": 1,
+                "node": "experiment",
+                "filter": {},
+                "search": ""
+            }
+        }
+
+
+def update_gen3_header_when_unauthorized():
+    res = requests.get(
+        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/", headers=HEADER)
+    if res.status_code == UNAUTHORIZED:
+        return get_gen3_header()
+    return
+
+
+def gen3_request(path=""):
+    update_gen3_header_when_unauthorized()
+    return requests.get(f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{path}", headers=HEADER)
+
+
+@ app.get("/program")
 # Get the program information from Gen3 Data Commons
 async def get_gen3_program():
     """
     Return the program information from Gen3 Data Commons
     """
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = gen3_request()
         json_data = json.loads(res.content)
         program_list = []
         for ele in json_data["links"]:
@@ -171,21 +222,19 @@ async def get_gen3_program():
         new_json_data = {"program": program_list}
         return new_json_data
     except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-@app.get("/project/{program}")
+@ app.get("/project/{program}")
 # Get all projects information from Gen3 Data Commons
-async def get_gen3_project(program: str):
+async def get_gen3_project(program: program):
     """
     Return project information.
 
     :param program: Gen3 program name
     """
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = gen3_request(f"{program}")
         json_data = json.loads(res.content)
         project_list = []
         for ele in json_data["links"]:
@@ -197,16 +246,14 @@ async def get_gen3_project(program: str):
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-@app.get("/dictionary")
+@ app.get("/dictionary")
 # Get all dictionary node from Gen3 Data Commons
 async def get_gen3_dictionary():
     """
     Return all dictionary node from Gen3 Data Commons
     """
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/_dictionary", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = gen3_request("_dictionary")
         json_data = json.loads(res.content)
         dictionary_list = []
         for ele in json_data["links"]:
@@ -218,48 +265,34 @@ async def get_gen3_dictionary():
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-def is_json(json_data):
-    """
-    Returns true if the given string is a valid json.
-
-    :param json_data: The input data need to be checked.
-    :return: True if the string can be parsed as valid json.
-    """
-    try:
-        json.loads(json_data)
-    except ValueError:
-        return False
-    return True
-
-
-@app.post("/records/{node_type}")
+@ app.post("/records/{node}")
 # Exports all records in a dictionary node
-async def get_gen3_node_records(node_type: str, item: RecordItem):
+async def get_gen3_node_records(node: node, item: RecordItem):
     """
     Return all records in a dictionary node.
 
-    :param node_type: The dictionary node to export.
+    :param node: The dictionary node to export.
     :return: A list of json object containing all records in the dictionary node.
     """
-    if item.program == None or item.project == None or item.format == None:
+    if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body")
+                            detail="Missing one ore more fields in request body.")
 
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?node_label={node_type}&format={item.format}", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = gen3_request(
+            f"{item.program}/{item.project}/export/?node_label={node}&format=json")
         json_data = json.loads(res.content)
-        if is_json(res.content) and "data" in json_data and json_data["data"] != []:
+        if b"data" in res.content and json_data["data"] != []:
             return json_data
         else:
             raise HTTPException(status_code=NOT_FOUND,
-                                detail="Records cannot be found")
-    except Exception as e:
-        raise HTTPException(status_code=res.status_code, detail=str(e))
+                                detail="Node records cannot be found.")
+    except Exception:
+        raise HTTPException(status_code=FORBIDDEN,
+                            detail="Invalid program or project name.")
 
 
-@app.post("/record/{uuids}")
+@ app.post("/record/{uuids}")
 # Exports one or more records(records must in one node), use comma to separate the uuids
 # e.g. uuid1,uuid2,uuid3
 async def get_gen3_record(uuids: str, item: RecordItem):
@@ -269,73 +302,141 @@ async def get_gen3_record(uuids: str, item: RecordItem):
     :param uuids: uuids of the records (use comma to separate the uuids e.g. uuid1,uuid2,uuid3).
     :return: A list of json object
     """
-    if item.program == None or item.project == None or item.format == None:
+    if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body")
+                            detail="Missing one ore more fields in request body.")
 
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{item.program}/{item.project}/export/?ids={uuids}&format={item.format}", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = gen3_request(
+            f"{item.program}/{item.project}/export/?ids={uuids}&format=json")
         json_data = json.loads(res.content)
         if b"id" in res.content:
             return json_data
         else:
             raise HTTPException(status_code=NOT_FOUND,
-                                detail="Record can not be found, please check the uuid of the record")
-    except Exception as e:
-        raise HTTPException(status_code=res.status_code, detail=str(e))
+                                detail="Record can not be found, please check the uuid of the record.")
+    except Exception:
+        raise HTTPException(status_code=FORBIDDEN,
+                            detail="Invalid program or project name.")
 
 
-@app.post("/graphql")
-# Only used for filtering the files in a specific node for now
+# def search_keyword(keyword, data):
+#     search_result = []
+#     keyword_list = re.findall('([-0-9a-zA-Z]+)', keyword)
+#     for ele in data:
+#         for word in keyword_list:
+#             if word.lower() in json.dumps(ele).lower():
+#                 search_result.append(ele)
+#     sorted_result = sorted(
+#         search_result, key=search_result.count, reverse=True)
+#     output_result = []
+#     [output_result.append(x) for x in sorted_result if x not in output_result]
+#     return output_result
+
+
+def merge_item_filter(item):
+    # AND relationship
+    count_filter = 0
+    id_dict = {}
+    filter_dict = {"submitter_id": []}
+    if item.filter != {}:
+        # Create a id dict to count the frequency of occurrence
+        for key in item.filter.keys():
+            count_filter += 1
+            for ele in item.filter[key]:
+                if ele not in id_dict.keys():
+                    id_dict[ele] = 1
+                else:
+                    id_dict[ele] += 1
+        # Find the matched id and add them into the dict with key submitter_id
+        for id in id_dict.keys():
+            if id_dict[id] == max(id_dict.values()):
+                filter_dict["submitter_id"].append(id)
+        # Replace the filter with created dict
+        item.filter = filter_dict
+
+
+@ app.post("/graphql")
+# Only used for filtering and searching the files in a specific node
 async def graphql_query(item: GraphQLItem):
     """
-    Return filtered metadata records. The query uses GraphQL query.
+    Return filtered/searched metadata records. The query uses GraphQL query.
 
-    filter post format should looks like:
-    '<field_name>: ["<attribute_name>"], ...], ...'
+    Default limit = 50
+    Default page = 1
 
-    search post format should looks like:
-    '"<keyword>"'
+    filter post format should looks like: {"<filed_name>": ["<attribute_name>", ...], ...}
 
-    Field post format should looks like:
-    "<field_name> <field_name> <field_name> ..."
+    search post format should looks like: "\<string\>"
     """
-    if item.node_type == None or item.search == None or item.field == None:
+    if item.node == None or item.filter == None or item.search == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body")
+                            detail="Missing one ore more fields in request body.")
 
-    if item.filter == None:
-        filter = ""
+    if item.node == "experiment":
+        merge_item_filter(item)
+    sgqlc = SimpleGraphQLClient()
+    query = sgqlc.generate_query(item)
+    update_gen3_header_when_unauthorized()
+    endpoint = HTTPEndpoint(
+        url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
+    result = endpoint(query=query)["data"]
+    if result is not None and result[item.node] != []:
+        # if item.search != "":
+        #     result = search_keyword(item.search, result)
+        pagination_result = {
+            "data": result[item.node],
+            # Maximum number of records display in one page
+            "limit": item.limit,
+            # The number of records display in current page
+            "size": len(result[item.node]),
+            "page": item.page,
+            "total": result["total"]
+        }
+        return pagination_result
     else:
-        filter = item.filter
-    query = {
-        "query":
-        """{""" +
-        f"""{item.node_type}({filter}, quick_search: {item.search})""" +
-        """{""" +
-        f"""{item.field}""" +
-        """}""" +
-        """}"""
-    }
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="Data cannot be found in the node.")
 
-    res = requests.post(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", json=query, headers=HEADER)
+#
+# Gen3 Filter
+#
+filter_list = {
+    "manifest": ["DATA TYPES"],
+    "dataset_description": ["ANATOMICAL STRUCTURE", "SPECIES"],
+}
+
+
+@ app.post("/filters")
+async def generate_filters(item: RecordItem):
+    """
+    Return the support data for frontend filters.
+    """
+    if item.program == None or item.project == None:
+        raise HTTPException(status_code=BAD_REQUEST,
+                            detail="Missing one ore more fields in request body.")
+
     try:
-        res.raise_for_status()
-        json_data = json.loads(res.content)
-        if json_data["data"][f"{item.node_type}"] != []:
-            return json_data
-        else:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="Data cannot be found in current node")
+        filters_result = {}
+        for node in filter_list:
+            for filter in filter_list[node]:
+                res = gen3_request(
+                    f"{item.program}/{item.project}/export/?node_label={node}&format=json")
+                json_data = json.loads(res.content)
+                if b"data" in res.content and json_data["data"] != []:
+                    f = Filter()
+                    filters_result[filter] = f.get_filter_data(
+                        filter, json_data)
+                else:
+                    raise HTTPException(status_code=NOT_FOUND,
+                                        detail="Mimetypes filter data cannot be generated.")
+        return filters_result
     except Exception as e:
         raise HTTPException(status_code=res.status_code, detail=str(e))
 
 
-@app.get("/download/metadata/{program}/{project}/{uuid}/{format}/{filename}")
-async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: str, filename: str):
+@ app.get("/metadata/download/{program}/{project}/{uuid}/{format}")
+async def download_gen3_metadata_file(program: program, project: project, uuid: str, format: format):
     """
     Return a single file for a given uuid.
 
@@ -343,23 +444,24 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
     :param project: project name.
     :param uuid: uuid of the file.
     :param format: format of the file (must be one of the following: json, tsv).
-    :param filename: name of the file.
     :return: A JSON or CSV file containing the metadata.
     """
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{program}/{project}/export/?ids={uuid}&format={format}", headers=HEADER)
     try:
-        res.raise_for_status()
+        res = gen3_request(
+            f"{program}/{project}/export/?ids={uuid}&format={format}")
         if format == "json":
             return Response(content=res.content,
                             media_type="application/json",
                             headers={"Content-Disposition":
-                                     f"attachment;filename={filename}.json"})
-        else:
+                                     f"attachment;filename={uuid}.json"})
+        elif format == "tsv":
             return Response(content=res.content,
                             media_type="text/csv",
                             headers={"Content-Disposition":
-                                     f"attachment;filename={filename}.csv"})
+                                     f"attachment;filename={uuid}.csv"})
+        else:
+            raise HTTPException(status_code=NOT_FOUND,
+                                detail="Wrong data format is required.")
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
@@ -367,11 +469,25 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
 #
 # iRODS
 #
+class action(str, Enum):
+    preview = "preview"
+    download = "download"
 
 
-def get_data_list(collect):
+class CollectionItem(BaseModel):
+    path: Union[str, None] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "path": "/tempZone/home/rods/datasets",
+            }
+        }
+
+
+def get_collection_list(data):
     collect_list = []
-    for ele in collect:
+    for ele in data:
         collect_list.append({
             "id": ele.id,
             "name": ele.name,
@@ -380,7 +496,7 @@ def get_data_list(collect):
     return collect_list
 
 
-@app.get("/collection")
+@ app.get("/collection")
 async def get_irods_root_collections():
     """
     Return all collections from the root folder.
@@ -388,68 +504,63 @@ async def get_irods_root_collections():
     try:
         collect = SESSION.collections.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}")
+        folders = get_collection_list(collect.subcollections)
+        files = get_collection_list(collect.data_objects)
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
-    folders = get_data_list(collect.subcollections)
-    files = get_data_list(collect.data_objects)
     return {"folders": folders, "files": files}
 
 
-@app.post("/collection")
+@ app.post("/collection")
 async def get_irods_collections(item: CollectionItem):
     """
     Return all collections from the required folder.
     """
     if item.path == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing field in request body")
+                            detail="Missing field in request body.")
 
     try:
         collect = SESSION.collections.get(item.path)
-        folders = get_data_list(collect.subcollections)
-        files = get_data_list(collect.data_objects)
+        folders = get_collection_list(collect.subcollections)
+        files = get_collection_list(collect.data_objects)
         return {"folders": folders, "files": files}
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@app.get("/preview/data/{suffix}")
-async def preview_irods_data_file(suffix: str):
+@ app.get("/data/{action}/{filepath:path}")
+async def get_irods_data_file(action: action, filepath: str):
     """
-    Used to preview most types of the data file.
+    Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
+    OR
+    Return a specific download file from iRODS or a preview of most types data.
 
-    :param suffix: Required iRODS file path.
-    """
-    url_suffix = suffix.replace("&", "/")
-    try:
-        file = SESSION.data_objects.get(
-            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{url_suffix}")
-
-        def iterfile():
-            with file.open("r") as file_like:
-                yield from file_like
-        return StreamingResponse(iterfile(), media_type=mimetypes.guess_type(file.name)[0])
-    except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
-
-
-@app.get("/download/data/{suffix}")
-async def download_irods_data_file(suffix: str):
-    """
-    Return a specific download file from iRODS.
-
-    :param suffix: Required iRODS file path.
+    :param action: Action should be either preview or download.
+    :param filepath: Required iRODS file path.
     :return: A file with data.
     """
-    url_suffix = suffix.replace("&", "/")
+    chunk_size = 1024*1024
     try:
         file = SESSION.data_objects.get(
-            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{url_suffix}")
-        with file.open("r") as f:
-            content = f.read()
-        return Response(content=content,
-                        media_type=mimetypes.guess_type(file.name)[0],
-                        headers={"Content-Disposition":
-                                 f"attachment;filename={file.name}"})
+            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{filepath}")
+
+        def iterate_file():
+            with file.open("r") as file_like:
+                chunk = file_like.read(chunk_size)
+                while chunk:
+                    yield chunk
+                    chunk = file_like.read(chunk_size)
+        if action == "preview":
+            return StreamingResponse(iterate_file(),
+                                     media_type=mimetypes.guess_type(file.name)[0])
+        elif action == "download":
+            return StreamingResponse(iterate_file(),
+                                     media_type=mimetypes.guess_type(file.name)[
+                0],
+                headers={"Content-Disposition": f"attachment;filename={file.name}"})
+        else:
+            raise HTTPException(status_code=NOT_FOUND,
+                                detail="The action is not provided in this API.")
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))

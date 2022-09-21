@@ -26,18 +26,14 @@ def test_get_gen3_project(client):
 def test_get_gen3_dictionary(client):
     response = client.get("/dictionary")
     assert response.status_code == 200
-    assert len(response.json()["dictionary"]) == 20
-    assert response.json() == {"dictionary": ["root", "data_release", "slide_count", "case", "resource", "code_description", "performance", "experiment", "program", "experimental_metadata",
-                                              "core_metadata_collection", "project", "code_parameter", "slide", "dataset_description", "submission", "sample", "slide_image", "aliquot", "_all"]}
 
 
 def test_get_gen3_node_records(client):
-    NODE_TYPE = "slide"
+    NODE_TYPE = "experiment"
 
     test_data_pass = {
         "program": "demo1",
         "project": "12L",
-        "format": "json",
     }
     response = client.post(f"/records/{NODE_TYPE}", json=test_data_pass)
     assert response.status_code == 200
@@ -47,12 +43,11 @@ def test_get_gen3_node_records(client):
     response = client.post(f"/records/{NODE_TYPE}", json=test_data_failed_400)
     assert response.status_code == 400
     assert response.json() == {
-        "detail": "Missing one ore more fields in request body"}
+        "detail": "Missing one ore more fields in request body."}
 
     test_data_failed_403 = {
         "program": "demo",
         "project": "12L",
-        "format": "json",
     }
     response = client.post(f"/records/{NODE_TYPE}", json=test_data_failed_403)
     assert response.status_code == 403
@@ -67,48 +62,41 @@ def test_get_gen3_node_records(client):
 
 
 def test_get_gen3_record(client):
-    UUID = "ccc2e137-acc4-4703-9954-be61fa4b638a"
+    UUID = "fcf89c10-20ae-43a9-afb4-a7b107a2b541"
 
     test_data_pass = {
         "program": "demo1",
         "project": "12L",
-        "format": "json",
     }
     response = client.post(f"/record/{UUID}", json=test_data_pass)
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json() == [{'id': 'ccc2e137-acc4-4703-9954-be61fa4b638a', 'experiments': [{'node_id': '76a33dd9-757c-491d-a1c7-78333dca2995', 'submitter_id': 'dataset-217-version-2'}], 'samples': [
-    ], 'type': 'slide', 'project_id': 'demo1-12L', 'submitter_id': 'dataset-217-version-2-derivative-scaffold_context_info-json', 'description': 'NA', 'file_type': 'json', 'filename': 'derivative/scaffold_context_info.json', 'timestamp': 'NA', 'additional_metadata': 'derivative'}]
+    assert response.json()[
+        0]["submitter_id"] == "dataset-76-version-7-dataset_description"
 
     test_data_failed_400 = {}
     response = client.post(f"/record/{UUID}", json=test_data_failed_400)
     assert response.status_code == 400
     assert response.json() == {
-        "detail": "Missing one ore more fields in request body"}
+        "detail": "Missing one ore more fields in request body."}
 
     test_data_failed_403 = {
         "program": "demo",
         "project": "12L",
-        "format": "json",
     }
     response = client.post(f"/record/{UUID}", json=test_data_failed_403)
     assert response.status_code == 403
 
-    test_data_failed_404 = {
-        "program": "demo1",
-        "project": "12Labours",
-        "format": "json",
-    }
-    response = client.post(f"/record/{UUID}", json=test_data_failed_404)
-    assert response.status_code == 404
-
 
 def test_graphql_query(client):
     test_data_pass = {
-        "node_type": "slide",
-        "filter": 'project_id: ["demo1-12L"], timestamp: "NA"',
-        "search": '""',
-        "field": "id",
+        "limit": 10,
+        "page": 1,
+        "node": "manifest",
+        "filter": {
+            "additional_types": ["application/x.vnd.abi.scaffold.meta+json"],
+        },
+        "search": "",
     }
     response = client.post("/graphql", json=test_data_pass)
     assert response.status_code == 200
@@ -117,37 +105,54 @@ def test_graphql_query(client):
     test_data_failed_400 = {}
     response = client.post("/graphql", json=test_data_failed_400)
     assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Missing one ore more fields in request body."}
 
-    # test_data_failed_404 = {
-    #     "node_type": "slide",
-    #     "filter": 'project_id: "demo1-12L", timestamp: "None"',
-    #     "search": '""',
-    #     "field": "id",
-    # }
-    # response = client.post("/graphql", json=test_data_failed_404)
-    # assert response.status_code == 404
+    test_data_failed_404 = {
+        "limit": 10,
+        "page": 1,
+        "node": "irods",
+        "filter": {
+            "additional_types": ["application/x.vnd.abi.scaffold.meta+json"],
+        },
+        "search": "",
+    }
+    response = client.post("/graphql", json=test_data_failed_404)
+    assert response.status_code == 404
+
+
+def test_generate_filters(client):
+    test_data_pass = {
+        "program": "demo1",
+        "project": "12L",
+    }
+    response = client.post("/filters", json=test_data_pass)
+    assert response.status_code == 200
+
+    test_data_failed_403 = {
+        "program": "demo",
+        "project": "12L",
+    }
+    response = client.post("/filters", json=test_data_failed_403)
+    assert response.status_code == 403
 
 
 def test_download_gen3_metadata_file(client):
     PROG_NAME = "demo1"
     PROJ_NAME = "12L"
-    UUID = "ccc2e137-acc4-4703-9954-be61fa4b638a"
+    UUID = "fcf89c10-20ae-43a9-afb4-a7b107a2b541"
     FORM = "json"
-    NAME = "testname"
     response = client.get(
-        f"/download/metadata/{PROG_NAME}/{PROJ_NAME}/{UUID}/{FORM}/{NAME}")
+        f"/metadata/download/{PROG_NAME}/{PROJ_NAME}/{UUID}/{FORM}")
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json() == [{'id': 'ccc2e137-acc4-4703-9954-be61fa4b638a', 'experiments': [{'node_id': '76a33dd9-757c-491d-a1c7-78333dca2995', 'submitter_id': 'dataset-217-version-2'}], 'samples': [
-    ], 'type': 'slide', 'project_id': 'demo1-12L', 'submitter_id': 'dataset-217-version-2-derivative-scaffold_context_info-json', 'description': 'NA', 'file_type': 'json', 'filename': 'derivative/scaffold_context_info.json', 'timestamp': 'NA', 'additional_metadata': 'derivative'}]
+    assert response.json()[
+        0]["submitter_id"] == "dataset-76-version-7-dataset_description"
 
 
 def test_get_irods_root_collections(client):
     response = client.get("/collection")
     assert response.status_code == 200
-    assert len(response.json()) == 2
-    assert response.json() == {'files': [], 'folders': [{'id': 10014, 'name': 'datasets', 'path': '/tempZone/home/rods/datasets'}, {
-        'id': 10068, 'name': 'uploads', 'path': '/tempZone/home/rods/uploads'}]}
 
 
 def test_get_irodst_collections(client):
@@ -156,14 +161,11 @@ def test_get_irodst_collections(client):
     }
     response = client.post("/collection", json=test_post_data_pass)
     assert response.status_code == 200
-    assert len(response.json()) == 2
-    assert response.json() == {'files': [], 'folders': [{'id': 10030, 'name': 'dataset-217-version-2', 'path': '/tempZone/home/rods/datasets/dataset-217-version-2'}, {'id': 10031, 'name': 'dataset-264-version-1', 'path': '/tempZone/home/rods/datasets/dataset-264-version-1'}]} != {
-        'folders': [{'id': 10030, 'name': 'dataset-217-version-2', 'path': '/tempZone/home/rods/datasets/dataset...ion-2'}, {'id': 10031, 'name': 'dataset-264-version-1', 'path': '/tempZone/home/rods/datasets/dataset-264-version-1'}]}
 
     test_post_data_failed_400 = {}
     response = client.post("/collection", json=test_post_data_failed_400)
     assert response.status_code == 400
-    assert response.json() == {"detail": "Missing field in request body"}
+    assert response.json() == {"detail": "Missing field in request body."}
 
     test_post_data_failed_404 = {
         "path": "/tempZone/home/rods/data"
@@ -172,17 +174,10 @@ def test_get_irodst_collections(client):
     assert response.status_code == 404
 
 
-def test_preview_irods_data_file(client):
-    SUFFIX = "datasets&dataset-217-version-2&derivative&scaffold_context_info.json"
-    response = client.get(f"/preview/data/{SUFFIX}")
-    assert response.status_code == 200
-    assert response.json() == {"description": "Annotated brainstem scaffold for pig available for registration of segmented neural anatomical-functional mapping of neural circuits.",
-                               "heading": "Generic pig brainstem scaffold", "id": "sparc.science.context_data", "samples": [], "version": "0.1.0", "views": []}
-
-
-def test_download_irods_data_file(client):
-    SUFFIX = "datasets&dataset-217-version-2&derivative&scaffold_context_info.json"
-    response = client.get(f"/download/data/{SUFFIX}")
+def test_get_irods_data_file(client):
+    ACTION = "preview"
+    FILEPATH = "datasets/dataset-217-version-2/derivative/scaffold_context_info.json"
+    response = client.get(f"/data/{ACTION}/{FILEPATH}")
     assert response.status_code == 200
     assert response.json() == {"description": "Annotated brainstem scaffold for pig available for registration of segmented neural anatomical-functional mapping of neural circuits.",
                                "heading": "Generic pig brainstem scaffold", "id": "sparc.science.context_data", "samples": [], "version": "0.1.0", "views": []}
