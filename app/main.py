@@ -5,21 +5,20 @@ import mimetypes
 from app.config import Config, Gen3Config, iRODSConfig
 from app.dbtable import StateTable
 
-from fastapi import FastAPI, Response, HTTPException, Body
+from fastapi import FastAPI, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse
 
 from typing import Union
 from pydantic import BaseModel
+from enum import Enum
 
 from irods.session import iRODSSession
 
 from sgqlc.endpoint.http import HTTPEndpoint
 from app.sgqlc import SimpleGraphQLClient
-
 from app.filter import Filter
 
-from enum import Enum
 
 app = FastAPI(
     title="12 Labours Portal APIs"
