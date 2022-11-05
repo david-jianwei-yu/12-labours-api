@@ -178,8 +178,8 @@ class GraphQLItem(BaseModel):
     limit: Union[int, None] = 50
     page: Union[int, None] = 1
     node: Union[str, None] = None
-    filter: Union[dict, None] = None
-    search: Union[str, None] = None
+    filter: Union[dict, None] = {}
+    search: Union[str, None] = ""
 
     class Config:
         schema_extra = {
@@ -292,10 +292,10 @@ async def get_gen3_node_records(node: node, item: RecordItem):
                             detail="Invalid program or project name.")
 
 
-@ app.post("/record/{uuids}")
+@ app.post("/record/{uuid}")
 # Exports one or more records(records must in one node), use comma to separate the uuids
 # e.g. uuid1,uuid2,uuid3
-async def get_gen3_record(uuids: str, item: RecordItem):
+async def get_gen3_record(uuid: str, item: RecordItem):
     """
     Return the fields of one or more records in a dictionary node.
 
@@ -308,7 +308,7 @@ async def get_gen3_record(uuids: str, item: RecordItem):
 
     try:
         res = gen3_request(
-            f"{item.program}/{item.project}/export/?ids={uuids}&format=json")
+            f"{item.program}/{item.project}/export/?ids={uuid}&format=json")
         json_data = json.loads(res.content)
         if b"id" in res.content:
             return json_data
@@ -369,7 +369,7 @@ async def graphql_query(item: GraphQLItem):
 
     search post format should looks like: "\<string\>"
     """
-    if item.node == None or item.filter == None or item.search == None:
+    if item.node == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
@@ -401,38 +401,36 @@ async def graphql_query(item: GraphQLItem):
 #
 # Gen3 Filter
 #
-filter_list = {
-    "manifest": ["DATA TYPES"],
-    "dataset_description": ["ANATOMICAL STRUCTURE", "SPECIES"],
-}
 
 
-@ app.post("/filters")
-async def generate_filters(item: RecordItem):
+@ app.post("/filter")
+async def generate_filters():
     """
-    Return the support data for frontend filters.
+    Return the support data for frontend filters component.
     """
-    if item.program == None or item.project == None:
+    return Filter().get_filter()
+
+
+@ app.post("/filter/argument")
+async def graphql_query(item: GraphQLItem):
+    if item.node == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
-    try:
-        filters_result = {}
-        for node in filter_list:
-            for filter in filter_list[node]:
-                res = gen3_request(
-                    f"{item.program}/{item.project}/export/?node_label={node}&format=json")
-                json_data = json.loads(res.content)
-                if b"data" in res.content and json_data["data"] != []:
-                    f = Filter()
-                    filters_result[filter] = f.get_filter_data(
-                        filter, json_data)
-                else:
-                    raise HTTPException(status_code=NOT_FOUND,
-                                        detail="Mimetypes filter data cannot be generated.")
-        return filters_result
-    except Exception as e:
-        raise HTTPException(status_code=res.status_code, detail=str(e))
+    sgqlc = SimpleGraphQLClient()
+    query = sgqlc.generate_query(item)
+    update_gen3_header_when_unauthorized()
+    endpoint = HTTPEndpoint(
+        url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
+    result = endpoint(query=query)["data"]
+    if result is not None and result[item.node] != []:
+        f = Filter()
+        dataset_filter_result = f.generate_dataset_info_list(
+            result[item.node])
+        return dataset_filter_result
+    else:
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="Data cannot be found in the node.")
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}")

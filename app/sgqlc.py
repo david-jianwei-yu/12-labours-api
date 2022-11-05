@@ -9,23 +9,27 @@ NOT_FOUND = 404
 
 
 class SimpleGraphQLClient:
-    def convert_query(self, item, query):
-        # Convert camel case to snake case
-        snake_case_query = re.sub(
-            '_[A-Z]', lambda x:  x.group(0).lower(), re.sub('([a-z])([A-Z])', r'\1_\2', str(query)))
+    def add_count_field(self, item, query):
         # Add count field to query
         count_field = f"total: _{item.node}_count(quick_search: \"{item.search}\")"
         if item.filter != {}:
-            # Manual modify and add count filed into graphql query
+            # Manually modify and add count filed into graphql query
             count_field = re.sub('\'', '\"', f"total: _{item.node}_count(quick_search: \"{item.search}\", " + re.sub(
                 '\'([_a-z]+)\'', r'\1', re.sub('\{([^{].*[^}])\}', r'\1', f"{item.filter})")))
         if item.node == "experiment":
             # Display all sub nodes records
-            snake_case_query = re.sub(
-                's {', 's(first: 0) {', snake_case_query) + count_field
+            query = re.sub(
+                's {', 's(first: 0) {', query) + count_field
         else:
-            snake_case_query += count_field
-        return "{" + snake_case_query + "}"
+            query += count_field
+        return query
+
+    def convert_query(self, item, query):
+        # Convert camel case to snake case
+        snake_case_query = re.sub(
+            '_[A-Z]', lambda x:  x.group(0).lower(), re.sub('([a-z])([A-Z])', r'\1_\2', str(query)))
+        final_query = self.add_count_field(item, snake_case_query)
+        return "{" + final_query + "}"
 
     def generate_query(self, item):
         query = Operation(Query)
