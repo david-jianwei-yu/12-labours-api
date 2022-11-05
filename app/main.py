@@ -404,19 +404,20 @@ async def graphql_query(item: GraphQLItem):
 
 
 @ app.post("/filter")
-async def generate_filters():
+async def get_filter_info():
     """
     Return the support data for frontend filters component.
     """
-    return Filter().get_filter()
+    return Filter().generate_filter_data()
 
 
 @ app.post("/filter/argument")
-async def graphql_query(item: GraphQLItem):
+async def get_filter_argument(item: GraphQLItem):
     if item.node == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
+    item.limit = 0  # This will ensure that all files can be queried.
     sgqlc = SimpleGraphQLClient()
     query = sgqlc.generate_query(item)
     update_gen3_header_when_unauthorized()

@@ -24,7 +24,7 @@ class Filter:
             "dataset-[0-9]*-version-[0-9]*", record["submitter_id"])[0] for record in data]
         return list(set(dataset_list))
 
-    def get_filter(self):
+    def generate_filter_data(self):
         return {
             "DATA TYPES": MAPPED_MIME_TYPES
         }
