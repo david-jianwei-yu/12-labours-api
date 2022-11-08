@@ -147,11 +147,13 @@ async def get_state():
 # Gen3 Data Commons
 #
 class program(str, Enum):
-    program = "demo1"
+    program1 = "demo1"
+    program2 = "demo2"
 
 
 class project(str, Enum):
-    project = "12L"
+    project1 = "12L"
+    project2 = "example_workflow"
 
 
 class node(str, Enum):
@@ -184,7 +186,7 @@ class GraphQLItem(BaseModel):
     node: Union[str, None] = None
     filter: Union[dict, None] = {}
     search: Union[str, None] = ""
-    relation: Union[str, None] = "or"
+    relation: Union[str, None] = "and"
 
     class Config:
         schema_extra = {
@@ -380,7 +382,7 @@ async def graphql_query(item: GraphQLItem):
                             detail="Data cannot be found in the node.")
 
 
-@ app.post("/filter")
+@ app.post("/filters")
 async def get_filter_info():
     """
     Return the support data for frontend filters component.
@@ -392,7 +394,7 @@ async def get_filter_info():
 async def get_filter_argument(item: GraphQLItem):
     if item.node == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body.")
+                            detail="Missing one or more fields in request body.")
 
     item.limit = 0  # This will ensure that all files can be queried.
     query = sgqlc.generate_query(item)

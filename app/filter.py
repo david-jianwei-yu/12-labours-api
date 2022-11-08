@@ -49,11 +49,11 @@ class Filter:
             # Replace the filter with created dict
             item.filter = filter_dict
 
-    def filter_relation(self, item, relation):
-        if relation == "and":
-            self.and_relationship(self, item)
-        elif relation == "or":
-            self.or_relationship(self, item)
+    def filter_relation(self, item):
+        if item.relation == "and":
+            self.and_relationship(item)
+        elif item.relation == "or":
+            self.or_relationship(item)
 
     def generate_dataset_info_list(self, data):
         dataset_list = [re.findall(
