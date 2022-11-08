@@ -61,6 +61,10 @@ def get_gen3_header():
     HEADER = {"Authorization": "bearer " + TOKEN["access_token"]}
 
 
+sgqlc = SimpleGraphQLClient()
+f = Filter()
+
+
 @ app.on_event("startup")
 async def start_up():
     try:
@@ -180,6 +184,7 @@ class GraphQLItem(BaseModel):
     node: Union[str, None] = None
     filter: Union[dict, None] = {}
     search: Union[str, None] = ""
+    relation: Union[str, None] = "or"
 
     class Config:
         schema_extra = {
@@ -334,28 +339,6 @@ async def get_gen3_record(uuid: str, item: RecordItem):
 #     return output_result
 
 
-def merge_item_filter(item):
-    # AND relationship
-    count_filter = 0
-    id_dict = {}
-    filter_dict = {"submitter_id": []}
-    if item.filter != {}:
-        # Create a id dict to count the frequency of occurrence
-        for key in item.filter.keys():
-            count_filter += 1
-            for ele in item.filter[key]:
-                if ele not in id_dict.keys():
-                    id_dict[ele] = 1
-                else:
-                    id_dict[ele] += 1
-        # Find the matched id and add them into the dict with key submitter_id
-        for id in id_dict.keys():
-            if id_dict[id] == max(id_dict.values()):
-                filter_dict["submitter_id"].append(id)
-        # Replace the filter with created dict
-        item.filter = filter_dict
-
-
 @ app.post("/graphql")
 # Only used for filtering and searching the files in a specific node
 async def graphql_query(item: GraphQLItem):
@@ -373,9 +356,7 @@ async def graphql_query(item: GraphQLItem):
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
-    if item.node == "experiment":
-        merge_item_filter(item)
-    sgqlc = SimpleGraphQLClient()
+    f.filter_relation(item)
     query = sgqlc.generate_query(item)
     update_gen3_header_when_unauthorized()
     endpoint = HTTPEndpoint(
@@ -398,17 +379,13 @@ async def graphql_query(item: GraphQLItem):
         raise HTTPException(status_code=NOT_FOUND,
                             detail="Data cannot be found in the node.")
 
-#
-# Gen3 Filter
-#
-
 
 @ app.post("/filter")
 async def get_filter_info():
     """
     Return the support data for frontend filters component.
     """
-    return Filter().generate_filter_data()
+    return f.generate_filter_data()
 
 
 @ app.post("/filter/argument")
@@ -418,14 +395,12 @@ async def get_filter_argument(item: GraphQLItem):
                             detail="Missing one ore more fields in request body.")
 
     item.limit = 0  # This will ensure that all files can be queried.
-    sgqlc = SimpleGraphQLClient()
     query = sgqlc.generate_query(item)
     update_gen3_header_when_unauthorized()
     endpoint = HTTPEndpoint(
         url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
     result = endpoint(query=query)["data"]
     if result is not None and result[item.node] != []:
-        f = Filter()
         dataset_filter_result = f.generate_dataset_info_list(
             result[item.node])
         return dataset_filter_result
