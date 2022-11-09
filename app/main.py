@@ -1,24 +1,25 @@
 import json
-import requests
 import mimetypes
 
 from app.config import Config, Gen3Config, iRODSConfig
 from app.dbtable import StateTable
 
-from fastapi import FastAPI, Response, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, StreamingResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
 
 from typing import Union
 from pydantic import BaseModel
 from enum import Enum
 
-from irods.session import iRODSSession
+from gen3.auth import Gen3Auth
+from gen3.submission import Gen3Submission
+from gen3.query import Gen3Query
 
-from sgqlc.endpoint.http import HTTPEndpoint
 from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter
 
+from irods.session import iRODSSession
 
 app = FastAPI(
     title="12 Labours Portal APIs"
@@ -38,27 +39,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 BAD_REQUEST = 400
 UNAUTHORIZED = 401
-FORBIDDEN = 403
 NOT_FOUND = 404
 
-GEN3_CREDENTIALS = {
-    "api_key": Gen3Config.GEN3_API_KEY,
-    "key_id": Gen3Config.GEN3_KEY_ID
-}
-
 statetable = None
-HEADER = None
+SUBMISSION = None
+QUERY = None
 SESSION = None
-
-
-def get_gen3_header():
-    global HEADER
-    TOKEN = requests.post(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/user/credentials/cdis/access_token", json=GEN3_CREDENTIALS).json()
-    HEADER = {"Authorization": "bearer " + TOKEN["access_token"]}
 
 
 @ app.on_event("startup")
@@ -71,9 +59,13 @@ async def start_up():
         statetable = None
 
     try:
-        get_gen3_header()
+        global SUBMISSION
+        global QUERY
+        AUTH = Gen3Auth(refresh_file=Gen3Config.GEN3_API_KEY_FILEPATH)
+        SUBMISSION = Gen3Submission(AUTH)
+        QUERY = Gen3Query(AUTH)
     except Exception:
-        print("Encounter an error while generating a token from GEN3.")
+        print("Encounter an error while creating the GEN3 auth.")
 
     try:
         # This function is used to connect to the iRODS server, it requires "host", "port", "user", "password" and "zone" environment variables.
@@ -161,7 +153,7 @@ class format(str, Enum):
     tsv = "tsv"
 
 
-class RecordItem(BaseModel):
+class Gen3Item(BaseModel):
     program: Union[str, None] = None
     project: Union[str, None] = None
 
@@ -193,145 +185,106 @@ class GraphQLItem(BaseModel):
         }
 
 
-def update_gen3_header_when_unauthorized():
-    res = requests.get(
-        f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/", headers=HEADER)
-    if res.status_code == UNAUTHORIZED:
-        return get_gen3_header()
-    return
-
-
-def gen3_request(path=""):
-    update_gen3_header_when_unauthorized()
-    return requests.get(f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/{path}", headers=HEADER)
-
-
 @ app.get("/program")
-# Get the program information from Gen3 Data Commons
 async def get_gen3_program():
     """
-    Return the program information from Gen3 Data Commons
+    Return all programs' information from the Gen3 Data Commons.
     """
     try:
-        res = gen3_request()
-        json_data = json.loads(res.content)
-        program_list = []
-        for ele in json_data["links"]:
-            program_list.append(ele.replace(
-                "/v0/submission/", ""))
-        new_json_data = {"program": program_list}
-        return new_json_data
+        program = SUBMISSION.get_programs()
+        program_dict = {"program": []}
+        for ele in program["links"]:
+            program_dict["program"].append(ele.replace("/v0/submission/", ""))
+        return program_dict
     except Exception as e:
-        raise HTTPException(status_code=res.status_code, detail=str(e))
+        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
 @ app.get("/project/{program}")
-# Get all projects information from Gen3 Data Commons
 async def get_gen3_project(program: program):
     """
-    Return project information.
+    Return all projects' information from a program.
 
-    :param program: Gen3 program name
+    :param program: Gen3 program name.
     """
     try:
-        res = gen3_request(f"{program}")
-        json_data = json.loads(res.content)
-        project_list = []
-        for ele in json_data["links"]:
-            project_list.append(ele.replace(
-                f"/v0/submission/{program}/", ""))
-        new_json_data = {"project": project_list}
-        return new_json_data
+        project = SUBMISSION.get_projects(program)
+        project_dict = {"project": []}
+        for ele in project["links"]:
+            project_dict["project"].append(
+                ele.replace(f"/v0/submission/{program}/", ""))
+        return project_dict
     except Exception as e:
-        raise HTTPException(status_code=res.status_code, detail=str(e))
+        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@ app.get("/dictionary")
-# Get all dictionary node from Gen3 Data Commons
-async def get_gen3_dictionary():
+@ app.post("/dictionary")
+async def get_gen3_dictionary(item: Gen3Item):
     """
-    Return all dictionary node from Gen3 Data Commons
+    Return all dictionary nodes from the Gen3 Data Commons
     """
     try:
-        res = gen3_request("_dictionary")
-        json_data = json.loads(res.content)
-        dictionary_list = []
-        for ele in json_data["links"]:
-            dictionary_list.append(ele.replace(
-                "/v0/submission/_dictionary/", ""))
-        new_json_data = {"dictionary": dictionary_list}
-        return new_json_data
-    except Exception as e:
-        raise HTTPException(status_code=res.status_code, detail=str(e))
+        dictionary = SUBMISSION.get_project_dictionary(
+            item.program, item.project)
+        dictionary_dict = {"dictionary": []}
+        for ele in dictionary["links"]:
+            dictionary_dict["dictionary"].append(ele.replace(
+                f"/v0/submission/{item.program}/{item.project}/_dictionary/", ""))
+        return dictionary_dict
+    except Exception:
+        raise HTTPException(
+            status_code=NOT_FOUND, detail=f"Program {item.program} or project {item.project} not found")
 
 
 @ app.post("/records/{node}")
-# Exports all records in a dictionary node
-async def get_gen3_node_records(node: node, item: RecordItem):
+async def get_gen3_node_records(node: node, item: Gen3Item):
     """
-    Return all records in a dictionary node.
+    Return all records' information in a dictionary node.
 
     :param node: The dictionary node to export.
     :return: A list of json object containing all records in the dictionary node.
     """
     if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body.")
+                            detail="Missing one or more fields in the request body")
 
-    try:
-        res = gen3_request(
-            f"{item.program}/{item.project}/export/?node_label={node}&format=json")
-        json_data = json.loads(res.content)
-        if b"data" in res.content and json_data["data"] != []:
-            return json_data
-        else:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="Node records cannot be found.")
-    except Exception:
-        raise HTTPException(status_code=FORBIDDEN,
-                            detail="Invalid program or project name.")
+    node_record = SUBMISSION.export_node(
+        item.program, item.project, node, "json")
+    if "message" in node_record:
+        if "unauthorized" in node_record["message"]:
+            raise HTTPException(status_code=UNAUTHORIZED,
+                                detail=node_record["message"])
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail=node_record["message"])
+    elif node_record["data"] == []:
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail=f"No data found with node type {node} and check if the correct project or node type is used")
+    else:
+        return node_record
 
 
-@ app.post("/record/{uuids}")
-# Exports one or more records(records must in one node), use comma to separate the uuids
-# e.g. uuid1,uuid2,uuid3
-async def get_gen3_record(uuids: str, item: RecordItem):
+@ app.post("/record/{uuid}")
+async def get_gen3_record(uuid: str, item: Gen3Item):
     """
-    Return the fields of one or more records in a dictionary node.
+    Return record's information in the Gen3 Data Commons.
 
-    :param uuids: uuids of the records (use comma to separate the uuids e.g. uuid1,uuid2,uuid3).
-    :return: A list of json object
+    :param uuid: uuid of the record.
+    :return: A list of json object.
     """
     if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body.")
+                            detail="Missing one or more fields in the request body")
 
-    try:
-        res = gen3_request(
-            f"{item.program}/{item.project}/export/?ids={uuids}&format=json")
-        json_data = json.loads(res.content)
-        if b"id" in res.content:
-            return json_data
-        else:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="Record can not be found, please check the uuid of the record.")
-    except Exception:
-        raise HTTPException(status_code=FORBIDDEN,
-                            detail="Invalid program or project name.")
-
-
-# def search_keyword(keyword, data):
-#     search_result = []
-#     keyword_list = re.findall('([-0-9a-zA-Z]+)', keyword)
-#     for ele in data:
-#         for word in keyword_list:
-#             if word.lower() in json.dumps(ele).lower():
-#                 search_result.append(ele)
-#     sorted_result = sorted(
-#         search_result, key=search_result.count, reverse=True)
-#     output_result = []
-#     [output_result.append(x) for x in sorted_result if x not in output_result]
-#     return output_result
+    record = SUBMISSION.export_record(
+        item.program, item.project, uuid, "json")
+    if "message" in record:
+        if "unauthorized" in record["message"]:
+            raise HTTPException(status_code=UNAUTHORIZED,
+                                detail=record["message"])
+        raise HTTPException(
+            status_code=NOT_FOUND, detail=record["message"]+" and check if uses the correct project or uuid is used")
+    else:
+        return record
 
 
 def merge_item_filter(item):
@@ -357,10 +310,9 @@ def merge_item_filter(item):
 
 
 @ app.post("/graphql")
-# Only used for filtering and searching the files in a specific node
 async def graphql_query(item: GraphQLItem):
     """
-    Return filtered/searched metadata records. The query uses GraphQL query.
+    Return filtered/searched metadata records. The API uses GraphQL query language.
 
     Default limit = 50
     Default page = 1
@@ -377,21 +329,17 @@ async def graphql_query(item: GraphQLItem):
         merge_item_filter(item)
     sgqlc = SimpleGraphQLClient()
     query = sgqlc.generate_query(item)
-    update_gen3_header_when_unauthorized()
-    endpoint = HTTPEndpoint(
-        url=f"{Gen3Config.GEN3_ENDPOINT_URL}/api/v0/submission/graphql/", base_headers=HEADER)
-    result = endpoint(query=query)["data"]
-    if result is not None and result[item.node] != []:
-        # if item.search != "":
-        #     result = search_keyword(item.search, result)
+    # query_result = QUERY.graphql_query(query)
+    query_result = SUBMISSION.query(query)["data"]
+    if query_result is not None and query_result[item.node] != []:
         pagination_result = {
-            "data": result[item.node],
+            "data": query_result[item.node],
             # Maximum number of records display in one page
             "limit": item.limit,
             # The number of records display in current page
-            "size": len(result[item.node]),
+            "size": len(query_result[item.node]),
             "page": item.page,
-            "total": result["total"]
+            "total": query_result["total"]
         }
         return pagination_result
     else:
@@ -408,7 +356,7 @@ filter_list = {
 
 
 @ app.post("/filters")
-async def generate_filters(item: RecordItem):
+async def generate_filters(item: Gen3Item):
     """
     Return the support data for frontend filters.
     """
@@ -436,39 +384,45 @@ async def generate_filters(item: RecordItem):
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}")
-async def download_gen3_metadata_file(program: program, project: project, uuid: str, format: format):
+async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: str):
     """
     Return a single file for a given uuid.
 
     :param program: program name.
     :param project: project name.
     :param uuid: uuid of the file.
-    :param format: format of the file (must be one of the following: json, tsv).
-    :return: A JSON or CSV file containing the metadata.
+    :param format: file format (must be one of the following: json, tsv).
+    :return: A JSON or CSV file contains the metadata.
     """
     try:
-        res = gen3_request(
-            f"{program}/{project}/export/?ids={uuid}&format={format}")
+        metadata = SUBMISSION.export_record(program, project, uuid, format)
+    except Exception as e:
+        raise HTTPException(status_code=BAD_REQUEST, detail=str(e))
+
+    if "message" in metadata:
+        if "unauthorized" in metadata["message"]:
+            raise HTTPException(status_code=UNAUTHORIZED,
+                                detail=metadata["message"])
+        raise HTTPException(
+            status_code=NOT_FOUND, detail=metadata["message"]+" and check if uses the correct project or uuid is used")
+    else:
         if format == "json":
-            return Response(content=res.content,
-                            media_type="application/json",
-                            headers={"Content-Disposition":
-                                     f"attachment;filename={uuid}.json"})
+            return JSONResponse(content=metadata[0],
+                                media_type="application/json",
+                                headers={"Content-Disposition":
+                                         f"attachment;filename={uuid}.json"})
         elif format == "tsv":
-            return Response(content=res.content,
+            return Response(content=metadata,
                             media_type="text/csv",
                             headers={"Content-Disposition":
                                      f"attachment;filename={uuid}.csv"})
-        else:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="Wrong data format is required.")
-    except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
 #
 # iRODS
 #
+
+
 class action(str, Enum):
     preview = "preview"
     download = "download"
