@@ -43,6 +43,11 @@ BAD_REQUEST = 400
 UNAUTHORIZED = 401
 NOT_FOUND = 404
 
+GEN3_CREDENTIALS = {
+    "api_key": Gen3Config.GEN3_API_KEY,
+    "key_id": Gen3Config.GEN3_KEY_ID
+}
+
 statetable = None
 SUBMISSION = None
 QUERY = None
@@ -61,7 +66,7 @@ async def start_up():
     try:
         global SUBMISSION
         global QUERY
-        AUTH = Gen3Auth(refresh_file=Gen3Config.GEN3_API_KEY_FILEPATH)
+        AUTH = Gen3Auth(refresh_token=GEN3_CREDENTIALS)
         SUBMISSION = Gen3Submission(AUTH)
         QUERY = Gen3Query(AUTH)
     except Exception:
