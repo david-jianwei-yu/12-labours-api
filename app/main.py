@@ -223,6 +223,10 @@ async def get_gen3_dictionary(item: Gen3Item):
     """
     Return all dictionary nodes from the Gen3 Data Commons
     """
+    if item.program == None or item.project == None:
+        raise HTTPException(status_code=BAD_REQUEST,
+                            detail="Missing one or more fields in the request body")
+
     try:
         dictionary = SUBMISSION.get_project_dictionary(
             item.program, item.project)
