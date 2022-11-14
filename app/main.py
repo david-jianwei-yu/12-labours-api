@@ -373,23 +373,25 @@ async def generate_filters(item: Gen3Item):
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body.")
 
-    try:
-        filters_result = {}
-        for node in filter_list:
-            for filter in filter_list[node]:
-                res = gen3_request(
-                    f"{item.program}/{item.project}/export/?node_label={node}&format=json")
-                json_data = json.loads(res.content)
-                if b"data" in res.content and json_data["data"] != []:
-                    f = Filter()
-                    filters_result[filter] = f.get_filter_data(
-                        filter, json_data)
-                else:
-                    raise HTTPException(status_code=NOT_FOUND,
-                                        detail="Mimetypes filter data cannot be generated.")
-        return filters_result
-    except Exception as e:
-        raise HTTPException(status_code=res.status_code, detail=str(e))
+    filters_result = {}
+    for node in filter_list:
+        for filter in filter_list[node]:
+            node_record = SUBMISSION.export_node(
+                item.program, item.project, node, "json")
+            if "message" in node_record:
+                if "unauthorized" in node_record["message"]:
+                    raise HTTPException(status_code=UNAUTHORIZED,
+                                        detail=node_record["message"])
+                raise HTTPException(status_code=NOT_FOUND,
+                                    detail=node_record["message"])
+            elif node_record["data"] == []:
+                raise HTTPException(status_code=NOT_FOUND,
+                                    detail=f"No data found with node type {node} and check if the correct project or node type is used")
+            else:
+                f = Filter()
+                filters_result[filter] = f.get_filter_data(
+                    filter, node_record)
+    return filters_result
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}")
