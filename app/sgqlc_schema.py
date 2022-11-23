@@ -2,14 +2,6 @@ from sgqlc.types.relay import Node
 from sgqlc.types import String, Int, Type, Field, list_of
 
 
-class SubExperimentNode(Node):
-    submitter_id = String
-
-
-class DatasetDescriptionNode(Node):
-    experiments = list_of(SubExperimentNode)
-
-
 class SubDatasetDescriptionNode(Node):
     submitter_id = String
     keywords = list_of(String)
@@ -17,20 +9,18 @@ class SubDatasetDescriptionNode(Node):
     title = String
 
 
-class ManifestNode(Node):
-    additional_types = String
-    submitter_id = String
-    experiments = list_of(SubExperimentNode)
-
-
-# class SubManifestNode(Node):
-#     submitter_id = String
-
-
 class ExperimentNode(Node):
     submitter_id = String
     dataset_descriptions = list_of(SubDatasetDescriptionNode)
-    # manifests = list_of(SubManifestNode)
+
+
+class DatasetDescriptionNode(Node):
+    submitter_id = String
+
+
+class ManifestNode(Node):
+    submitter_id = String
+    additional_types = String
 
 
 class Query(Type):
