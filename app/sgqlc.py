@@ -51,4 +51,4 @@ class SimpleGraphQLClient:
             return manifest_query
         else:
             raise HTTPException(status_code=NOT_FOUND,
-                                detail="Query cannot be generated.")
+                                detail="Query cannot be generated")

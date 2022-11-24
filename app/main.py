@@ -66,7 +66,8 @@ async def start_up():
     try:
         global SUBMISSION
         global QUERY
-        AUTH = Gen3Auth(refresh_token=GEN3_CREDENTIALS)
+        AUTH = Gen3Auth(endpoint=Gen3Config.GEN3_ENDPOINT_URL,
+                        refresh_token=GEN3_CREDENTIALS)
         SUBMISSION = Gen3Submission(AUTH)
         QUERY = Gen3Query(AUTH)
     except Exception:
@@ -332,7 +333,7 @@ async def graphql_query(item: GraphQLItem):
     """
     if item.node == None or item.filter == None or item.search == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body.")
+                            detail="Missing one or more fields in the request body")
 
     if item.node == "experiment":
         merge_item_filter(item)
@@ -353,7 +354,7 @@ async def graphql_query(item: GraphQLItem):
         return pagination_result
     else:
         raise HTTPException(status_code=NOT_FOUND,
-                            detail="Data cannot be found in the node.")
+                            detail="Data cannot be found in the node")
 
 #
 # Gen3 Filter
@@ -371,7 +372,7 @@ async def generate_filters(item: Gen3Item):
     """
     if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body.")
+                            detail="Missing one or more fields in the request body")
 
     filters_result = {}
     for node in filter_list:
@@ -483,7 +484,7 @@ async def get_irods_collections(item: CollectionItem):
     """
     if item.path == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing field in request body.")
+                            detail="Missing field in request body")
 
     try:
         collect = SESSION.collections.get(item.path)
@@ -491,7 +492,8 @@ async def get_irods_collections(item: CollectionItem):
         files = get_collection_list(collect.data_objects)
         return {"folders": folders, "files": files}
     except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="Wrong dataset file path passed")
 
 
 @ app.get("/data/{action}/{filepath:path}")
@@ -526,6 +528,6 @@ async def get_irods_data_file(action: action, filepath: str):
                 headers={"Content-Disposition": f"attachment;filename={file.name}"})
         else:
             raise HTTPException(status_code=NOT_FOUND,
-                                detail="The action is not provided in this API.")
+                                detail="The action is not provided in this API")
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
