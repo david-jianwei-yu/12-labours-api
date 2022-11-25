@@ -17,7 +17,7 @@ from gen3.submission import Gen3Submission
 from gen3.query import Gen3Query
 
 from app.sgqlc import SimpleGraphQLClient
-from app.filter import Filter
+from app.filter import Filter, FILTERS
 
 from irods.session import iRODSSession
 
@@ -69,7 +69,8 @@ async def start_up():
     try:
         global SUBMISSION
         global QUERY
-        AUTH = Gen3Auth(refresh_token=GEN3_CREDENTIALS)
+        AUTH = Gen3Auth(endpoint=Gen3Config.GEN3_ENDPOINT_URL,
+                        refresh_token=GEN3_CREDENTIALS)
         SUBMISSION = Gen3Submission(AUTH)
         QUERY = Gen3Query(AUTH)
     except Exception:
@@ -199,7 +200,7 @@ class GraphQLItem(BaseModel):
 @ app.get("/program")
 async def get_gen3_program():
     """
-    Return all programs' information from the Gen3 Data Commons.
+    Return all programs information from the Gen3 Data Commons.
     """
     try:
         program = SUBMISSION.get_programs()
@@ -214,7 +215,7 @@ async def get_gen3_program():
 @ app.get("/project/{program}")
 async def get_gen3_project(program: program):
     """
-    Return all projects' information from a program.
+    Return all projects information from a program.
 
     :param program: Gen3 program name.
     """
@@ -254,7 +255,7 @@ async def get_gen3_dictionary(item: Gen3Item):
 @ app.post("/records/{node}")
 async def get_gen3_node_records(node: node, item: Gen3Item):
     """
-    Return all records' information in a dictionary node.
+    Return all records information in a dictionary node.
 
     :param node: The dictionary node to export.
     :return: A list of json object containing all records in the dictionary node.
@@ -302,8 +303,34 @@ async def get_gen3_record(uuid: str, item: Gen3Item):
         return record
 
 
-@ app.post("/graphql")
+def graphql(item):
+    if item.node == None:
+        raise HTTPException(status_code=BAD_REQUEST,
+                            detail="Missing one ore more fields in request body.")
+
+    query = sgqlc.generate_query(item)
+    # query_result = QUERY.graphql_query(query)
+    query_result = SUBMISSION.query(query)["data"]
+    if query_result is not None and query_result[item.node] != []:
+        return query_result
+    else:
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="Data cannot be found in the node.")
+
+
+@ app.post("/graphql/query")
 async def graphql_query(item: GraphQLItem):
+    """
+    Return queries metadata records. The API uses GraphQL query language.
+
+    filter post format should looks like: {"<filed_name>": ["<attribute_name>", ...], ...}
+    """
+    query_result = graphql(item)
+    return query_result
+
+
+@ app.post("/graphql/pagination")
+async def graphql_pagination(item: GraphQLItem):
     """
     Return filtered/searched metadata records. The API uses GraphQL query language.
 
@@ -314,55 +341,31 @@ async def graphql_query(item: GraphQLItem):
 
     search post format should looks like: "\<string\>"
     """
-    if item.node == None:
-        raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body.")
-
     f.filter_relation(item)
-    query = sgqlc.generate_query(item)
-    # query_result = QUERY.graphql_query(query)
-    query_result = SUBMISSION.query(query)["data"]
-    if query_result is not None and query_result[item.node] != []:
-        pagination_result = {
-            "data": query_result[item.node],
-            # Maximum number of records display in one page
-            "limit": item.limit,
-            # The number of records display in current page
-            "size": len(query_result[item.node]),
-            "page": item.page,
-            "total": query_result["total"]
-        }
-        return pagination_result
-    else:
-        raise HTTPException(status_code=NOT_FOUND,
-                            detail="Data cannot be found in the node.")
+    query_result = graphql(item)
+    return {
+        "data": query_result[item.node],
+        # Maximum number of records display in one page
+        "limit": item.limit,
+        # The number of records display in current page
+        "size": len(query_result[item.node]),
+        "page": item.page,
+        "total": query_result["total"]
+    }
 
 
-@ app.post("/filters")
+@ app.get("/filter")
 async def get_filter_info():
     """
     Return the support data for frontend filters component.
     """
-    return f.generate_filter_data()
+    return f.generate_filter_information()
 
 
 @ app.post("/filter/argument")
 async def get_filter_argument(item: GraphQLItem):
-    if item.node == None:
-        raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one or more fields in request body.")
-
-    item.limit = 0  # This will ensure that all files can be queried.
-    query = sgqlc.generate_query(item)
-    # query_result = QUERY.graphql_query(query)
-    query_result = SUBMISSION.query(query)["data"]
-    if query_result is not None and query_result[item.node] != []:
-        dataset_filter_result = f.generate_dataset_info_list(
-            query_result[item.node])
-        return dataset_filter_result
-    else:
-        raise HTTPException(status_code=NOT_FOUND,
-                            detail="Data cannot be found in the node.")
+    query_result = graphql(item)
+    return f.generate_dataset_list(query_result[item.node])
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}")
