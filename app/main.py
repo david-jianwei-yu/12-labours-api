@@ -326,7 +326,7 @@ async def graphql_query(item: GraphQLItem):
     filter post format should looks like: {"<filed_name>": ["<attribute_name>", ...], ...}
     """
     query_result = graphql(item)
-    return query_result
+    return query_result[item.node]
 
 
 @ app.post("/graphql/pagination")
