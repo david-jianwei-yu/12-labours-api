@@ -3,11 +3,11 @@ from sgqlc.types import String, Int, Type, Field, list_of
 
 
 class SubDatasetDescriptionNode(Node):
-    keywords = list_of(String)
-    number_of_samples = String
-    number_of_subjects = String
-    subtitle = String
     title = String
+    subtitle = String
+    number_of_subjects = Int
+    number_of_samples = Int
+    keywords = list_of(String)
 
 
 class ExperimentNode(Node):
@@ -16,42 +16,47 @@ class ExperimentNode(Node):
 
 
 class DatasetDescriptionNode(Node):
-    id = String
-    submitter_id = String
     type = String
-    project_id = String
-    created_datetime = String
-    updated_datetime = String
-    acknowledgments = String
-    contributor_affiliation = list_of(String)
-    contributor_name = list_of(String)
-    contributor_orcid = list_of(String)
-    contributor_role = list_of(String)
-    dataset_type = String
-    funding = String
-    identifier = String
-    identifier_description = String
-    identifier_type = String
-    keywords = list_of(String)
-    metadata_version = String
-    number_of_samples = Int
-    number_of_subjects = Int
-    relation_type = String
-    state = String
-    study_approach = String
-    study_collection_title = String
-    study_data_collection = String
-    study_organ_system = String
-    study_primary_conclusion = String
-    study_purpose = String
-    study_technique = String
-    subtitle = String
     title = String
+    subtitle = String
+    submitter_id = String
+    study_technique = String
+    study_purpose = String
+    study_primary_conclusion = String
+    study_organ_system = String
+    study_data_collection = String
+    study_approach = String
+    relation_type = String
+    number_of_subjects = Int
+    number_of_samples = Int
+    metadata_version = String
+    keywords = list_of(String)
+    identifier_type = String
+    identifier_description = String
+    identifier = String
+    dataset_type = String
+    contributor_role = list_of(String)
+    contributor_orcid = list_of(String)
+    contributor_name = list_of(String)
+    contributor_affiliation = list_of(String)
+    acknowledgments = String
+    funding = list_of(String)
+    study_collection_title = String
 
 
 class ManifestNode(Node):
+    type = String
+    timestamp = String
     submitter_id = String
+    filename = String
+    file_type = String
+    description = String
+    additional_metadata = list_of(String)
     additional_types = String
+    is_derived_from = list_of(String)
+    is_described_by = list_of(String)
+    is_source_of = list_of(String)
+    supplemental_json_metadata = String
 
 
 class Query(Type):
