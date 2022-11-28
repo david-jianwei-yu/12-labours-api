@@ -107,11 +107,14 @@ class Filter:
             "titles": [],
             "nodes": [],
             "fields": [],
-            "elements": []
+            "elements": [],
+            "ids": []
         }
-        for ele in FILTERS:
-            filter_comp_info["titles"].append(FILTERS[ele]["title"])
-            filter_comp_info["nodes"].append(FILTERS[ele]["node"])
-            filter_comp_info["fields"].append(FILTERS[ele]["field"])
-            filter_comp_info["elements"].append(FILTERS[ele]["element"])
+        for element in FILTERS:
+            filter_comp_info["titles"].append(FILTERS[element]["title"])
+            filter_comp_info["nodes"].append(FILTERS[element]["node"])
+            filter_comp_info["fields"].append(FILTERS[element]["field"])
+            filter_comp_info["elements"].append(FILTERS[element]["element"])
+            for ele in FILTERS[element]["element"]:
+                filter_comp_info["ids"].append(ele)
         return filter_comp_info
