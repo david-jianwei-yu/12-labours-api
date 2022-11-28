@@ -306,7 +306,7 @@ async def get_gen3_record(uuid: str, item: Gen3Item):
 def graphql(item):
     if item.node == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body.")
+                            detail="Missing one ore more fields in request body")
 
     query = sgqlc.generate_query(item)
     # query_result = QUERY.graphql_query(query)
@@ -315,7 +315,7 @@ def graphql(item):
         return query_result
     else:
         raise HTTPException(status_code=NOT_FOUND,
-                            detail="Data cannot be found in the node.")
+                            detail="Data cannot be found in the node")
 
 
 @ app.post("/graphql/query")
@@ -336,6 +336,7 @@ async def graphql_pagination(item: GraphQLItem):
 
     Default limit = 50
     Default page = 1
+    Default relation = AND
 
     filter post format should looks like: {"<filed_name>": ["<attribute_name>", ...], ...}
 
@@ -364,6 +365,7 @@ async def get_filter_info():
 
 @ app.post("/filter/argument")
 async def get_filter_argument(item: GraphQLItem):
+    item.limit = 0
     query_result = graphql(item)
     return f.generate_dataset_list(query_result[item.node])
 

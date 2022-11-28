@@ -70,7 +70,7 @@ class Query(Type):
             "first": Int,
             "offset": Int,
             "quick_search": String,
-            "submitter_id": list_of(String),
+            "submitter_id": String,
             "funding": list_of(String),
         }
     )
@@ -80,6 +80,7 @@ class Query(Type):
             "first": Int,
             "offset": Int,
             "quick_search": String,
+            "submitter_id": list_of(String),
             "additional_types": list_of(String)
         }
     )

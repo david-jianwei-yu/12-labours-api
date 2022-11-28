@@ -42,11 +42,18 @@ class SimpleGraphQLClient:
                     item, query.experiment(first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search))
             return experiment_query
         elif item.node == "dataset_description":
-            dataset_description_query = self.convert_query(
-                item, query.datasetDescription(first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search))
+            if "submitter_id" in item.filter:
+                dataset_description_query = self.convert_query(item, query.datasetDescription(
+                    first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search, submitter_id=item.filter["submitter_id"]))
+            else:
+                dataset_description_query = self.convert_query(
+                    item, query.datasetDescription(first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search))
             return dataset_description_query
         elif item.node == "manifest":
-            if "additional_types" in item.filter:
+            if "submitter_id" in item.filter:
+                manifest_query = self.convert_query(item, query.manifest(
+                    first=item.limit, offset=(item.page-1)*item.limit, quick_search=item.search, submitter_id=item.filter["submitter_id"]))
+            elif "additional_types" in item.filter:
                 manifest_query = self.convert_query(item, query.manifest(first=item.limit, offset=(
                     item.page-1)*item.limit, quick_search=item.search, additional_types=item.filter["additional_types"]))
             else:
