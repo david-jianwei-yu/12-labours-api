@@ -455,14 +455,18 @@ async def search_content(item: SearchItem):
                 In(DataObjectMeta.name, SEARCHFIELD)).filter(
                 Like(DataObjectMeta.value, f"%{keyword}%"))
             for result in query:
-                dataset = result[Collection.name].replace(
-                    f"{iRODSConfig.IRODS_ENDPOINT_URL}/datasets-test/", "")
-                if dataset not in id_dict.keys():
-                    id_dict[dataset] = 1
-                else:
-                    id_dict[dataset] += 1
+                content_list = re.findall(
+                    "[a-zA-Z0-9]+", result[DataObjectMeta.value])
+                if keyword in content_list:
+                    dataset = re.sub(
+                        f"{iRODSConfig.IRODS_ENDPOINT_URL}/datasets-test/", "", result[Collection.name])
+                    if dataset not in id_dict.keys():
+                        id_dict[dataset] = 1
+                    else:
+                        id_dict[dataset] += 1
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+
     dataset_list = sorted(id_dict, key=id_dict.get, reverse=True)
     if dataset_list == []:
         raise HTTPException(status_code=NOT_FOUND,
