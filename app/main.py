@@ -21,8 +21,7 @@ from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter
 
 from irods.session import iRODSSession
-from irods.column import Like, In
-from irods.models import Collection, DataObjectMeta
+from app.search import Search
 
 app = FastAPI(
     title="12 Labours Portal APIs"
@@ -45,6 +44,8 @@ app.add_middleware(
 BAD_REQUEST = 400
 UNAUTHORIZED = 401
 NOT_FOUND = 404
+METHOD_NOT_ALLOWED = 405
+INTERNAL_SERVER_ERROR = 500
 
 GEN3_CREDENTIALS = {
     "api_key": Gen3Config.GEN3_API_KEY,
@@ -58,6 +59,7 @@ SESSION = None
 
 sgqlc = SimpleGraphQLClient()
 f = Filter()
+s = Search()
 
 
 @ app.on_event("startup")
@@ -148,12 +150,10 @@ async def get_state():
 #
 class program(str, Enum):
     program1 = "demo1"
-    program2 = "demo2"
 
 
 class project(str, Enum):
     project1 = "12L"
-    project2 = "example_workflow"
 
 
 class node(str, Enum):
@@ -341,9 +341,9 @@ async def graphql_pagination(item: GraphQLItem):
     Default page = 1
     Default relation = AND
 
-    filter post format should looks like: {"<filed_name>": ["<attribute_name>", ...], ...}
+    filter post format should looks like: {"submitter_id": ["<dataset_id>", ...]}
 
-    search post format should looks like: "\<string\>"
+    search post format should looks like: {"submitter_id": ["<dataset_id>", ...]}
     """
     f.filter_relation(item)
     query_result = graphql(item)
@@ -419,7 +419,7 @@ class action(str, Enum):
 
 
 class SearchItem(BaseModel):
-    input: Union[str, None] = None
+    search: Union[str, None] = ""
 
 
 class CollectionItem(BaseModel):
@@ -433,12 +433,6 @@ class CollectionItem(BaseModel):
         }
 
 
-SEARCHFIELD = [
-    "title", "subtitle", "keywords", "acknowledgments",
-    "contributor_affiliation", "contributor_name"
-]
-
-
 @ app.post("/search")
 async def search_content(item: SearchItem):
     """
@@ -446,39 +440,27 @@ async def search_content(item: SearchItem):
 
     The dataset list order is based on how the dataset content is relevant to the input string.
     """
-    id_dict = {}
     dataset_list = []
-    keyword_list = re.findall("[a-zA-Z0-9]+", item.input)
-    try:
-        for keyword in keyword_list:
-            query = SESSION.query(Collection.name, DataObjectMeta.value).filter(
-                In(DataObjectMeta.name, SEARCHFIELD)).filter(
-                Like(DataObjectMeta.value, f"%{keyword}%"))
-            for result in query:
-                content_list = re.findall(
-                    "[a-zA-Z0-9]+", result[DataObjectMeta.value])
-                if keyword in content_list:
-                    dataset = re.sub(
-                        f"{iRODSConfig.IRODS_ENDPOINT_URL}/datasets-test/", "", result[Collection.name])
-                    if dataset not in id_dict.keys():
-                        id_dict[dataset] = 1
-                    else:
-                        id_dict[dataset] += 1
-    except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+    if item.search == "":
+        return dataset_list
 
-    dataset_list = sorted(id_dict, key=id_dict.get, reverse=True)
+    try:
+        keyword_list = re.findall("[a-zA-Z0-9]+", item.search)
+        dataset_list = s.generate_dataset_list(SESSION, keyword_list)
+    except Exception as e:
+        raise HTTPException(status_code=INTERNAL_SERVER_ERROR, detail=str(e))
+
     if dataset_list == []:
         raise HTTPException(status_code=NOT_FOUND,
                             detail="There is no matched content in the database")
-    return dataset_list
+    else:
+        return dataset_list
 
 
 def get_collection_list(data):
     collect_list = []
     for ele in data:
         collect_list.append({
-            "id": ele.id,
             "name": ele.name,
             "path": ele.path
         })
@@ -496,7 +478,7 @@ async def get_irods_root_collections():
         folders = get_collection_list(collect.subcollections)
         files = get_collection_list(collect.data_objects)
     except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=INTERNAL_SERVER_ERROR, detail=str(e))
     return {"folders": folders, "files": files}
 
 
@@ -507,15 +489,16 @@ async def get_irods_collections(item: CollectionItem):
     """
     if item.path == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing field in request body")
+                            detail="Missing field in the request body")
 
     try:
         collect = SESSION.collections.get(item.path)
         folders = get_collection_list(collect.subcollections)
         files = get_collection_list(collect.data_objects)
         return {"folders": folders, "files": files}
-    except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="Data not found in the provided path")
 
 
 @ app.get("/data/{action}/{filepath:path}")
@@ -533,23 +516,24 @@ async def get_irods_data_file(action: action, filepath: str):
     try:
         file = SESSION.data_objects.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{filepath}")
+    except Exception:
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="Data not found in the provided path")
 
-        def iterate_file():
-            with file.open("r") as file_like:
+    def iterate_file():
+        with file.open("r") as file_like:
+            chunk = file_like.read(chunk_size)
+            while chunk:
+                yield chunk
                 chunk = file_like.read(chunk_size)
-                while chunk:
-                    yield chunk
-                    chunk = file_like.read(chunk_size)
-        if action == "preview":
-            return StreamingResponse(iterate_file(),
-                                     media_type=mimetypes.guess_type(file.name)[0])
-        elif action == "download":
-            return StreamingResponse(iterate_file(),
-                                     media_type=mimetypes.guess_type(file.name)[
-                0],
-                headers={"Content-Disposition": f"attachment;filename={file.name}"})
-        else:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="The action is not provided in this API")
-    except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+    if action == "preview":
+        return StreamingResponse(iterate_file(),
+                                 media_type=mimetypes.guess_type(file.name)[0])
+    elif action == "download":
+        return StreamingResponse(iterate_file(),
+                                 media_type=mimetypes.guess_type(file.name)[
+            0],
+            headers={"Content-Disposition": f"attachment;filename={file.name}"})
+    else:
+        raise HTTPException(status_code=METHOD_NOT_ALLOWED,
+                            detail="The action is not provided in this API")
