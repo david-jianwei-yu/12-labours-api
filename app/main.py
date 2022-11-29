@@ -20,6 +20,8 @@ from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter, FILTERS
 
 from irods.session import iRODSSession
+from irods.column import Like, In
+from irods.models import Collection, CollectionMeta
 
 app = FastAPI(
     title="12 Labours Portal APIs"
@@ -415,6 +417,10 @@ class action(str, Enum):
     download = "download"
 
 
+class SearchItem(BaseModel):
+    input: Union[str, None] = None
+
+
 class CollectionItem(BaseModel):
     path: Union[str, None] = None
 
@@ -424,6 +430,29 @@ class CollectionItem(BaseModel):
                 "path": "/tempZone/home/rods/datasets",
             }
         }
+
+
+SEARCHFIELD = ["title", "subtitle", "acknowledgments"]
+
+
+@ app.post("/search")
+async def search_content(item: SearchItem):
+    id_dict = {}
+    dataset_list = []
+    keyword_list = item.input.split(" ")
+    for keyword in keyword_list:
+        query = SESSION.query(Collection.name, CollectionMeta.value).filter(
+            In(CollectionMeta.name, SEARCHFIELD)).filter(
+            Like(CollectionMeta.value, f"%{keyword}%"))
+        for result in query:
+            dataset = result[Collection.name].replace(
+                f"{iRODSConfig.IRODS_ENDPOINT_URL}/datasets/", "")
+            if dataset not in id_dict.keys():
+                id_dict[dataset] = 1
+            else:
+                id_dict[dataset] += 1
+    dataset_list = sorted(id_dict, key=id_dict.get, reverse=True)
+    return dataset_list
 
 
 def get_collection_list(data):
@@ -437,7 +466,7 @@ def get_collection_list(data):
     return collect_list
 
 
-@ app.get("/collection")
+@ app.get("/collection/root")
 async def get_irods_root_collections():
     """
     Return all collections from the root folder.
