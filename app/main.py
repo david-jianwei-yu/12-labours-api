@@ -1,3 +1,4 @@
+import re
 import json
 import mimetypes
 
@@ -21,7 +22,7 @@ from app.filter import Filter
 
 from irods.session import iRODSSession
 from irods.column import Like, In
-from irods.models import Collection, CollectionMeta
+from irods.models import Collection, DataObjectMeta
 
 app = FastAPI(
     title="12 Labours Portal APIs"
@@ -432,25 +433,30 @@ class CollectionItem(BaseModel):
         }
 
 
-SEARCHFIELD = ["title", "subtitle", "acknowledgments"]
+SEARCHFIELD = [
+    "title", "subtitle", "keywords", "acknowledgments",
+    "contributor_affiliation", "contributor_name"
+]
 
 
 @ app.post("/search")
 async def search_content(item: SearchItem):
     """
-    Return the search dataset id result.
+    Return a list of dataset ids whose content matches the input string.
+
+    The dataset list order is based on how the dataset content is relevant to the input string.
     """
     id_dict = {}
     dataset_list = []
-    keyword_list = item.input.strip().split(" ")
+    keyword_list = re.findall("[a-zA-Z0-9]+", item.input)
     try:
         for keyword in keyword_list:
-            query = SESSION.query(Collection.name, CollectionMeta.value).filter(
-                In(CollectionMeta.name, SEARCHFIELD)).filter(
-                Like(CollectionMeta.value, f"%{keyword}%"))
+            query = SESSION.query(Collection.name, DataObjectMeta.value).filter(
+                In(DataObjectMeta.name, SEARCHFIELD)).filter(
+                Like(DataObjectMeta.value, f"%{keyword}%"))
             for result in query:
                 dataset = result[Collection.name].replace(
-                    f"{iRODSConfig.IRODS_ENDPOINT_URL}/datasets/", "")
+                    f"{iRODSConfig.IRODS_ENDPOINT_URL}/datasets-test/", "")
                 if dataset not in id_dict.keys():
                     id_dict[dataset] = 1
                 else:
