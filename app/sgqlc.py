@@ -40,7 +40,6 @@ class SimpleGraphQLClient:
                     query.experiment(
                         first=item.limit,
                         offset=(item.page-1)*item.limit,
-                        quick_search=item.search,
                         submitter_id=item.filter["submitter_id"]
                     )
                 )
@@ -50,7 +49,6 @@ class SimpleGraphQLClient:
                     query.experiment(
                         first=item.limit,
                         offset=(item.page-1)*item.limit,
-                        quick_search=item.search
                     )
                 )
             return experiment_query
@@ -61,7 +59,6 @@ class SimpleGraphQLClient:
                     query.datasetDescription(
                         first=item.limit,
                         offset=(item.page-1)*item.limit,
-                        quick_search=item.search,
                         submitter_id=item.filter["submitter_id"]
                     )
                 )
@@ -71,7 +68,6 @@ class SimpleGraphQLClient:
                     query.datasetDescription(
                         first=item.limit,
                         offset=(item.page-1)*item.limit,
-                        quick_search=item.search
                     )
                 )
             return dataset_description_query

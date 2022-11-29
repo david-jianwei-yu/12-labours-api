@@ -17,7 +17,7 @@ from gen3.submission import Gen3Submission
 from gen3.query import Gen3Query
 
 from app.sgqlc import SimpleGraphQLClient
-from app.filter import Filter, FILTERS
+from app.filter import Filter
 
 from irods.session import iRODSSession
 from irods.column import Like, In
@@ -437,21 +437,30 @@ SEARCHFIELD = ["title", "subtitle", "acknowledgments"]
 
 @ app.post("/search")
 async def search_content(item: SearchItem):
+    """
+    Return the search dataset id result.
+    """
     id_dict = {}
     dataset_list = []
-    keyword_list = item.input.split(" ")
-    for keyword in keyword_list:
-        query = SESSION.query(Collection.name, CollectionMeta.value).filter(
-            In(CollectionMeta.name, SEARCHFIELD)).filter(
-            Like(CollectionMeta.value, f"%{keyword}%"))
-        for result in query:
-            dataset = result[Collection.name].replace(
-                f"{iRODSConfig.IRODS_ENDPOINT_URL}/datasets/", "")
-            if dataset not in id_dict.keys():
-                id_dict[dataset] = 1
-            else:
-                id_dict[dataset] += 1
+    keyword_list = item.input.strip().split(" ")
+    try:
+        for keyword in keyword_list:
+            query = SESSION.query(Collection.name, CollectionMeta.value).filter(
+                In(CollectionMeta.name, SEARCHFIELD)).filter(
+                Like(CollectionMeta.value, f"%{keyword}%"))
+            for result in query:
+                dataset = result[Collection.name].replace(
+                    f"{iRODSConfig.IRODS_ENDPOINT_URL}/datasets/", "")
+                if dataset not in id_dict.keys():
+                    id_dict[dataset] = 1
+                else:
+                    id_dict[dataset] += 1
+    except Exception as e:
+        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
     dataset_list = sorted(id_dict, key=id_dict.get, reverse=True)
+    if dataset_list == []:
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="There is no matched content in the database")
     return dataset_list
 
 
@@ -488,7 +497,7 @@ async def get_irods_collections(item: CollectionItem):
     """
     if item.path == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing field in request body.")
+                            detail="Missing field in request body")
 
     try:
         collect = SESSION.collections.get(item.path)
@@ -531,6 +540,6 @@ async def get_irods_data_file(action: action, filepath: str):
                 headers={"Content-Disposition": f"attachment;filename={file.name}"})
         else:
             raise HTTPException(status_code=NOT_FOUND,
-                                detail="The action is not provided in this API.")
+                                detail="The action is not provided in this API")
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
