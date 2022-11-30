@@ -328,6 +328,7 @@ def graphql(item):
     if item.node == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body")
+
     query = sgqlc.generate_query(item)
     # query_result = QUERY.graphql_query(query)
     query_result = SUBMISSION.query(query)["data"]
@@ -364,10 +365,13 @@ async def graphql_pagination(item: GraphQLPaginationItem):
 
     search post format should looks like: {"submitter_id": ["<dataset_id>", ...]}
     """
-    f.filter_relation(item)
-    s.search_filter_relation(item)
+    if item.filter != {}:
+        f.filter_relation(item)
+    if item.search != {}:
+        s.search_filter_relation(item)
     query_result = graphql(item)
     if item.search != {}:
+        # Sort only if search is not empty, since search results are sorted by relevance
         query_result[item.node] = sorted(
             query_result[item.node], key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
     return {

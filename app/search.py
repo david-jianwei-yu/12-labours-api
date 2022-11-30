@@ -15,13 +15,14 @@ class Search:
     def search_filter_relation(self, item):
         # Since only search result has order, we need to update item.filter value based on search result
         # Search and filter relation will always be AND
-        dataset_list = []
-
-        if item.filter != {} and item.search != {}:
+        if item.filter != {}:
+            dataset_list = []
             for dataset in item.search["submitter_id"]:
                 if dataset in item.filter["submitter_id"]:
                     dataset_list.append(dataset)
             item.filter["submitter_id"] = dataset_list
+        else:
+            item.filter["submitter_id"] = item.search["submitter_id"]
 
     def generate_dataset_list(self, SESSION, keyword_list):
         id_dict = {}
