@@ -367,8 +367,9 @@ async def graphql_pagination(item: GraphQLPaginationItem):
     f.filter_relation(item)
     s.search_filter_relation(item)
     query_result = graphql(item)
-    query_result[item.node] = sorted(
-        query_result[item.node], key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
+    if item.search != {}:
+        query_result[item.node] = sorted(
+            query_result[item.node], key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
     return {
         "data": query_result[item.node],
         # Maximum number of records display in one page
