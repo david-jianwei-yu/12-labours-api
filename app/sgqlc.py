@@ -10,26 +10,24 @@ NOT_FOUND = 404
 
 class SimpleGraphQLClient:
     def add_count_field(self, item, query):
-        # Add count field to query
-        count_field = f"total: _{item.node}_count(quick_search: \"{item.search}\")"
+        # Add default count field to query
+        count_field = f"total: _{item.node}_count"
         if item.filter != {}:
             # Manually modify and add count filed into graphql query
-            count_field = re.sub('\'', '\"', f"total: _{item.node}_count(quick_search: \"{item.search}\", " + re.sub(
-                '\'([_a-z]+)\'', r'\1', re.sub('\{([^{].*[^}])\}', r'\1', f"{item.filter})")))
-        if item.node == "experiment":
-            # Display all sub nodes records
-            query = re.sub(
-                's {', 's(first: 0) {', query) + count_field
-        else:
-            query += count_field
-        return query
+            filter_argument = re.sub(
+                '\'([_a-z]+)\'', r'\1', re.sub('\{([^{].*[^}])\}', r'\1', f"{item.filter}"))
+            count_field = re.sub(
+                '\'', '\"', f"total: _{item.node}_count(" + filter_argument + ")")
+        return query + count_field
 
     def convert_query(self, item, query):
         # Convert camel case to snake case
         snake_case_query = re.sub(
             '_[A-Z]', lambda x:  x.group(0).lower(), re.sub('([a-z])([A-Z])', r'\1_\2', str(query)))
-        final_query = self.add_count_field(item, snake_case_query)
-        return "{" + final_query + "}"
+        # Only pagination graphql will need to add count field
+        if type(item.search) == dict:
+            snake_case_query = self.add_count_field(item, snake_case_query)
+        return "{" + snake_case_query + "}"
 
     def generate_query(self, item):
         query = Operation(Query)
@@ -40,7 +38,6 @@ class SimpleGraphQLClient:
                     query.experiment(
                         first=item.limit,
                         offset=(item.page-1)*item.limit,
-                        quick_search=item.search,
                         submitter_id=item.filter["submitter_id"]
                     )
                 )
@@ -50,7 +47,6 @@ class SimpleGraphQLClient:
                     query.experiment(
                         first=item.limit,
                         offset=(item.page-1)*item.limit,
-                        quick_search=item.search
                     )
                 )
             return experiment_query
@@ -61,7 +57,6 @@ class SimpleGraphQLClient:
                     query.datasetDescription(
                         first=item.limit,
                         offset=(item.page-1)*item.limit,
-                        quick_search=item.search,
                         submitter_id=item.filter["submitter_id"]
                     )
                 )
@@ -71,7 +66,6 @@ class SimpleGraphQLClient:
                     query.datasetDescription(
                         first=item.limit,
                         offset=(item.page-1)*item.limit,
-                        quick_search=item.search
                     )
                 )
             return dataset_description_query

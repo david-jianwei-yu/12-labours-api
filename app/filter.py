@@ -67,28 +67,25 @@ FILTERS = {
 class Filter:
     def or_relationship(self, item):
         # OR relationship
-        if item.filter != {}:
-            dataset_list = list(set(item.filter["submitter_id"]))
-            item.filter["submitter_id"] = dataset_list
+        dataset_list = list(set(item.filter["submitter_id"]))
+        item.filter["submitter_id"] = dataset_list
 
     def and_relationship(self, item):
         # AND relationship
         id_dict = {}
         dataset_list = []
-
-        if item.filter != {}:
-            # Create a id dict to count the frequency of occurrence
-            for ele in item.filter["submitter_id"]:
-                if ele not in id_dict.keys():
-                    id_dict[ele] = 1
-                else:
-                    id_dict[ele] += 1
-            # Find the matched id and add them into the dataset list
-            for id in id_dict.keys():
-                if id_dict[id] == max(id_dict.values()):
-                    dataset_list.append(id)
-            # Replace the filter id value
-            item.filter["submitter_id"] = dataset_list
+        # Create a id dict to count the frequency of occurrence
+        for dataset in item.filter["submitter_id"]:
+            if dataset not in id_dict.keys():
+                id_dict[dataset] = 1
+            else:
+                id_dict[dataset] += 1
+        # Find the matched id and add them into the dataset list
+        for id in id_dict.keys():
+            if id_dict[id] == max(id_dict.values()):
+                dataset_list.append(id)
+        # Replace the filter id value
+        item.filter["submitter_id"] = dataset_list
 
     def filter_relation(self, item):
         if item.relation == "and":
