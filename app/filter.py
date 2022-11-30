@@ -78,11 +78,11 @@ class Filter:
 
         if item.filter != {}:
             # Create a id dict to count the frequency of occurrence
-            for ele in item.filter["submitter_id"]:
-                if ele not in id_dict.keys():
-                    id_dict[ele] = 1
+            for dataset in item.filter["submitter_id"]:
+                if dataset not in id_dict.keys():
+                    id_dict[dataset] = 1
                 else:
-                    id_dict[ele] += 1
+                    id_dict[dataset] += 1
             # Find the matched id and add them into the dataset list
             for id in id_dict.keys():
                 if id_dict[id] == max(id_dict.values()):

@@ -180,12 +180,29 @@ class Gen3Item(BaseModel):
         }
 
 
-class GraphQLItem(BaseModel):
-    limit: Union[int, None] = 50
+class GraphQLQueryItem(BaseModel):
+    limit: Union[int, None] = 0
     page: Union[int, None] = 1
     node: Union[str, None] = None
     filter: Union[dict, None] = {}
     search: Union[str, None] = ""
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "node": "experiment",
+                "filter": {},
+                "search": "",
+            }
+        }
+
+
+class GraphQLPaginationItem(BaseModel):
+    limit: Union[int, None] = 50
+    page: Union[int, None] = 1
+    node: Union[str, None] = None
+    filter: Union[dict, None] = {}
+    search: Union[dict, None] = {}
     relation: Union[str, None] = "and"
 
     class Config:
@@ -195,7 +212,8 @@ class GraphQLItem(BaseModel):
                 "page": 1,
                 "node": "experiment",
                 "filter": {},
-                "search": ""
+                "search": {},
+                "relation": "and"
             }
         }
 
@@ -310,7 +328,6 @@ def graphql(item):
     if item.node == None:
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Missing one ore more fields in request body")
-
     query = sgqlc.generate_query(item)
     # query_result = QUERY.graphql_query(query)
     query_result = SUBMISSION.query(query)["data"]
@@ -322,18 +339,20 @@ def graphql(item):
 
 
 @ app.post("/graphql/query")
-async def graphql_query(item: GraphQLItem):
+async def graphql_query(item: GraphQLQueryItem):
     """
     Return queries metadata records. The API uses GraphQL query language.
 
     filter post format should looks like: {"<filed_name>": ["<attribute_name>", ...], ...}
+
+    search post format should looks like: "\<string\>"
     """
     query_result = graphql(item)
     return query_result[item.node]
 
 
 @ app.post("/graphql/pagination")
-async def graphql_pagination(item: GraphQLItem):
+async def graphql_pagination(item: GraphQLPaginationItem):
     """
     Return filtered/searched metadata records. The API uses GraphQL query language.
 
@@ -346,7 +365,10 @@ async def graphql_pagination(item: GraphQLItem):
     search post format should looks like: {"submitter_id": ["<dataset_id>", ...]}
     """
     f.filter_relation(item)
+    s.search_filter_relation(item)
     query_result = graphql(item)
+    query_result[item.node] = sorted(
+        query_result[item.node], key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
     return {
         "data": query_result[item.node],
         # Maximum number of records display in one page
@@ -367,8 +389,7 @@ async def get_filter_info():
 
 
 @ app.post("/filter/argument")
-async def get_filter_argument(item: GraphQLItem):
-    item.limit = 0
+async def get_filter_argument(item: GraphQLQueryItem):
     query_result = graphql(item)
     return f.generate_dataset_list(query_result[item.node])
 
