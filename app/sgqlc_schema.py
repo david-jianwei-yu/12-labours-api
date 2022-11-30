@@ -73,7 +73,7 @@ class Query(Type):
         args={
             "first": Int,
             "offset": Int,
-            "submitter_id": String,
+            "submitter_id": list_of(String),
         }
     )
     manifest = Field(

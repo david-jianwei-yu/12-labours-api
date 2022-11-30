@@ -327,7 +327,7 @@ async def get_gen3_record(uuid: str, item: Gen3Item):
 def graphql(item):
     if item.node == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body")
+                            detail="Missing one or more fields in the request body")
 
     query = sgqlc.generate_query(item)
     # query_result = QUERY.graphql_query(query)
@@ -386,7 +386,7 @@ async def graphql_pagination(item: GraphQLPaginationItem):
 
 
 @ app.get("/filter")
-async def get_filter_info():
+async def generate_filter():
     """
     Return the support data for frontend filters component.
     """
