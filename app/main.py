@@ -149,11 +149,11 @@ async def get_state():
 # Gen3 Data Commons
 #
 class program(str, Enum):
-    program1 = "demo1"
+    program = "demo1"
 
 
 class project(str, Enum):
-    project1 = "12L"
+    project = "12L"
 
 
 class node(str, Enum):
@@ -190,6 +190,8 @@ class GraphQLQueryItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
+                "limit": 0,
+                "page": 1,
                 "node": "experiment",
                 "filter": {},
                 "search": "",
@@ -319,7 +321,7 @@ async def get_gen3_record(uuid: str, item: Gen3Item):
             raise HTTPException(status_code=UNAUTHORIZED,
                                 detail=record["message"])
         raise HTTPException(
-            status_code=NOT_FOUND, detail=record["message"]+" and check if uses the correct project or uuid is used")
+            status_code=NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
     else:
         return record
 
@@ -420,7 +422,7 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
             raise HTTPException(status_code=UNAUTHORIZED,
                                 detail=metadata["message"])
         raise HTTPException(
-            status_code=NOT_FOUND, detail=metadata["message"]+" and check if uses the correct project or uuid is used")
+            status_code=NOT_FOUND, detail=metadata["message"]+" and check if the correct project or uuid is used")
     else:
         if format == "json":
             return JSONResponse(content=metadata[0],

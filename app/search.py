@@ -6,15 +6,14 @@ from irods.column import Like, In
 from irods.models import Collection, DataObjectMeta
 
 SEARCHFIELD = [
-    "title", "subtitle", "keywords", "acknowledgments",
-    "contributor_affiliation", "contributor_name"
+    "title", "subtitle", "contributor_name"
 ]
 
 
 class Search:
     def search_filter_relation(self, item):
         # Since only search result has order, we need to update item.filter value based on search result
-        # Search and filter relation will always be AND
+        # The relationship between search and filter will always be AND
         if item.filter != {}:
             dataset_list = []
             for dataset in item.search["submitter_id"]:
