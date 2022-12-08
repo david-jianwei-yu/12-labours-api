@@ -395,14 +395,14 @@ async def generate_filter():
     return f.generate_filter_information()
 
 
-@ app.post("/filter/argument")
-async def get_filter_argument(item: GraphQLQueryItem):
+@ app.post("/filter/dataset")
+async def get_filtered_datasets(item: GraphQLQueryItem):
     query_result = graphql(item)
-    return f.generate_dataset_list(query_result[item.node])
+    return f.generate_dataset_list(item.filter, query_result[item.node])
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}")
-async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: str):
+async def download_gen3_metadata_file(program: program, project: project, uuid: str, format: format):
     """
     Return a single file for a given uuid.
 
@@ -446,10 +446,6 @@ class action(str, Enum):
     download = "download"
 
 
-class SearchItem(BaseModel):
-    search: Union[str, None] = ""
-
-
 class CollectionItem(BaseModel):
     path: Union[str, None] = None
 
@@ -461,19 +457,15 @@ class CollectionItem(BaseModel):
         }
 
 
-@ app.post("/search")
-async def search_content(item: SearchItem):
+@ app.get("/search/{input}")
+async def search_content(input: str):
     """
     Return a list of dataset ids whose content matches the input string.
 
     The dataset list order is based on how the dataset content is relevant to the input string.
     """
-    dataset_list = []
-    if item.search == "":
-        return dataset_list
-
     try:
-        keyword_list = re.findall("[a-zA-Z0-9]+", item.search)
+        keyword_list = re.findall("[a-zA-Z0-9]+", input)
         dataset_list = s.generate_dataset_list(SESSION, keyword_list)
     except Exception as e:
         raise HTTPException(status_code=INTERNAL_SERVER_ERROR, detail=str(e))
