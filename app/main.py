@@ -458,7 +458,7 @@ class CollectionItem(BaseModel):
 
 
 @ app.get("/search/{input}")
-async def search_content(input: str):
+async def get_searched_datasets(input: str):
     """
     Return a list of dataset ids whose content matches the input string.
 
