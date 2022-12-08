@@ -6,7 +6,7 @@ from irods.column import Like, In
 from irods.models import Collection, DataObjectMeta
 
 SEARCHFIELD = [
-    "title", "subtitle", "contributor_name"
+    "TITLE", "SUBTITLE", "CONTRIBUTOR"
 ]
 
 
@@ -24,6 +24,7 @@ class Search:
             item.filter["submitter_id"] = item.search["submitter_id"]
 
     def generate_dataset_list(self, SESSION, keyword_list):
+        query = SESSION.query(Collection.name, DataObjectMeta.value)
         id_dict = {}
         for keyword in keyword_list:
             query = SESSION.query(Collection.name, DataObjectMeta.value).filter(
@@ -34,7 +35,7 @@ class Search:
                     "[a-zA-Z0-9]+", result[DataObjectMeta.value])
                 if keyword in content_list:
                     dataset = re.sub(
-                        f"{iRODSConfig.IRODS_ENDPOINT_URL}/datasets-test/", "", result[Collection.name])
+                        f"{iRODSConfig.IRODS_ENDPOINT_URL}/", "", result[Collection.name])
                     if dataset not in id_dict.keys():
                         id_dict[dataset] = 1
                     else:
