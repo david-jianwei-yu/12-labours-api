@@ -22,44 +22,31 @@ FILTERS = {
             # "VIDEO": ["video/mp4"]
         }
     },
-    "MAPPED_FUNDING": {
-        "title": "FUNDINGS",
+    "MAPPED_ANATOMICAL_STRUCTURE": {
+        "title": "ANATOMICAL STRUCTURE",
         "node": "dataset_description",
-        "field": "funding",
+        "field": "keywords",
         "element": {
-            "Funding A": ["OT3OD025349"],
-            "Funding B": ["OT2OD023848"],
-            "Funding C": ["OT2OD023847"]}
-    },
-    "MAPPED_MIME_TYPES2": {
-        "title": "MIME TYPES2",
-        "node": "manifest",
-        "field": "additional_types",
-        "element": {
-            # "CSV": ["text/csv"],
-            # "SEGMENTATION_FILES": ["application/vnd.mbfbioscience.metadata+xml", "application/vnd.mbfbioscience.neurolucida+xml"],
-            # "CONTEXT_FILE": ["application/x.vnd.abi.context-information+json"],
-            "Scaffold2": ["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"],
-            # "SCAFFOLD_VIEW_FILE": ["application/x.vnd.abi.scaffold.view+json", "inode/vnd.abi.scaffold.view+file"],
-            # "SIMULATION_FILE": ["application/x.vnd.abi.simulation+json"],
-            # "THUMBNAIL_IMAGE": ["image/x.vnd.abi.thumbnail+jpeg", "inode/vnd.abi.scaffold+thumbnail", "inode/vnd.abi.scaffold.thumbnail+file"],
-            # "SCAFFOLD_DIR": ["inode/vnd.abi.scaffold+directory"],
-            "Plot2": ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+csv"],
-            # "COMMON_IMAGES": ["image/png", "image/jpeg"],
-            # "tiff-image": ["image/tiff", "image/tif"],
-            # "BIOLUCIDA_3D": ["image/jpx", "image/vnd.ome.xml+jpx"],
-            # "BIOLUCIDA_2D": ["image/jp2", "image/vnd.ome.xml+jp2"],
-            # "VIDEO": ["video/mp4"]
+            "Bladder": "bladder",
+            "Brainstem": "brainstem",
+            "Colon": "colon",
+            "Heart": "heart",
+            "Lungs": "lungs",
+            "Spinal Cord": "spinal cord",
+            "Stomach": "stomach",
         }
     },
-    "MAPPED_FUNDING2": {
-        "title": "FUNDINGS2",
+    "MAPPED_SPECIES": {
+        "title": "SPECIES",
         "node": "dataset_description",
-        "field": "funding",
+        "field": "keywords",
         "element": {
-            "Funding A2": ["OT3OD025349"],
-            "Funding B2": ["OT2OD023848"],
-            "Funding C2": ["OT2OD023847"]}
+            "Human": "human",
+            "Rat": "rat",
+            "Mouse": "mouse",
+            "Pig": "pig",
+            "Sheep": "sheep"
+        }
     }
 }
 
@@ -93,7 +80,18 @@ class Filter:
         elif item.relation == "or":
             self.or_relationship(item)
 
-    def generate_dataset_list(self, data):
+    def generate_keywords_filed_filter(self, filter, data):
+        result = []
+        for ele in data:
+            keyword_list = [item.strip() for item in ele["keywords"]]
+            for kwd in filter["keywords"]:
+                if any(kwd in word for word in keyword_list):
+                    result.append(ele)
+        return result
+
+    def generate_dataset_list(self, filter, data):
+        if "keywords" in filter:
+            data = self.generate_keywords_filed_filter(filter, data)
         dataset_list = [re.findall(
             "dataset-[0-9]*-version-[0-9]*", record["submitter_id"])[0] for record in data]
         return list(set(dataset_list))
