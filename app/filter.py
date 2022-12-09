@@ -58,7 +58,6 @@ class Filter:
         item.filter["submitter_id"] = dataset_list
 
     def and_relationship(self, item, flat_list):
-        print(item.filter)
         # AND relationship
         id_dict = {}
         dataset_list = []
