@@ -52,17 +52,18 @@ FILTERS = {
 
 
 class Filter:
-    def or_relationship(self, item):
+    def or_relationship(self, item, flat_list):
         # OR relationship
-        dataset_list = list(set(item.filter["submitter_id"]))
+        dataset_list = list(set(flat_list))
         item.filter["submitter_id"] = dataset_list
 
-    def and_relationship(self, item):
+    def and_relationship(self, item, flat_list):
+        print(item.filter)
         # AND relationship
         id_dict = {}
         dataset_list = []
         # Create a id dict to count the frequency of occurrence
-        for dataset in item.filter["submitter_id"]:
+        for dataset in flat_list:
             if dataset not in id_dict.keys():
                 id_dict[dataset] = 1
             else:
@@ -72,13 +73,23 @@ class Filter:
             if id_dict[id] == max(id_dict.values()):
                 dataset_list.append(id)
         # Replace the filter id value
-        item.filter["submitter_id"] = dataset_list
+        if max(id_dict.values()) == 1 and len(item.filter["submitter_id"]) > 1:
+            item.filter["submitter_id"] = []
+        else:
+            item.filter["submitter_id"] = dataset_list
 
     def filter_relation(self, item):
+        # Remove empty list or None from nested list
+        item.filter["submitter_id"] = [
+            x for x in item.filter["submitter_id"] if x != [] and x != None]
+        # Flatten nested list
+        flat_list = [num for sublist in item.filter["submitter_id"]
+                     for num in sublist]
+
         if item.relation == "and":
-            self.and_relationship(item)
+            self.and_relationship(item, flat_list)
         elif item.relation == "or":
-            self.or_relationship(item)
+            self.or_relationship(item, flat_list)
 
     def generate_keywords_filed_filter(self, filter, data):
         result = []
