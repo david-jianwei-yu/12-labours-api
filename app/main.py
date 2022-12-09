@@ -369,8 +369,9 @@ async def graphql_pagination(item: GraphQLPaginationItem):
     """
     if item.filter != {}:
         f.filter_relation(item)
-    if item.filter["submitter_id"] != [] and item.search != {}:
+    if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
         s.search_filter_relation(item)
+    print(item)
     query_result = graphql(item)
     if item.search != {}:
         # Sort only if search is not empty, since search results are sorted by relevance
