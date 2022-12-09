@@ -369,7 +369,7 @@ async def graphql_pagination(item: GraphQLPaginationItem):
     """
     if item.filter != {}:
         f.filter_relation(item)
-    if item.search != {}:
+    if item.filter["submitter_id"] != [] and item.search != {}:
         s.search_filter_relation(item)
     query_result = graphql(item)
     if item.search != {}:

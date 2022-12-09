@@ -71,6 +71,8 @@ class Filter:
         for id in id_dict.keys():
             if id_dict[id] == max(id_dict.values()):
                 dataset_list.append(id)
+        if max(id_dict.values()) == 1:
+            dataset_list = []
         # Replace the filter id value
         item.filter["submitter_id"] = dataset_list
 
