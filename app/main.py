@@ -367,7 +367,6 @@ async def graphql_pagination(item: GraphQLPaginationItem):
 
     search post format should looks like: {"submitter_id": ["<dataset_id>", ...]}
     """
-    print(item)
     if item.filter != {}:
         f.filter_relation(item)
     if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
