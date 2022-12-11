@@ -60,7 +60,7 @@ FILTERS = {
 class Filter:
     def get_filtered_datasets(self, filter, data):
         if "keywords" in filter:
-            data = self.generate_keywords_filed_filter(filter, data)
+            data = self.generate_keywords_field_filter(filter, data)
         dataset_list = [re.findall(
             "dataset-[0-9]*-version-[0-9]*", record["submitter_id"])[0] for record in data]
         return list(set(dataset_list))

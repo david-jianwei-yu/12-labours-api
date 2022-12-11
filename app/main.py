@@ -23,7 +23,7 @@ from irods.session import iRODSSession
 from app.search import Search
 
 description = """
-12 Labours API. 🚀
+🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
 
 ## Gen3
 
@@ -70,7 +70,7 @@ app = FastAPI(
     contact={
         "name": "Auckland Bioengineering Institute",
         "url": "https://www.auckland.ac.nz/en/abi.html",
-        # "email": "dp@x-force.example.com",
+        "email": "bioeng-enquiries@auckland.ac.nz",
     },
     # license_info={
     #     "name": "Apache 2.0",
@@ -298,8 +298,8 @@ def graphql(item):
 
 
 class GraphQLQueryItem(BaseModel):
-    limit: Union[int, None] = 0
     page: Union[int, None] = 1
+    limit: Union[int, None] = 0
     node: Union[str, None] = None
     filter: Union[dict, None] = {}
     search: Union[str, None] = ""
@@ -307,13 +307,11 @@ class GraphQLQueryItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "limit": 0,
-                "page": 1,
                 "node": ["dataset_description"],
                 "filter": {
                     "submitter_id": "dataset-<dataset_id>-version-<version_id>-dataset_description"
                 },
-                "search": "dataset-<dataset_id>-version-<version_id>",
+                "search": "",
             }
         }
 
@@ -348,13 +346,14 @@ def update_pagination_item(item, input):
         filter_dict["submitter_id"].append(f.get_filtered_datasets(
             query_item.filter, query_result[query_item.node]))
     item.filter = filter_dict
+
     if input != "":
         item.search["submitter_id"] = s.get_searched_datasets(input, SESSION)
 
 
 class GraphQLPaginationItem(BaseModel):
-    limit: Union[int, None] = 50
     page: Union[int, None] = 1
+    limit: Union[int, None] = 50
     node: Union[str, None] = None
     filter: Union[dict, None] = {}
     search: Union[dict, None] = {}
@@ -363,8 +362,8 @@ class GraphQLPaginationItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "limit": 50,
                 "page": 1,
+                "limit": 50,
                 "node": "experiment",
                 "filter": {},
                 "relation": "and"
@@ -373,15 +372,16 @@ class GraphQLPaginationItem(BaseModel):
 
 
 @ app.post("/graphql/pagination/", tags=["Gen3"])
-async def graphql_pagination(item: GraphQLPaginationItem, search: str):
+async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     """
-    /graphql/pagination/?input=
+    /graphql/pagination/?search=<string>
 
     Return filtered/searched metadata records. The API uses GraphQL query language.
 
-    Default limit = 50
     Default page = 1
-    Default relation = AND
+    Default limit = 50
+    Default search = ""
+    Default relation = "and"
 
     filter post format should looks like: 
     {
