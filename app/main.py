@@ -1,3 +1,4 @@
+import re
 import json
 import mimetypes
 
@@ -20,6 +21,7 @@ from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter
 
 from irods.session import iRODSSession
+from app.search import Search
 
 app = FastAPI(
     title="12 Labours Portal APIs"
@@ -42,6 +44,8 @@ app.add_middleware(
 BAD_REQUEST = 400
 UNAUTHORIZED = 401
 NOT_FOUND = 404
+METHOD_NOT_ALLOWED = 405
+INTERNAL_SERVER_ERROR = 500
 
 GEN3_CREDENTIALS = {
     "api_key": Gen3Config.GEN3_API_KEY,
@@ -52,6 +56,10 @@ statetable = None
 SUBMISSION = None
 QUERY = None
 SESSION = None
+
+sgqlc = SimpleGraphQLClient()
+f = Filter()
+s = Search()
 
 
 @ app.on_event("startup")
@@ -66,7 +74,8 @@ async def start_up():
     try:
         global SUBMISSION
         global QUERY
-        AUTH = Gen3Auth(refresh_token=GEN3_CREDENTIALS)
+        AUTH = Gen3Auth(endpoint=Gen3Config.GEN3_ENDPOINT_URL,
+                        refresh_token=GEN3_CREDENTIALS)
         SUBMISSION = Gen3Submission(AUTH)
         QUERY = Gen3Query(AUTH)
     except Exception:
@@ -171,12 +180,32 @@ class Gen3Item(BaseModel):
         }
 
 
-class GraphQLItem(BaseModel):
+class GraphQLQueryItem(BaseModel):
+    limit: Union[int, None] = 0
+    page: Union[int, None] = 1
+    node: Union[str, None] = None
+    filter: Union[dict, None] = {}
+    search: Union[str, None] = ""
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "limit": 0,
+                "page": 1,
+                "node": "experiment",
+                "filter": {},
+                "search": "",
+            }
+        }
+
+
+class GraphQLPaginationItem(BaseModel):
     limit: Union[int, None] = 50
     page: Union[int, None] = 1
     node: Union[str, None] = None
-    filter: Union[dict, None] = None
-    search: Union[str, None] = None
+    filter: Union[dict, None] = {}
+    search: Union[dict, None] = {}
+    relation: Union[str, None] = "and"
 
     class Config:
         schema_extra = {
@@ -185,7 +214,8 @@ class GraphQLItem(BaseModel):
                 "page": 1,
                 "node": "experiment",
                 "filter": {},
-                "search": ""
+                "search": {},
+                "relation": "and"
             }
         }
 
@@ -193,7 +223,7 @@ class GraphQLItem(BaseModel):
 @ app.get("/program")
 async def get_gen3_program():
     """
-    Return all programs' information from the Gen3 Data Commons.
+    Return all programs information from the Gen3 Data Commons.
     """
     try:
         program = SUBMISSION.get_programs()
@@ -208,7 +238,7 @@ async def get_gen3_program():
 @ app.get("/project/{program}")
 async def get_gen3_project(program: program):
     """
-    Return all projects' information from a program.
+    Return all projects information from a program.
 
     :param program: Gen3 program name.
     """
@@ -248,7 +278,7 @@ async def get_gen3_dictionary(item: Gen3Item):
 @ app.post("/records/{node}")
 async def get_gen3_node_records(node: node, item: Gen3Item):
     """
-    Return all records' information in a dictionary node.
+    Return all records information in a dictionary node.
 
     :param node: The dictionary node to export.
     :return: A list of json object containing all records in the dictionary node.
@@ -291,111 +321,88 @@ async def get_gen3_record(uuid: str, item: Gen3Item):
             raise HTTPException(status_code=UNAUTHORIZED,
                                 detail=record["message"])
         raise HTTPException(
-            status_code=NOT_FOUND, detail=record["message"]+" and check if uses the correct project or uuid is used")
+            status_code=NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
     else:
         return record
 
 
-def merge_item_filter(item):
-    # AND relationship
-    count_filter = 0
-    id_dict = {}
-    filter_dict = {"submitter_id": []}
-    if item.filter != {}:
-        # Create a id dict to count the frequency of occurrence
-        for key in item.filter.keys():
-            count_filter += 1
-            for ele in item.filter[key]:
-                if ele not in id_dict.keys():
-                    id_dict[ele] = 1
-                else:
-                    id_dict[ele] += 1
-        # Find the matched id and add them into the dict with key submitter_id
-        for id in id_dict.keys():
-            if id_dict[id] == max(id_dict.values()):
-                filter_dict["submitter_id"].append(id)
-        # Replace the filter with created dict
-        item.filter = filter_dict
+def graphql(item):
+    if item.node == None:
+        raise HTTPException(status_code=BAD_REQUEST,
+                            detail="Missing one or more fields in the request body")
+
+    query = sgqlc.generate_query(item)
+    # query_result = QUERY.graphql_query(query)
+    query_result = SUBMISSION.query(query)["data"]
+    if query_result is not None and query_result[item.node] != []:
+        return query_result
+    else:
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="Data cannot be found in the node")
 
 
-@ app.post("/graphql")
-async def graphql_query(item: GraphQLItem):
+@ app.post("/graphql/query")
+async def graphql_query(item: GraphQLQueryItem):
     """
-    Return filtered/searched metadata records. The API uses GraphQL query language.
-
-    Default limit = 50
-    Default page = 1
+    Return queries metadata records. The API uses GraphQL query language.
 
     filter post format should looks like: {"<filed_name>": ["<attribute_name>", ...], ...}
 
     search post format should looks like: "\<string\>"
     """
-    if item.node == None or item.filter == None or item.search == None:
-        raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body.")
-
-    if item.node == "experiment":
-        merge_item_filter(item)
-    sgqlc = SimpleGraphQLClient()
-    query = sgqlc.generate_query(item)
-    # query_result = QUERY.graphql_query(query)
-    query_result = SUBMISSION.query(query)["data"]
-    if query_result is not None and query_result[item.node] != []:
-        pagination_result = {
-            "data": query_result[item.node],
-            # Maximum number of records display in one page
-            "limit": item.limit,
-            # The number of records display in current page
-            "size": len(query_result[item.node]),
-            "page": item.page,
-            "total": query_result["total"]
-        }
-        return pagination_result
-    else:
-        raise HTTPException(status_code=NOT_FOUND,
-                            detail="Data cannot be found in the node.")
-
-#
-# Gen3 Filter
-#
-filter_list = {
-    "manifest": ["DATA TYPES"],
-    "dataset_description": ["ANATOMICAL STRUCTURE", "SPECIES"],
-}
+    query_result = graphql(item)
+    return query_result[item.node]
 
 
-@ app.post("/filters")
-async def generate_filters(item: Gen3Item):
+@ app.post("/graphql/pagination")
+async def graphql_pagination(item: GraphQLPaginationItem):
     """
-    Return the support data for frontend filters.
-    """
-    if item.program == None or item.project == None:
-        raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one ore more fields in request body.")
+    Return filtered/searched metadata records. The API uses GraphQL query language.
 
-    filters_result = {}
-    for node in filter_list:
-        for filter in filter_list[node]:
-            node_record = SUBMISSION.export_node(
-                item.program, item.project, node, "json")
-            if "message" in node_record:
-                if "unauthorized" in node_record["message"]:
-                    raise HTTPException(status_code=UNAUTHORIZED,
-                                        detail=node_record["message"])
-                raise HTTPException(status_code=NOT_FOUND,
-                                    detail=node_record["message"])
-            elif node_record["data"] == []:
-                raise HTTPException(status_code=NOT_FOUND,
-                                    detail=f"No data found with node type {node} and check if the correct project or node type is used")
-            else:
-                f = Filter()
-                filters_result[filter] = f.get_filter_data(
-                    filter, node_record)
-    return filters_result
+    Default limit = 50
+    Default page = 1
+    Default relation = AND
+
+    filter post format should looks like: {"submitter_id": [["<dataset_id>", ...], ...]}
+
+    search post format should looks like: {"submitter_id": ["<dataset_id>", ...]}
+    """
+    if item.filter != {}:
+        f.filter_relation(item)
+    if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
+        s.search_filter_relation(item)
+    query_result = graphql(item)
+    if item.search != {}:
+        # Sort only if search is not empty, since search results are sorted by relevance
+        query_result[item.node] = sorted(
+            query_result[item.node], key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
+    return {
+        "data": query_result[item.node],
+        # Maximum number of records display in one page
+        "limit": item.limit,
+        # The number of records display in current page
+        "size": len(query_result[item.node]),
+        "page": item.page,
+        "total": query_result["total"]
+    }
+
+
+@ app.get("/filter")
+async def generate_filter():
+    """
+    Return the support data for frontend filters component.
+    """
+    return f.generate_filter_information()
+
+
+@ app.post("/filter/dataset")
+async def get_filtered_datasets(item: GraphQLQueryItem):
+    query_result = graphql(item)
+    return f.generate_dataset_list(item.filter, query_result[item.node])
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}")
-async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: str):
+async def download_gen3_metadata_file(program: program, project: project, uuid: str, format: format):
     """
     Return a single file for a given uuid.
 
@@ -415,7 +422,7 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
             raise HTTPException(status_code=UNAUTHORIZED,
                                 detail=metadata["message"])
         raise HTTPException(
-            status_code=NOT_FOUND, detail=metadata["message"]+" and check if uses the correct project or uuid is used")
+            status_code=NOT_FOUND, detail=metadata["message"]+" and check if the correct project or uuid is used")
     else:
         if format == "json":
             return JSONResponse(content=metadata[0],
@@ -450,18 +457,37 @@ class CollectionItem(BaseModel):
         }
 
 
+@ app.get("/search/{input}")
+async def get_searched_datasets(input: str):
+    """
+    Return a list of dataset ids whose content matches the input string.
+
+    The dataset list order is based on how the dataset content is relevant to the input string.
+    """
+    try:
+        keyword_list = re.findall("[a-zA-Z0-9]+", input)
+        dataset_list = s.generate_dataset_list(SESSION, keyword_list)
+    except Exception as e:
+        raise HTTPException(status_code=INTERNAL_SERVER_ERROR, detail=str(e))
+
+    if dataset_list == []:
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="There is no matched content in the database")
+    else:
+        return dataset_list
+
+
 def get_collection_list(data):
     collect_list = []
     for ele in data:
         collect_list.append({
-            "id": ele.id,
             "name": ele.name,
             "path": ele.path
         })
     return collect_list
 
 
-@ app.get("/collection")
+@ app.get("/collection/root")
 async def get_irods_root_collections():
     """
     Return all collections from the root folder.
@@ -472,7 +498,7 @@ async def get_irods_root_collections():
         folders = get_collection_list(collect.subcollections)
         files = get_collection_list(collect.data_objects)
     except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=INTERNAL_SERVER_ERROR, detail=str(e))
     return {"folders": folders, "files": files}
 
 
@@ -483,15 +509,16 @@ async def get_irods_collections(item: CollectionItem):
     """
     if item.path == None:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing field in request body.")
+                            detail="Missing field in the request body")
 
     try:
         collect = SESSION.collections.get(item.path)
         folders = get_collection_list(collect.subcollections)
         files = get_collection_list(collect.data_objects)
         return {"folders": folders, "files": files}
-    except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="Data not found in the provided path")
 
 
 @ app.get("/data/{action}/{filepath:path}")
@@ -509,23 +536,24 @@ async def get_irods_data_file(action: action, filepath: str):
     try:
         file = SESSION.data_objects.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{filepath}")
+    except Exception:
+        raise HTTPException(status_code=NOT_FOUND,
+                            detail="Data not found in the provided path")
 
-        def iterate_file():
-            with file.open("r") as file_like:
+    def iterate_file():
+        with file.open("r") as file_like:
+            chunk = file_like.read(chunk_size)
+            while chunk:
+                yield chunk
                 chunk = file_like.read(chunk_size)
-                while chunk:
-                    yield chunk
-                    chunk = file_like.read(chunk_size)
-        if action == "preview":
-            return StreamingResponse(iterate_file(),
-                                     media_type=mimetypes.guess_type(file.name)[0])
-        elif action == "download":
-            return StreamingResponse(iterate_file(),
-                                     media_type=mimetypes.guess_type(file.name)[
-                0],
-                headers={"Content-Disposition": f"attachment;filename={file.name}"})
-        else:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="The action is not provided in this API.")
-    except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+    if action == "preview":
+        return StreamingResponse(iterate_file(),
+                                 media_type=mimetypes.guess_type(file.name)[0])
+    elif action == "download":
+        return StreamingResponse(iterate_file(),
+                                 media_type=mimetypes.guess_type(file.name)[
+            0],
+            headers={"Content-Disposition": f"attachment;filename={file.name}"})
+    else:
+        raise HTTPException(status_code=METHOD_NOT_ALLOWED,
+                            detail="The action is not provided in this API")
