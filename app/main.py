@@ -309,9 +309,11 @@ class GraphQLQueryItem(BaseModel):
             "example": {
                 "limit": 0,
                 "page": 1,
-                "node": "experiment",
-                "filter": {},
-                "search": "",
+                "node": ["dataset_description"],
+                "filter": {
+                    "submitter_id": "dataset-<dataset_id>-version-<version_id>-dataset_description"
+                },
+                "search": "dataset-<dataset_id>-version-<version_id>",
             }
         }
 
@@ -321,9 +323,16 @@ async def graphql_query(item: GraphQLQueryItem):
     """
     Return queries metadata records. The API uses GraphQL query language.
 
-    filter post format should looks like: {"<filed_name>": ["<attribute_name>", ...], ...}
+    filter post format should looks like: 
+    {
+        "<filed_name>": [
+            "<attribute_name>", 
+            ...
+        ], 
+        ...
+    }
 
-    search post format should looks like: "\<string\>"
+    search post format should be <string_content>
     """
     query_result = graphql(item)
     return query_result[item.node]
@@ -358,14 +367,13 @@ class GraphQLPaginationItem(BaseModel):
                 "page": 1,
                 "node": "experiment",
                 "filter": {},
-                "search": {},
                 "relation": "and"
             }
         }
 
 
 @ app.post("/graphql/pagination/", tags=["Gen3"])
-async def graphql_pagination(item: GraphQLPaginationItem, input: str):
+async def graphql_pagination(item: GraphQLPaginationItem, search: str):
     """
     /graphql/pagination/?input=
 
@@ -389,9 +397,9 @@ async def graphql_pagination(item: GraphQLPaginationItem, input: str):
         ...
     }
 
-    input parameter should be <string_content>
+    search parameter should be <string_content>
     """
-    update_pagination_item(item, input)
+    update_pagination_item(item, search)
     if item.filter != {}:
         f.filter_relation(item)
     if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):

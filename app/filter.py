@@ -65,7 +65,7 @@ class Filter:
             "dataset-[0-9]*-version-[0-9]*", record["submitter_id"])[0] for record in data]
         return list(set(dataset_list))
 
-    def generate_keywords_filed_filter(self, filter, data):
+    def generate_keywords_field_filter(self, filter, data):
         result = []
         for ele in data:
             keyword_list = [item.strip() for item in ele["keywords"]]
