@@ -15,7 +15,6 @@ from enum import Enum
 
 from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
-from gen3.query import Gen3Query
 
 from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter
@@ -26,35 +25,58 @@ from app.search import Search
 description = """
 12 Labours API. 🚀
 
-## Items
-
-You can **read items**.
-
-## Users
+## Gen3
 
 You will be able to:
 
-* **Create users** (_not implemented_).
-* **Read users** (_not implemented_).
+* **Get Gen3 program/project**
+* **Get Gen3 node dictionary**
+* **Get Gen3 record(s) metadata**
+* **Use GraphQL query Gen3 metadata**
+* **Download Gen3 file**
+
+## iRODS
+
+You will be able to:
+
+* **Get iRODS root/sub-folder(s)/sub-file(s)**
+* **Download iRODS file**
 """
 
 tags_metadata = [
     {
         "name": "Gen3",
-        "description": "Operations with users. The **login** logic is also here.",
+        "description": "Gen3 is a data platform for building data commons and data ecosystems",
+        "externalDocs": {
+            "description": "Gen3 official website",
+            "url": "https://gen3.org/",
+        },
     },
     {
         "name": "iRODS",
-        "description": "Manage items. So _fancy_ they have their own docs.",
+        "description": "Open Source Data Management Software",
         "externalDocs": {
-            "description": "Items external docs",
-            "url": "https://fastapi.tiangolo.com/",
+            "description": "iRODS official website",
+            "url": "https://irods.org/",
         },
     },
 ]
 
 app = FastAPI(
-    title="12 Labours Portal APIs"
+    title="12 Labours Portal",
+    description=description,
+    # version="0.0.1",
+    # terms_of_service="http://example.com/terms/",
+    contact={
+        "name": "Auckland Bioengineering Institute",
+        "url": "https://www.auckland.ac.nz/en/abi.html",
+        # "email": "dp@x-force.example.com",
+    },
+    # license_info={
+    #     "name": "Apache 2.0",
+    #     "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
+    # }
+    openapi_tags=tags_metadata
 )
 
 # Cross orgins, allow any for now
@@ -84,7 +106,6 @@ GEN3_CREDENTIALS = {
 
 statetable = None
 SUBMISSION = None
-QUERY = None
 SESSION = None
 
 sgqlc = SimpleGraphQLClient()
@@ -107,7 +128,6 @@ async def start_up():
         AUTH = Gen3Auth(endpoint=Gen3Config.GEN3_ENDPOINT_URL,
                         refresh_token=GEN3_CREDENTIALS)
         SUBMISSION = Gen3Submission(AUTH)
-        QUERY = Gen3Query(AUTH)
     except Exception:
         print("Encounter an error while creating the GEN3 auth.")
 
@@ -124,7 +144,7 @@ async def start_up():
         print("Encounter an error while creating the iRODS session.")
 
 
-@ app.get("/", response_class=PlainTextResponse)
+@ app.get("/", tags=["Root"], response_class=PlainTextResponse)
 async def root():
     return "This is the fastapi backend."
 
@@ -134,7 +154,7 @@ async def root():
 #
 
 
-@ app.get("/program")
+@ app.get("/program", tags=["Gen3"])
 async def get_gen3_program():
     """
     Return all programs information from the Gen3 Data Commons.
@@ -153,7 +173,7 @@ class Program(str, Enum):
     program = "demo1"
 
 
-@ app.get("/project/{program}")
+@ app.get("/project/{program}", tags=["Gen3"])
 async def get_gen3_project(program: Program):
     """
     Return all projects information from a program.
@@ -184,7 +204,7 @@ class Gen3Item(BaseModel):
         }
 
 
-@ app.post("/dictionary")
+@ app.post("/dictionary", tags=["Gen3"])
 async def get_gen3_dictionary(item: Gen3Item):
     """
     Return all dictionary nodes from the Gen3 Data Commons
@@ -212,7 +232,7 @@ class Node(str, Enum):
     manifest = "manifest"
 
 
-@ app.post("/records/{node}")
+@ app.post("/records/{node}", tags=["Gen3"])
 async def get_gen3_node_records(node: Node, item: Gen3Item):
     """
     Return all records information in a dictionary node.
@@ -239,7 +259,7 @@ async def get_gen3_node_records(node: Node, item: Gen3Item):
         return node_record
 
 
-@ app.post("/record/{uuid}")
+@ app.post("/record/{uuid}", tags=["Gen3"])
 async def get_gen3_record(uuid: str, item: Gen3Item):
     """
     Return record's information in the Gen3 Data Commons.
@@ -269,7 +289,6 @@ def graphql(item):
                             detail="Missing one or more fields in the request body")
 
     query = sgqlc.generate_query(item)
-    # query_result = QUERY.graphql_query(query)
     query_result = SUBMISSION.query(query)["data"]
     if query_result is not None and query_result[item.node] != []:
         return query_result
@@ -297,7 +316,7 @@ class GraphQLQueryItem(BaseModel):
         }
 
 
-@ app.post("/graphql/query")
+@ app.post("/graphql/query", tags=["Gen3"])
 async def graphql_query(item: GraphQLQueryItem):
     """
     Return queries metadata records. The API uses GraphQL query language.
@@ -345,7 +364,7 @@ class GraphQLPaginationItem(BaseModel):
         }
 
 
-@ app.post("/graphql/pagination/")
+@ app.post("/graphql/pagination/", tags=["Gen3"])
 async def graphql_pagination(item: GraphQLPaginationItem, input: str):
     """
     /graphql/pagination/?input=
@@ -391,7 +410,7 @@ async def graphql_pagination(item: GraphQLPaginationItem, input: str):
     }
 
 
-@ app.get("/filter")
+@ app.get("/filter", tags=["Gen3"])
 async def generate_filter():
     """
     Return the support data for frontend filters component.
@@ -408,7 +427,7 @@ class Format(str, Enum):
     tsv = "tsv"
 
 
-@ app.get("/metadata/download/{program}/{project}/{uuid}/{format}")
+@ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"])
 async def download_gen3_metadata_file(program: Program, project: Project, uuid: str, format: Format):
     """
     Return a single file for a given uuid.
@@ -458,7 +477,7 @@ def get_collection_list(data):
     return collect_list
 
 
-@ app.get("/collection/root")
+@ app.get("/collection/root", tags=["iRODS"])
 async def get_irods_root_collections():
     """
     Return all collections from the root folder.
@@ -484,7 +503,7 @@ class CollectionItem(BaseModel):
         }
 
 
-@ app.post("/collection")
+@ app.post("/collection", tags=["iRODS"])
 async def get_irods_collections(item: CollectionItem):
     """
     Return all collections from the required folder.
@@ -508,7 +527,7 @@ class Action(str, Enum):
     download = "download"
 
 
-@ app.get("/data/{action}/{filepath:path}")
+@ app.get("/data/{action}/{filepath:path}", tags=["iRODS"])
 async def get_irods_data_file(action: Action, filepath: str):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
