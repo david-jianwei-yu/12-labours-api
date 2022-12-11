@@ -1,5 +1,11 @@
 import re
 
+BAD_REQUEST = 400
+UNAUTHORIZED = 401
+NOT_FOUND = 404
+METHOD_NOT_ALLOWED = 405
+INTERNAL_SERVER_ERROR = 500
+
 FILTERS = {
     "MAPPED_MIME_TYPES": {
         "title": "MIME TYPES",
@@ -52,13 +58,23 @@ FILTERS = {
 
 
 class Filter:
-    def filter_relation(self, item):
-        filter_list = []
-        for sublist in item.filter["submitter_id"]:
-            if sublist != [] and sublist != None:
-                filter_list.append(sublist)
-        item.filter["submitter_id"] = filter_list
+    def get_filtered_datasets(self, filter, data):
+        if "keywords" in filter:
+            data = self.generate_keywords_filed_filter(filter, data)
+        dataset_list = [re.findall(
+            "dataset-[0-9]*-version-[0-9]*", record["submitter_id"])[0] for record in data]
+        return list(set(dataset_list))
 
+    def generate_keywords_filed_filter(self, filter, data):
+        result = []
+        for ele in data:
+            keyword_list = [item.strip() for item in ele["keywords"]]
+            for kwd in filter["keywords"]:
+                if any(kwd in word for word in keyword_list):
+                    result.append(ele)
+        return result
+
+    def filter_relation(self, item):
         if item.relation == "and":  # AND relationship
             nested_list = item.filter["submitter_id"]
             dataset_list = list(set(nested_list[0]).intersection(*nested_list))
@@ -70,22 +86,6 @@ class Filter:
                     flatten_list.append(ele)
             dataset_list = list(set(flatten_list))
             item.filter["submitter_id"] = dataset_list
-
-    def generate_keywords_filed_filter(self, filter, data):
-        result = []
-        for ele in data:
-            keyword_list = [item.strip() for item in ele["keywords"]]
-            for kwd in filter["keywords"]:
-                if any(kwd in word for word in keyword_list):
-                    result.append(ele)
-        return result
-
-    def generate_dataset_list(self, filter, data):
-        if "keywords" in filter:
-            data = self.generate_keywords_filed_filter(filter, data)
-        dataset_list = [re.findall(
-            "dataset-[0-9]*-version-[0-9]*", record["submitter_id"])[0] for record in data]
-        return list(set(dataset_list))
 
     def generate_filter_information(self):
         filter_comp_info = {

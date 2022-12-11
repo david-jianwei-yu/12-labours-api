@@ -23,6 +23,36 @@ from app.filter import Filter
 from irods.session import iRODSSession
 from app.search import Search
 
+description = """
+12 Labours API. 🚀
+
+## Items
+
+You can **read items**.
+
+## Users
+
+You will be able to:
+
+* **Create users** (_not implemented_).
+* **Read users** (_not implemented_).
+"""
+
+tags_metadata = [
+    {
+        "name": "Gen3",
+        "description": "Operations with users. The **login** logic is also here.",
+    },
+    {
+        "name": "iRODS",
+        "description": "Manage items. So _fancy_ they have their own docs.",
+        "externalDocs": {
+            "description": "Items external docs",
+            "url": "https://fastapi.tiangolo.com/",
+        },
+    },
+]
+
 app = FastAPI(
     title="12 Labours Portal APIs"
 )
@@ -99,125 +129,9 @@ async def root():
     return "This is the fastapi backend."
 
 
-@ app.get("/health", response_class=PlainTextResponse)
-async def health():
-    return json.dumps({"status": "healthy"})
-
-
-def get_share_link(table):
-    # Do not commit to database when testing
-    commit = True
-    if app.config["TESTING"]:
-        commit = False
-    if table:
-        json_data = request.get_json()
-        if json_data and "state" in json_data:
-            state = json_data["state"]
-            uuid = table.pushState(state, commit)
-            return {"uuid": uuid}
-        abort(400, description="State not specified")
-    else:
-        abort(404, description="Database not available")
-
-
-def get_saved_state(table):
-    if table:
-        json_data = request.get_json()
-        if json_data and "uuid" in json_data:
-            uuid = json_data["uuid"]
-            state = table.pullState(uuid)
-            if state:
-                return {"state": table.pullState(uuid)}
-        abort(400, description="Key missing or did not find a match")
-    else:
-        abort(404, description="Database not available")
-
-
-# An example
-@ app.put("/state/getshareid")
-async def get_share_link():
-    return get_share_link(statetable)
-
-
-# Get the map state using the share link id.
-@ app.get("/state/getstate")
-async def get_state():
-    return get_saved_state(statetable)
-
-
 #
 # Gen3 Data Commons
 #
-class program(str, Enum):
-    program = "demo1"
-
-
-class project(str, Enum):
-    project = "12L"
-
-
-class node(str, Enum):
-    experiment = "experiment"
-    dataset_description = "dataset_description"
-    manifest = "manifest"
-
-
-class format(str, Enum):
-    json = "json"
-    tsv = "tsv"
-
-
-class Gen3Item(BaseModel):
-    program: Union[str, None] = None
-    project: Union[str, None] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "program": "demo1",
-                "project": "12L",
-            }
-        }
-
-
-class GraphQLQueryItem(BaseModel):
-    limit: Union[int, None] = 0
-    page: Union[int, None] = 1
-    node: Union[str, None] = None
-    filter: Union[dict, None] = {}
-    search: Union[str, None] = ""
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "limit": 0,
-                "page": 1,
-                "node": "experiment",
-                "filter": {},
-                "search": "",
-            }
-        }
-
-
-class GraphQLPaginationItem(BaseModel):
-    limit: Union[int, None] = 50
-    page: Union[int, None] = 1
-    node: Union[str, None] = None
-    filter: Union[dict, None] = {}
-    search: Union[dict, None] = {}
-    relation: Union[str, None] = "and"
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "limit": 50,
-                "page": 1,
-                "node": "experiment",
-                "filter": {},
-                "search": {},
-                "relation": "and"
-            }
-        }
 
 
 @ app.get("/program")
@@ -235,8 +149,12 @@ async def get_gen3_program():
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
+class Program(str, Enum):
+    program = "demo1"
+
+
 @ app.get("/project/{program}")
-async def get_gen3_project(program: program):
+async def get_gen3_project(program: Program):
     """
     Return all projects information from a program.
 
@@ -251,6 +169,19 @@ async def get_gen3_project(program: program):
         return project_dict
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+
+
+class Gen3Item(BaseModel):
+    program: Union[str, None] = None
+    project: Union[str, None] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "program": "demo1",
+                "project": "12L",
+            }
+        }
 
 
 @ app.post("/dictionary")
@@ -275,8 +206,14 @@ async def get_gen3_dictionary(item: Gen3Item):
             status_code=NOT_FOUND, detail=f"Program {item.program} or project {item.project} not found")
 
 
+class Node(str, Enum):
+    experiment = "experiment"
+    dataset_description = "dataset_description"
+    manifest = "manifest"
+
+
 @ app.post("/records/{node}")
-async def get_gen3_node_records(node: node, item: Gen3Item):
+async def get_gen3_node_records(node: Node, item: Gen3Item):
     """
     Return all records information in a dictionary node.
 
@@ -341,6 +278,25 @@ def graphql(item):
                             detail="Data cannot be found in the node")
 
 
+class GraphQLQueryItem(BaseModel):
+    limit: Union[int, None] = 0
+    page: Union[int, None] = 1
+    node: Union[str, None] = None
+    filter: Union[dict, None] = {}
+    search: Union[str, None] = ""
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "limit": 0,
+                "page": 1,
+                "node": "experiment",
+                "filter": {},
+                "search": "",
+            }
+        }
+
+
 @ app.post("/graphql/query")
 async def graphql_query(item: GraphQLQueryItem):
     """
@@ -354,19 +310,69 @@ async def graphql_query(item: GraphQLQueryItem):
     return query_result[item.node]
 
 
-@ app.post("/graphql/pagination")
-async def graphql_pagination(item: GraphQLPaginationItem):
+def update_pagination_item(item, input):
+    query_item = GraphQLQueryItem()
+    filter_dict = {"submitter_id": []}
+    for ele in item.filter:
+        query_item.node = item.filter[ele]["node"]
+        query_item.filter = item.filter[ele]["filter"]
+        query_result = graphql(query_item)
+        filter_dict["submitter_id"].append(f.get_filtered_datasets(
+            query_item.filter, query_result[query_item.node]))
+    item.filter = filter_dict
+    if input != "":
+        item.search["submitter_id"] = s.get_searched_datasets(input, SESSION)
+
+
+class GraphQLPaginationItem(BaseModel):
+    limit: Union[int, None] = 50
+    page: Union[int, None] = 1
+    node: Union[str, None] = None
+    filter: Union[dict, None] = {}
+    search: Union[dict, None] = {}
+    relation: Union[str, None] = "and"
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "limit": 50,
+                "page": 1,
+                "node": "experiment",
+                "filter": {},
+                "search": {},
+                "relation": "and"
+            }
+        }
+
+
+@ app.post("/graphql/pagination/")
+async def graphql_pagination(item: GraphQLPaginationItem, input: str):
     """
+    /graphql/pagination/?input=
+
     Return filtered/searched metadata records. The API uses GraphQL query language.
 
     Default limit = 50
     Default page = 1
     Default relation = AND
 
-    filter post format should looks like: {"submitter_id": [["<dataset_id>", ...], ...]}
+    filter post format should looks like: 
+    {
+        "id": {
+            "node": "<gen3_node>", 
+            "filter": {
+                "<gen3_field>": [
+                    <filed_content>,
+                    ...
+                ]
+            }
+        }, 
+        ...
+    }
 
-    search post format should looks like: {"submitter_id": ["<dataset_id>", ...]}
+    input parameter should be <string_content>
     """
+    update_pagination_item(item, input)
     if item.filter != {}:
         f.filter_relation(item)
     if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
@@ -380,8 +386,6 @@ async def graphql_pagination(item: GraphQLPaginationItem):
         "data": query_result[item.node],
         # Maximum number of records display in one page
         "limit": item.limit,
-        # The number of records display in current page
-        "size": len(query_result[item.node]),
         "page": item.page,
         "total": query_result["total"]
     }
@@ -395,14 +399,17 @@ async def generate_filter():
     return f.generate_filter_information()
 
 
-@ app.post("/filter/dataset")
-async def get_filtered_datasets(item: GraphQLQueryItem):
-    query_result = graphql(item)
-    return f.generate_dataset_list(item.filter, query_result[item.node])
+class Project(str, Enum):
+    project = "12L"
+
+
+class Format(str, Enum):
+    json = "json"
+    tsv = "tsv"
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}")
-async def download_gen3_metadata_file(program: program, project: project, uuid: str, format: format):
+async def download_gen3_metadata_file(program: Program, project: Project, uuid: str, format: Format):
     """
     Return a single file for a given uuid.
 
@@ -441,42 +448,6 @@ async def download_gen3_metadata_file(program: program, project: project, uuid: 
 #
 
 
-class action(str, Enum):
-    preview = "preview"
-    download = "download"
-
-
-class CollectionItem(BaseModel):
-    path: Union[str, None] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "path": "/tempZone/home/rods/datasets",
-            }
-        }
-
-
-@ app.get("/search/{input}")
-async def get_searched_datasets(input: str):
-    """
-    Return a list of dataset ids whose content matches the input string.
-
-    The dataset list order is based on how the dataset content is relevant to the input string.
-    """
-    try:
-        keyword_list = re.findall("[a-zA-Z0-9]+", input)
-        dataset_list = s.generate_dataset_list(SESSION, keyword_list)
-    except Exception as e:
-        raise HTTPException(status_code=INTERNAL_SERVER_ERROR, detail=str(e))
-
-    if dataset_list == []:
-        raise HTTPException(status_code=NOT_FOUND,
-                            detail="There is no matched content in the database")
-    else:
-        return dataset_list
-
-
 def get_collection_list(data):
     collect_list = []
     for ele in data:
@@ -502,6 +473,17 @@ async def get_irods_root_collections():
     return {"folders": folders, "files": files}
 
 
+class CollectionItem(BaseModel):
+    path: Union[str, None] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "path": "/tempZone/home/rods/datasets",
+            }
+        }
+
+
 @ app.post("/collection")
 async def get_irods_collections(item: CollectionItem):
     """
@@ -521,8 +503,13 @@ async def get_irods_collections(item: CollectionItem):
                             detail="Data not found in the provided path")
 
 
+class Action(str, Enum):
+    preview = "preview"
+    download = "download"
+
+
 @ app.get("/data/{action}/{filepath:path}")
-async def get_irods_data_file(action: action, filepath: str):
+async def get_irods_data_file(action: Action, filepath: str):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
     OR
