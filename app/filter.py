@@ -88,7 +88,7 @@ class Filter:
             item.filter["submitter_id"] = dataset_list
 
     def generate_filter_information(self):
-        filter_comp_info = {
+        filter_information = {
             "size": len(FILTERS),
             "titles": [],
             "nodes": [],
@@ -97,10 +97,10 @@ class Filter:
             "ids": []
         }
         for element in FILTERS:
-            filter_comp_info["titles"].append(FILTERS[element]["title"])
-            filter_comp_info["nodes"].append(FILTERS[element]["node"])
-            filter_comp_info["fields"].append(FILTERS[element]["field"])
-            filter_comp_info["elements"].append(FILTERS[element]["element"])
+            filter_information["titles"].append(FILTERS[element]["title"])
+            filter_information["nodes"].append(FILTERS[element]["node"])
+            filter_information["fields"].append(FILTERS[element]["field"])
+            filter_information["elements"].append(FILTERS[element]["element"])
             for ele in FILTERS[element]["element"]:
-                filter_comp_info["ids"].append(ele)
-        return filter_comp_info
+                filter_information["ids"].append(ele)
+        return filter_information

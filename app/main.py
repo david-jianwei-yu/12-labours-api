@@ -339,9 +339,9 @@ async def graphql_query(item: GraphQLQueryItem):
 def update_pagination_item(item, input):
     query_item = GraphQLQueryItem()
     filter_dict = {"submitter_id": []}
-    for ele in item.filter:
-        query_item.node = item.filter[ele]["node"]
-        query_item.filter = item.filter[ele]["filter"]
+    for element in item.filter.values():
+        query_item.node = element["node"]
+        query_item.filter = element["filter"]
         query_result = graphql(query_item)
         filter_dict["submitter_id"].append(f.get_filtered_datasets(
             query_item.filter, query_result[query_item.node]))
@@ -399,8 +399,8 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
 
     search parameter should be <string_content>
     """
-    update_pagination_item(item, search)
     if item.filter != {}:
+        update_pagination_item(item, search)
         f.filter_relation(item)
     if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
         s.search_filter_relation(item)
