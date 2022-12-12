@@ -19,14 +19,10 @@ SEARCHFIELD = [
 
 
 class Search:
+    # The dataset list order is based on how the dataset content is relevant to the input string.
     def get_searched_datasets(self, input, SESSION):
-        """
-        Return a list of dataset ids whose content matches the input string.
-
-        The dataset list order is based on how the dataset content is relevant to the input string.
-        """
         try:
-            keyword_list = re.findall("[a-zA-Z0-9]+", input)
+            keyword_list = re.findall("[a-zA-Z0-9]+", input.lower())
             query = SESSION.query(Collection.name, DataObjectMeta.value)
             id_dict = {}
             for keyword in keyword_list:

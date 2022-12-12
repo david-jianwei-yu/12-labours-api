@@ -337,18 +337,23 @@ async def graphql_query(item: GraphQLQueryItem):
 
 
 def update_pagination_item(item, input):
-    query_item = GraphQLQueryItem()
-    filter_dict = {"submitter_id": []}
-    for element in item.filter.values():
-        query_item.node = element["node"]
-        query_item.filter = element["filter"]
-        query_result = graphql(query_item)
-        filter_dict["submitter_id"].append(f.get_filtered_datasets(
-            query_item.filter, query_result[query_item.node]))
-    item.filter = filter_dict
+    if item.filter != {}:
+        query_item = GraphQLQueryItem()
+        filter_dict = {"submitter_id": []}
+        for element in item.filter.values():
+            query_item.node = element["node"]
+            query_item.filter = element["filter"]
+            query_result = graphql(query_item)
+            filter_dict["submitter_id"].append(f.get_filtered_datasets(
+                query_item.filter, query_result[query_item.node]))
+        item.filter = filter_dict
+        f.filter_relation(item)
 
     if input != "":
+        # If input does not match any content in the database, item.search will be empty dictionary
         item.search["submitter_id"] = s.get_searched_datasets(input, SESSION)
+        if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
+            s.search_filter_relation(item)
 
 
 class GraphQLPaginationItem(BaseModel):
@@ -399,14 +404,10 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
 
     search parameter should be <string_content>
     """
-    if item.filter != {}:
-        update_pagination_item(item, search)
-        f.filter_relation(item)
-    if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
-        s.search_filter_relation(item)
+    update_pagination_item(item, search)
     query_result = graphql(item)
     if item.search != {}:
-        # Sort only if search is not empty, since search results are sorted by relevance
+        # Sort only if search is not empty, since search results are sorted by word relevance
         query_result[item.node] = sorted(
             query_result[item.node], key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
     return {
