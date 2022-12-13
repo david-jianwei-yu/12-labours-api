@@ -23,8 +23,6 @@ from irods.session import iRODSSession
 from app.search import Search
 
 description = """
-🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
-
 ## Gen3
 
 You will be able to:
