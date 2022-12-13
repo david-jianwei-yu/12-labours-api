@@ -111,7 +111,6 @@ s = Search()
 async def start_up():
     try:
         global SUBMISSION
-        global QUERY
         AUTH = Gen3Auth(endpoint=Gen3Config.GEN3_ENDPOINT_URL,
                         refresh_token=GEN3_CREDENTIALS)
         SUBMISSION = Gen3Submission(AUTH)
@@ -220,7 +219,7 @@ class Node(str, Enum):
 
 
 @ app.post("/records/{node}", tags=["Gen3"])
-async def get_gen3_node_records(node: Node, item: Gen3Item):
+async def get_gen3_node_records(item: Gen3Item, node: Node):
     """
     Return all records information in a dictionary node.
 
@@ -241,13 +240,13 @@ async def get_gen3_node_records(node: Node, item: Gen3Item):
                             detail=node_record["message"])
     elif node_record["data"] == []:
         raise HTTPException(status_code=NOT_FOUND,
-                            detail=f"No data found with node type {node} and check if the correct project or node type is used")
+                            detail=f"No data found with node type {node}, check if the correct project or node type is used")
     else:
         return node_record
 
 
 @ app.post("/record/{uuid}", tags=["Gen3"])
-async def get_gen3_record(uuid: str, item: Gen3Item):
+async def get_gen3_record(item: Gen3Item, uuid: str):
     """
     Return record information in the Gen3 Data Commons.
 
@@ -265,7 +264,7 @@ async def get_gen3_record(uuid: str, item: Gen3Item):
             raise HTTPException(status_code=UNAUTHORIZED,
                                 detail=record["message"])
         raise HTTPException(
-            status_code=NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
+            status_code=NOT_FOUND, detail=record["message"]+", check if the correct project or uuid is used")
     else:
         return record
 
@@ -430,7 +429,7 @@ async def download_gen3_metadata_file(program: Program, project: Project, uuid: 
             raise HTTPException(status_code=UNAUTHORIZED,
                                 detail=metadata["message"])
         raise HTTPException(
-            status_code=NOT_FOUND, detail=metadata["message"]+" and check if the correct project or uuid is used")
+            status_code=NOT_FOUND, detail=metadata["message"]+", check if the correct project or uuid is used")
     else:
         if format == "json":
             return JSONResponse(content=metadata[0],
@@ -465,8 +464,7 @@ async def get_irods_root_collections():
     Return all collections from the root folder.
     """
     try:
-        collect = SESSION.collections.get(
-            f"{iRODSConfig.IRODS_ENDPOINT_URL}")
+        collect = SESSION.collections.get(iRODSConfig.IRODS_ENDPOINT_URL)
         folders = get_collection_list(collect.subcollections)
         files = get_collection_list(collect.data_objects)
     except Exception as e:
@@ -480,7 +478,7 @@ class CollectionItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "path": "/tempZone/home/rods/datasets",
+                "path": "/tempZone/home/rods/12L/datasets",
             }
         }
 
