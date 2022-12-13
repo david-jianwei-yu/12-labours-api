@@ -19,27 +19,33 @@ SEARCHFIELD = [
 
 
 class Search:
+    def generate_dataset_dictionary(self, keyword_list, query, SESSION):
+        dataset_dict = {}
+        for keyword in keyword_list:
+            query = SESSION.query(Collection.name, DataObjectMeta.value).filter(
+                In(DataObjectMeta.name, SEARCHFIELD)).filter(
+                Like(DataObjectMeta.value, f"%{keyword}%"))
+            for result in query:
+                content_list = re.findall(
+                    "[a-zA-Z0-9]+", result[DataObjectMeta.value])
+                if keyword in content_list:
+                    dataset = re.sub(
+                        f"{iRODSConfig.IRODS_ENDPOINT_URL}/", "", result[Collection.name])
+                    if dataset not in dataset_dict.keys():
+                        dataset_dict[dataset] = 1
+                    else:
+                        dataset_dict[dataset] += 1
+        return dataset_dict
+
     # The dataset list order is based on how the dataset content is relevant to the input string.
     def get_searched_datasets(self, input, SESSION):
         try:
             keyword_list = re.findall("[a-zA-Z0-9]+", input.lower())
             query = SESSION.query(Collection.name, DataObjectMeta.value)
-            id_dict = {}
-            for keyword in keyword_list:
-                query = SESSION.query(Collection.name, DataObjectMeta.value).filter(
-                    In(DataObjectMeta.name, SEARCHFIELD)).filter(
-                    Like(DataObjectMeta.value, f"%{keyword}%"))
-                for result in query:
-                    content_list = re.findall(
-                        "[a-zA-Z0-9]+", result[DataObjectMeta.value])
-                    if keyword in content_list:
-                        dataset = re.sub(
-                            f"{iRODSConfig.IRODS_ENDPOINT_URL}/", "", result[Collection.name])
-                        if dataset not in id_dict.keys():
-                            id_dict[dataset] = 1
-                        else:
-                            id_dict[dataset] += 1
-            dataset_list = sorted(id_dict, key=id_dict.get, reverse=True)
+            dataset_dict = self.generate_dataset_dictionary(
+                keyword_list, query, SESSION)
+            dataset_list = sorted(
+                dataset_dict, key=dataset_dict.get, reverse=True)
         except Exception as e:
             raise HTTPException(
                 status_code=INTERNAL_SERVER_ERROR, detail=str(e))

@@ -58,13 +58,6 @@ FILTERS = {
 
 
 class Filter:
-    def get_filtered_datasets(self, filter, data):
-        if "keywords" in filter:
-            data = self.generate_keywords_field_filter(filter, data)
-        dataset_list = [re.findall(
-            "dataset-[0-9]*-version-[0-9]*", record["submitter_id"])[0] for record in data]
-        return list(set(dataset_list))
-
     def generate_keywords_field_filter(self, filter, data):
         result = []
         for ele in data:
@@ -73,6 +66,13 @@ class Filter:
                 if any(kwd in word for word in keyword_list):
                     result.append(ele)
         return result
+
+    def get_filtered_datasets(self, filter, data):
+        if "keywords" in filter:
+            data = self.generate_keywords_field_filter(filter, data)
+        dataset_list = [re.findall(
+            "dataset-[0-9]*-version-[0-9]*", record["submitter_id"])[0] for record in data]
+        return list(set(dataset_list))
 
     def filter_relation(self, item):
         if item.relation == "and":  # AND relationship

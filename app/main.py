@@ -262,7 +262,7 @@ async def get_gen3_node_records(node: Node, item: Gen3Item):
 @ app.post("/record/{uuid}", tags=["Gen3"])
 async def get_gen3_record(uuid: str, item: Gen3Item):
     """
-    Return record's information in the Gen3 Data Commons.
+    Return record information in the Gen3 Data Commons.
 
     :param uuid: uuid of the record.
     :return: A list of json object.
@@ -281,20 +281,6 @@ async def get_gen3_record(uuid: str, item: Gen3Item):
             status_code=NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
     else:
         return record
-
-
-def graphql(item):
-    if item.node == None:
-        raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one or more fields in the request body")
-
-    query = sgqlc.generate_query(item)
-    query_result = SUBMISSION.query(query)["data"]
-    if query_result is not None and query_result[item.node] != []:
-        return query_result
-    else:
-        raise HTTPException(status_code=NOT_FOUND,
-                            detail="Data cannot be found in the node")
 
 
 class GraphQLQueryItem(BaseModel):
@@ -332,7 +318,7 @@ async def graphql_query(item: GraphQLQueryItem):
 
     search post format should be <string_content>
     """
-    query_result = graphql(item)
+    query_result = sgqlc.get_queried_result(item, SUBMISSION)
     return query_result[item.node]
 
 
@@ -343,7 +329,7 @@ def update_pagination_item(item, input):
         for element in item.filter.values():
             query_item.node = element["node"]
             query_item.filter = element["filter"]
-            query_result = graphql(query_item)
+            query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
             filter_dict["submitter_id"].append(f.get_filtered_datasets(
                 query_item.filter, query_result[query_item.node]))
         item.filter = filter_dict
@@ -402,10 +388,10 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
         ...
     }
 
-    search parameter should be <string_content>
+    :param search: string content.
     """
     update_pagination_item(item, search)
-    query_result = graphql(item)
+    query_result = sgqlc.get_queried_result(item, SUBMISSION)
     if item.search != {}:
         # Sort only if search is not empty, since search results are sorted by word relevance
         query_result[item.node] = sorted(
