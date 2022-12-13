@@ -1,9 +1,6 @@
-import re
-import json
 import mimetypes
 
 from app.config import Config, Gen3Config, iRODSConfig
-from app.dbtable import StateTable
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -102,7 +99,6 @@ GEN3_CREDENTIALS = {
     "key_id": Gen3Config.GEN3_KEY_ID
 }
 
-statetable = None
 SUBMISSION = None
 SESSION = None
 
@@ -113,13 +109,6 @@ s = Search()
 
 @ app.on_event("startup")
 async def start_up():
-    try:
-        global statetable
-        statetable = StateTable(Config.DATABASE_URL)
-    except AttributeError:
-        print("Encounter an error setting up the database")
-        statetable = None
-
     try:
         global SUBMISSION
         global QUERY
