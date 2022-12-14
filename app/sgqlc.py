@@ -102,8 +102,12 @@ class SimpleGraphQLClient:
                                 detail="Missing one or more fields in the request body")
 
         query = self.generate_query(item)
-        query_result = SUBMISSION.query(query)["data"]
-        if query_result is not None and query_result[item.node] != []:
+        try:
+            query_result = SUBMISSION.query(query)["data"]
+        except Exception as e:
+            raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+
+        if query_result[item.node] != []:
             return query_result
         else:
             raise HTTPException(status_code=NOT_FOUND,
