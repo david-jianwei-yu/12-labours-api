@@ -1,3 +1,4 @@
+import re
 import mimetypes
 
 from app.config import Config, Gen3Config, iRODSConfig
@@ -312,12 +313,18 @@ def update_pagination_item(item, input):
     if item.filter != {}:
         query_item = GraphQLQueryItem()
         filter_dict = {"submitter_id": []}
+        temp_node_dict = {}
         for element in item.filter.values():
             query_item.node = element["node"]
             query_item.filter = element["filter"]
-            query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
+            filter_node = re.sub("_filter", "", query_item.node)
+            if filter_node not in temp_node_dict.keys():
+                query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
+                temp_node_dict[filter_node] = query_result[filter_node]
+            else:
+                query_result = temp_node_dict
             filter_dict["submitter_id"].append(f.get_filtered_datasets(
-                query_item.filter, query_result[query_item.node]))
+                query_item.filter, query_result[filter_node]))
         item.filter = filter_dict
         f.filter_relation(item)
 
