@@ -1,6 +1,27 @@
 from sgqlc.types.relay import Node
 from sgqlc.types import String, Int, Type, Field, list_of
 
+# FILTER USE
+# Minimize the query fields
+# Increase the generating speed
+
+
+class DatasetDescriptionFilter(Node):
+    submitter_id = String
+    keywords = list_of(String)
+    study_organ_system = list_of(String)
+
+
+class ManifestFilter(Node):
+    submitter_id = String
+    additional_types = list_of(String)
+
+
+class SampleFilter(Node):
+    submitter_id = String
+
+# QUERY USE
+
 
 class SubDatasetDescriptionNode(Node):
     title = String
@@ -73,7 +94,16 @@ class Query(Type):
         args={
             "first": Int,
             "offset": Int,
-            "submitter_id": String,
+            "submitter_id": list_of(String),
+        }
+    )
+    datasetDescriptionFilter = Field(
+        DatasetDescriptionFilter,
+        args={
+            "first": Int,
+            "offset": Int,
+            # "keywords": list_of(String),
+            # "study_organ_system": list_of(String),
         }
     )
     manifest = Field(
@@ -82,6 +112,14 @@ class Query(Type):
             "first": Int,
             "offset": Int,
             "quick_search": String,
+            "additional_types": list_of(String)
+        }
+    )
+    manifestFilter = Field(
+        ManifestFilter,
+        args={
+            "first": Int,
+            "offset": Int,
             "additional_types": list_of(String)
         }
     )

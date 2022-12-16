@@ -9,7 +9,7 @@ INTERNAL_SERVER_ERROR = 500
 FILTERS = {
     "MAPPED_MIME_TYPES": {
         "title": "MIME TYPES",
-        "node": "manifest",
+        "node": "manifest_filter",
         "field": "additional_types",
         "element": {
             # "CSV": ["text/csv"],
@@ -30,21 +30,25 @@ FILTERS = {
     },
     "MAPPED_ANATOMICAL_STRUCTURE": {
         "title": "ANATOMICAL STRUCTURE",
-        "node": "dataset_description",
+        "node": "dataset_description_filter",
         "field": "keywords",
         "element": {
-            "Bladder": "bladder",
+            "Body Proper": "body proper",
             "Brainstem": "brainstem",
+            "Cardiac Nerve Plexus": "cardiac nerve plexus",
             "Colon": "colon",
             "Heart": "heart",
             "Lungs": "lungs",
+            # "Myenteric Nerve Plexus": "myenteric nerve plexus",
             "Spinal Cord": "spinal cord",
             "Stomach": "stomach",
+            "Urinary Bladder": "urinary bladder",
+            "Vagus Nerve": "vagus nerve"
         }
     },
     "MAPPED_SPECIES": {
         "title": "SPECIES",
-        "node": "dataset_description",
+        "node": "dataset_description_filter",
         "field": "keywords",
         "element": {
             "Human": "human",
@@ -56,20 +60,23 @@ FILTERS = {
     }
 }
 
+FIELDS = ["keywords", "study_organ_system"]
+
 
 class Filter:
-    def generate_keywords_field_filter(self, filter, data):
+    def generate_filtered_data(self, filter, field, data):
         result = []
-        for ele in data:
-            keyword_list = [item.strip() for item in ele["keywords"]]
-            for kwd in filter["keywords"]:
-                if any(kwd in word for word in keyword_list):
-                    result.append(ele)
+        for element in data:
+            value_list = [value for value in element[field]]
+            for kwd in filter[field]:
+                if kwd in value_list:
+                    result.append(element)
         return result
 
     def get_filtered_datasets(self, filter, data):
-        if "keywords" in filter:
-            data = self.generate_keywords_field_filter(filter, data)
+        field = list(filter.keys())[0]
+        if field in FIELDS:
+            data = self.generate_filtered_data(filter, field, data)
         dataset_list = [re.findall(
             "dataset-[0-9]*-version-[0-9]*", record["submitter_id"])[0] for record in data]
         return list(set(dataset_list))
