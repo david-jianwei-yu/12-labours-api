@@ -28,8 +28,8 @@ class SimpleGraphQLClient:
         # Convert camel case to snake case
         snake_case_query = re.sub(
             '_[A-Z]', lambda x:  x.group(0).lower(), re.sub('([a-z])([A-Z])', r'\1_\2', str(query)))
-        # This is used to update the query to fit with the Gen3 graphql format
-        if "_filter" in snake_case_query:
+        # This is used to update the filter query to fit with the Gen3 graphql format
+        if "filter" in item.node:
             snake_case_query = re.sub("_filter", "", snake_case_query)
             item.node = re.sub("_filter", "", item.node)
         # Only pagination graphql will need to add count field

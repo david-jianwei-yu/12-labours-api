@@ -1,7 +1,8 @@
 from sgqlc.types.relay import Node
 from sgqlc.types import String, Int, Type, Field, list_of
 
-# FILTER USE
+
+# FILTER USE ONLY
 # Minimize the query fields
 # Increase the generating speed
 
@@ -17,10 +18,11 @@ class ManifestFilter(Node):
     additional_types = list_of(String)
 
 
-class SampleFilter(Node):
+class SubjectFilter(Node):
     submitter_id = String
 
-# QUERY USE
+
+# QUERY USE ONLY
 
 
 class SubDatasetDescriptionNode(Node):

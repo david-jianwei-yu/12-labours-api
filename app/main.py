@@ -320,6 +320,8 @@ def update_pagination_item(item, input):
             query_item.node = element["node"]
             query_item.filter = element["filter"]
             filter_node = re.sub("_filter", "", query_item.node)
+            # Only do fetch when there is no related temp data stored
+            # This will only works when Gen3 built-in GraphQL filters are not used
             if filter_node not in temp_node_dict.keys():
                 query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
                 temp_node_dict[filter_node] = query_result[filter_node]
