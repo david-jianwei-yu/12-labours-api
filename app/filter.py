@@ -31,7 +31,7 @@ FILTERS = {
     "MAPPED_ANATOMICAL_STRUCTURE": {
         "title": "ANATOMICAL STRUCTURE",
         "node": "dataset_description_filter",
-        "field": "keywords",
+        "field": "study_organ_system",
         "element": {
             "Body Proper": "body proper",
             "Brainstem": "brainstem",
