@@ -26,6 +26,7 @@ class SampleFilter(Node):
 class SubDatasetDescriptionNode(Node):
     title = String
     subtitle = String
+    study_organ_system = list_of(String)
     number_of_subjects = Int
     number_of_samples = Int
     keywords = list_of(String)
@@ -44,7 +45,7 @@ class DatasetDescriptionNode(Node):
     study_technique = String
     study_purpose = String
     study_primary_conclusion = String
-    study_organ_system = String
+    study_organ_system = list_of(String)
     study_data_collection = String
     study_approach = String
     relation_type = String
@@ -102,8 +103,6 @@ class Query(Type):
         args={
             "first": Int,
             "offset": Int,
-            # "keywords": list_of(String),
-            # "study_organ_system": list_of(String),
         }
     )
     manifest = Field(

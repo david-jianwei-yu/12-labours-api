@@ -282,7 +282,9 @@ class GraphQLQueryItem(BaseModel):
             "example": {
                 "node": ["dataset_description"],
                 "filter": {
-                    "submitter_id": "dataset-<dataset_id>-version-<version_id>-dataset_description"
+                    "submitter_id": [
+                        "dataset-<dataset_id>-version-<version_id>-dataset_description"
+                    ]
                 },
                 "search": "",
             }
