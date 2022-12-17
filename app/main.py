@@ -15,7 +15,7 @@ from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
 
 from app.sgqlc import SimpleGraphQLClient
-from app.filter import Filter
+from app.filter import Filter, FIELDS
 
 from irods.session import iRODSSession
 from app.search import Search
@@ -320,12 +320,16 @@ def update_pagination_item(item, input):
             query_item.node = element["node"]
             query_item.filter = element["filter"]
             filter_node = re.sub("_filter", "", query_item.node)
-            # Only do fetch when there is no related temp data stored
-            # This will only works when Gen3 built-in GraphQL filters are not used
-            if filter_node not in temp_node_dict.keys():
+            filter_field = list(query_item.filter.keys())[0]
+            # Only do fetch when there is no related temp data stored in temp_node_dict
+            if filter_node not in temp_node_dict.keys() or filter_field not in FIELDS:
                 query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
-                temp_node_dict[filter_node] = query_result[filter_node]
-            else:
+                # The data will be stored when the field type is an array.
+                # The default filter relation of the Gen3 array type field is "AND".
+                # We need "OR", therefore entire node data will go through a self-written filter function.
+                if filter_field in FIELDS:
+                    temp_node_dict[filter_node] = query_result[filter_node]
+            elif filter_node in temp_node_dict.keys() and filter_field in FIELDS:
                 query_result = temp_node_dict
             filter_dict["submitter_id"].append(f.get_filtered_datasets(
                 query_item.filter, query_result[filter_node]))
@@ -523,7 +527,7 @@ async def get_irods_data_file(action: Action, filepath: str):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
     OR
-    Return a specific download file from iRODS or a preview of most types data.
+    Return a specific download file from iRODS.
 
     :param action: Action should be either preview or download.
     :param filepath: Required iRODS file path.
