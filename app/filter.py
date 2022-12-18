@@ -9,7 +9,7 @@ INTERNAL_SERVER_ERROR = 500
 FILTERS = {
     "MAPPED_MIME_TYPES": {
         "title": "MIME TYPES",
-        "node": "manifest_filter",
+        "node": "manifest",
         "field": "additional_types",
         "element": {
             # "CSV": ["text/csv"],
@@ -30,25 +30,21 @@ FILTERS = {
     },
     "MAPPED_ANATOMICAL_STRUCTURE": {
         "title": "ANATOMICAL STRUCTURE",
-        "node": "dataset_description_filter",
-        "field": "study_organ_system",
+        "node": "dataset_description",
+        "field": "keywords",
         "element": {
-            "Body Proper": "body proper",
+            "Bladder": "bladder",
             "Brainstem": "brainstem",
-            "Cardiac Nerve Plexus": "cardiac nerve plexus",
             "Colon": "colon",
             "Heart": "heart",
             "Lungs": "lungs",
-            # "Myenteric Nerve Plexus": "myenteric nerve plexus",
             "Spinal Cord": "spinal cord",
             "Stomach": "stomach",
-            "Urinary Bladder": "urinary bladder",
-            "Vagus Nerve": "vagus nerve"
         }
     },
     "MAPPED_SPECIES": {
         "title": "SPECIES",
-        "node": "dataset_description_filter",
+        "node": "dataset_description",
         "field": "keywords",
         "element": {
             "Human": "human",
@@ -60,39 +56,41 @@ FILTERS = {
     }
 }
 
+
+# This list contains all the "Array" type fields that used as a filter
 FIELDS = ["keywords", "study_organ_system"]
 
 
 class Filter:
-    def generate_filtered_data(self, filter, field, data):
+    def generate_filtered_datasets(self, filter, field, data):
         result = []
         for element in data:
-            value_list = [value for value in element[field]]
+            word_list = [value for value in element[field]]
             for kwd in filter[field]:
-                if kwd in value_list:
+                if kwd in word_list:
                     result.append(element)
         return result
 
     def get_filtered_datasets(self, filter, data):
         field = list(filter.keys())[0]
         if field in FIELDS:
-            data = self.generate_filtered_data(filter, field, data)
-        dataset_list = [re.findall(
-            "dataset-[0-9]*-version-[0-9]*", record["submitter_id"])[0] for record in data]
-        return list(set(dataset_list))
+            data = self.generate_filtered_datasets(filter, field, data)
+        dataset_list = set()
+        for record in data:
+            dataset_list.add(re.findall(
+                "dataset-[0-9]*-version-[0-9]*", record["submitter_id"])[0])
+        return list(dataset_list)
 
     def filter_relation(self, item):
+        nested_list = item.filter["submitter_id"]
         if item.relation == "and":  # AND relationship
-            nested_list = item.filter["submitter_id"]
-            dataset_list = list(set(nested_list[0]).intersection(*nested_list))
-            item.filter["submitter_id"] = dataset_list
+            dataset_list = set(nested_list[0]).intersection(*nested_list)
         elif item.relation == "or":  # OR relationship
-            flatten_list = []
-            for sublist in item.filter["submitter_id"]:
-                for ele in sublist:
-                    flatten_list.append(ele)
-            dataset_list = list(set(flatten_list))
-            item.filter["submitter_id"] = dataset_list
+            dataset_list = set()
+            for sublist in nested_list:
+                for id in sublist:
+                    dataset_list.add(id)
+        item.filter["submitter_id"] = list(dataset_list)
 
     def generate_filter_information(self):
         filter_information = {

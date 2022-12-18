@@ -50,7 +50,7 @@ tags_metadata = [
     },
     {
         "name": "iRODS",
-        "description": "Open Source Data Management Software",
+        "description": "iRODS is an open source data management software",
         "externalDocs": {
             "description": "iRODS official website",
             "url": "https://irods.org/",
@@ -112,6 +112,7 @@ s = Search()
 async def start_up():
     try:
         global SUBMISSION
+        global QUERY
         AUTH = Gen3Auth(endpoint=Gen3Config.GEN3_ENDPOINT_URL,
                         refresh_token=GEN3_CREDENTIALS)
         SUBMISSION = Gen3Submission(AUTH)
@@ -220,7 +221,7 @@ class Node(str, Enum):
 
 
 @ app.post("/records/{node}", tags=["Gen3"])
-async def get_gen3_node_records(item: Gen3Item, node: Node):
+async def get_gen3_node_records(node: Node, item: Gen3Item):
     """
     Return all records information in a dictionary node.
 
@@ -241,13 +242,13 @@ async def get_gen3_node_records(item: Gen3Item, node: Node):
                             detail=node_record["message"])
     elif node_record["data"] == []:
         raise HTTPException(status_code=NOT_FOUND,
-                            detail=f"No data found with node type {node}, check if the correct project or node type is used")
+                            detail=f"No data found with node type {node} and check if the correct project or node type is used")
     else:
         return node_record
 
 
 @ app.post("/record/{uuid}", tags=["Gen3"])
-async def get_gen3_record(item: Gen3Item, uuid: str):
+async def get_gen3_record(uuid: str, item: Gen3Item):
     """
     Return record information in the Gen3 Data Commons.
 
@@ -265,7 +266,7 @@ async def get_gen3_record(item: Gen3Item, uuid: str):
             raise HTTPException(status_code=UNAUTHORIZED,
                                 detail=record["message"])
         raise HTTPException(
-            status_code=NOT_FOUND, detail=record["message"]+", check if the correct project or uuid is used")
+            status_code=NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
     else:
         return record
 
@@ -280,11 +281,9 @@ class GraphQLQueryItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "node": ["dataset_description"],
+                "node": "dataset_description",
                 "filter": {
-                    "submitter_id": [
-                        "dataset-<dataset_id>-version-<version_id>-dataset_description"
-                    ]
+                    "submitter_id": "dataset-<dataset_id>-version-<version_id>-dataset_description"
                 },
                 "search": "",
             }
@@ -315,24 +314,25 @@ def update_pagination_item(item, input):
     if item.filter != {}:
         query_item = GraphQLQueryItem()
         filter_dict = {"submitter_id": []}
-        temp_node_dict = {}
         for element in item.filter.values():
             query_item.node = element["node"]
             query_item.filter = element["filter"]
             filter_node = re.sub("_filter", "", query_item.node)
             filter_field = list(query_item.filter.keys())[0]
+            temp_node_dict = {}
             # Only do fetch when there is no related temp data stored in temp_node_dict
+            # or the node field type is "String"
             if filter_node not in temp_node_dict.keys() or filter_field not in FIELDS:
                 query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
-                # The data will be stored when the field type is an array.
-                # The default filter relation of the Gen3 array type field is "AND".
-                # We need "OR", therefore entire node data will go through a self-written filter function.
+                # The data will be stored when the field type is an "Array"
+                # The default filter relation of the Gen3 "Array" type field is "AND"
+                # We need "OR", therefore entire node data will go through a self-written filter function
                 if filter_field in FIELDS:
                     temp_node_dict[filter_node] = query_result[filter_node]
             elif filter_node in temp_node_dict.keys() and filter_field in FIELDS:
                 query_result = temp_node_dict
             filter_dict["submitter_id"].append(f.get_filtered_datasets(
-                query_item.filter, query_result[filter_node]))
+                query_item.filter, query_result[query_item.node]))
         item.filter = filter_dict
         f.filter_relation(item)
 
@@ -444,7 +444,7 @@ async def download_gen3_metadata_file(program: Program, project: Project, uuid: 
             raise HTTPException(status_code=UNAUTHORIZED,
                                 detail=metadata["message"])
         raise HTTPException(
-            status_code=NOT_FOUND, detail=metadata["message"]+", check if the correct project or uuid is used")
+            status_code=NOT_FOUND, detail=metadata["message"]+" and check if the correct project or uuid is used")
     else:
         if format == "json":
             return JSONResponse(content=metadata[0],
@@ -479,7 +479,8 @@ async def get_irods_root_collections():
     Return all collections from the root folder.
     """
     try:
-        collect = SESSION.collections.get(iRODSConfig.IRODS_ENDPOINT_URL)
+        collect = SESSION.collections.get(
+            f"{iRODSConfig.IRODS_ENDPOINT_URL}")
         folders = get_collection_list(collect.subcollections)
         files = get_collection_list(collect.data_objects)
     except Exception as e:
@@ -493,7 +494,7 @@ class CollectionItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "path": "/tempZone/home/rods/12L/datasets",
+                "path": "/tempZone/home/rods/datasets",
             }
         }
 
@@ -527,7 +528,7 @@ async def get_irods_data_file(action: Action, filepath: str):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
     OR
-    Return a specific download file from iRODS.
+    Return a specific download file from iRODS or a preview of most types data.
 
     :param action: Action should be either preview or download.
     :param filepath: Required iRODS file path.
