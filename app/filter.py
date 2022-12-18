@@ -9,7 +9,7 @@ INTERNAL_SERVER_ERROR = 500
 FILTERS = {
     "MAPPED_MIME_TYPES": {
         "title": "MIME TYPES",
-        "node": "manifest",
+        "node": "manifest_filter",
         "field": "additional_types",
         "element": {
             # "CSV": ["text/csv"],
@@ -30,21 +30,25 @@ FILTERS = {
     },
     "MAPPED_ANATOMICAL_STRUCTURE": {
         "title": "ANATOMICAL STRUCTURE",
-        "node": "dataset_description",
-        "field": "keywords",
+        "node": "dataset_description_filter",
+        "field": "study_organ_system",
         "element": {
-            "Bladder": "bladder",
+            "Body Proper": "body proper",
             "Brainstem": "brainstem",
+            "Cardiac Nerve Plexus": "cardiac nerve plexus",
             "Colon": "colon",
             "Heart": "heart",
             "Lungs": "lungs",
+            # "Myenteric Nerve Plexus": "myenteric nerve plexus",
             "Spinal Cord": "spinal cord",
             "Stomach": "stomach",
+            "Urinary Bladder": "urinary bladder",
+            "Vagus Nerve": "vagus nerve"
         }
     },
     "MAPPED_SPECIES": {
         "title": "SPECIES",
-        "node": "dataset_description",
+        "node": "dataset_description_filter",
         "field": "keywords",
         "element": {
             "Human": "human",
@@ -65,9 +69,9 @@ class Filter:
     def generate_filtered_datasets(self, filter, field, data):
         result = []
         for element in data:
-            word_list = [value for value in element[field]]
+            value_list = [value for value in element[field]]
             for kwd in filter[field]:
-                if kwd in word_list:
+                if kwd in value_list:
                     result.append(element)
         return result
 
