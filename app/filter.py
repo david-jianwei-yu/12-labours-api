@@ -1,6 +1,6 @@
 import re
 
-from filter_dictionary import FILTERS
+from app.filter_dictionary import FILTERS
 
 
 BAD_REQUEST = 400
