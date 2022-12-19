@@ -1,64 +1,13 @@
 import re
 
+from filter_dictionary import FILTERS
+
+
 BAD_REQUEST = 400
 UNAUTHORIZED = 401
 NOT_FOUND = 404
 METHOD_NOT_ALLOWED = 405
 INTERNAL_SERVER_ERROR = 500
-
-FILTERS = {
-    "MAPPED_MIME_TYPES": {
-        "title": "MIME TYPES",
-        "node": "manifest_filter",
-        "field": "additional_types",
-        "element": {
-            # "CSV": ["text/csv"],
-            # "SEGMENTATION_FILES": ["application/vnd.mbfbioscience.metadata+xml", "application/vnd.mbfbioscience.neurolucida+xml"],
-            # "CONTEXT_FILE": ["application/x.vnd.abi.context-information+json"],
-            "Scaffold": ["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"],
-            # "SCAFFOLD_VIEW_FILE": ["application/x.vnd.abi.scaffold.view+json", "inode/vnd.abi.scaffold.view+file"],
-            # "SIMULATION_FILE": ["application/x.vnd.abi.simulation+json"],
-            # "THUMBNAIL_IMAGE": ["image/x.vnd.abi.thumbnail+jpeg", "inode/vnd.abi.scaffold+thumbnail", "inode/vnd.abi.scaffold.thumbnail+file"],
-            # "SCAFFOLD_DIR": ["inode/vnd.abi.scaffold+directory"],
-            "Plot": ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+csv"],
-            # "COMMON_IMAGES": ["image/png", "image/jpeg"],
-            # "tiff-image": ["image/tiff", "image/tif"],
-            # "BIOLUCIDA_3D": ["image/jpx", "image/vnd.ome.xml+jpx"],
-            # "BIOLUCIDA_2D": ["image/jp2", "image/vnd.ome.xml+jp2"],
-            # "VIDEO": ["video/mp4"]
-        }
-    },
-    "MAPPED_ANATOMICAL_STRUCTURE": {
-        "title": "ANATOMICAL STRUCTURE",
-        "node": "dataset_description_filter",
-        "field": "study_organ_system",
-        "element": {
-            "Body Proper": "body proper",
-            "Brainstem": "brainstem",
-            "Cardiac Nerve Plexus": "cardiac nerve plexus",
-            "Colon": "colon",
-            "Heart": "heart",
-            "Lungs": "lungs",
-            # "Myenteric Nerve Plexus": "myenteric nerve plexus",
-            "Spinal Cord": "spinal cord",
-            "Stomach": "stomach",
-            "Urinary Bladder": "urinary bladder",
-            "Vagus Nerve": "vagus nerve"
-        }
-    },
-    "MAPPED_SPECIES": {
-        "title": "SPECIES",
-        "node": "dataset_description_filter",
-        "field": "keywords",
-        "element": {
-            "Human": "human",
-            "Rat": "rat",
-            "Mouse": "mouse",
-            "Pig": "pig",
-            "Sheep": "sheep"
-        }
-    }
-}
 
 
 # This list contains all the "Array" type fields that used as a filter
