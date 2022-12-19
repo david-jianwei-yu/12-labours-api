@@ -5,8 +5,6 @@ from sgqlc.types import String, Int, Type, Field, list_of
 # FILTER USE ONLY
 # Minimize the query fields
 # Increase the generating speed
-
-
 class DatasetDescriptionFilter(Node):
     submitter_id = String
     keywords = list_of(String)
@@ -26,7 +24,6 @@ class CaseFilter(Node):
 
 
 # QUERY USE ONLY
-
 class SubCaseNode(Node):
     species = String
 
@@ -70,9 +67,9 @@ class DatasetDescriptionNode(Node):
     contributor_orcid = list_of(String)
     contributor_name = list_of(String)
     contributor_affiliation = list_of(String)
-    acknowledgments = String
-    funding = list_of(String)
-    study_collection_title = String
+    # acknowledgments = String
+    # funding = list_of(String)
+    # study_collection_title = String
 
 
 class ManifestNode(Node):
@@ -167,6 +164,15 @@ class Query(Type):
         args={
             "first": Int,
             "offset": Int,
+            "quick_search": String,
+        }
+    )
+    caseFilter = Field(
+        CaseFilter,
+        args={
+            "first": Int,
+            "offset": Int,
+            "quick_search": String,
             "species": list_of(String),
             "sex": list_of(String),
             "age_category": list_of(String),

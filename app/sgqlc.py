@@ -104,7 +104,6 @@ class SimpleGraphQLClient:
                     query.manifest(
                         first=item.limit,
                         offset=(item.page-1)*item.limit,
-                        quick_search=item.search
                     )
                 )
             return manifest_query
@@ -120,47 +119,20 @@ class SimpleGraphQLClient:
                 )
             return manifest_filter_query
         elif item.node == "case":
-            if "species" in item.filter:
-                case_query = self.convert_query(
-                    item,
-                    query.case(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                        species=item.filter["species"]
-                    )
+            case_query = self.convert_query(
+                item,
+                query.case(
+                    first=item.limit,
+                    offset=(item.page-1)*item.limit,
+                    quick_search=item.search,
                 )
-            elif "sex" in item.filter:
-                case_query = self.convert_query(
-                    item,
-                    query.case(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                        sex=item.filter["sex"]
-                    )
-                )
-            elif "age_category" in item.filter:
-                case_query = self.convert_query(
-                    item,
-                    query.case(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                        age_category=item.filter["age_category"]
-                    )
-                )
-            else:
-                case_query = self.convert_query(
-                    item,
-                    query.case(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit
-                    )
-                )
+            )
             return case_query
         elif item.node == "case_filter":
             if "species" in item.filter:
                 case_filter_query = self.convert_query(
                     item,
-                    query.case(
+                    query.caseFilter(
                         first=item.limit,
                         offset=(item.page-1)*item.limit,
                         species=item.filter["species"]
@@ -169,7 +141,7 @@ class SimpleGraphQLClient:
             elif "sex" in item.filter:
                 case_filter_query = self.convert_query(
                     item,
-                    query.case(
+                    query.caseFilter(
                         first=item.limit,
                         offset=(item.page-1)*item.limit,
                         sex=item.filter["sex"]
@@ -178,7 +150,7 @@ class SimpleGraphQLClient:
             elif "age_category" in item.filter:
                 case_filter_query = self.convert_query(
                     item,
-                    query.case(
+                    query.caseFilter(
                         first=item.limit,
                         offset=(item.page-1)*item.limit,
                         age_category=item.filter["age_category"]
