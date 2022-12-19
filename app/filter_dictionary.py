@@ -1,4 +1,41 @@
 FILTERS = {
+    "MAPPED_AGE_CATEGORY": {
+        "title": "AGE CATEGORY",
+        "node": "case_filter",
+        "field": "age_category",
+        "element": {
+            "Adolescent": "Adolescent",
+            "Adult": "prime adult stage",
+            "Juvenile": "Juvenile",
+        }
+    },
+    "MAPPED_ANATOMICAL_STRUCTURE": {
+        "title": "ANATOMICAL STRUCTURE",
+        "node": "dataset_description_filter",
+        "field": "study_organ_system",
+        "element": {
+            "Body Proper": "body proper",
+            "Brainstem": "brainstem",
+            "Cardiac Nerve Plexus": "cardiac nerve plexus",
+            "Colon": "colon",
+            "Heart": "heart",
+            "Lungs": "lungs",
+            # "Myenteric Nerve Plexus": "myenteric nerve plexus",
+            "Spinal Cord": "spinal cord",
+            "Stomach": "stomach",
+            "Urinary Bladder": "urinary bladder",
+            "Vagus Nerve": "vagus nerve",
+        }
+    },
+    "MAPPED_SEX": {
+        "title": "SEX",
+        "node": "case_filter",
+        "field": "sex",
+        "element": {
+            "Female": "Female",
+            "Male": "Male",
+        }
+    },
     "MAPPED_MIME_TYPE": {
         "title": "MIME TYPE",
         "node": "manifest_filter",
@@ -20,51 +57,16 @@ FILTERS = {
             # "VIDEO": ["video/mp4"],
         }
     },
-    "MAPPED_ANATOMICAL_STRUCTURE": {
-        "title": "ANATOMICAL STRUCTURE",
-        "node": "dataset_description_filter",
-        "field": "study_organ_system",
-        "element": {
-            "Body Proper": "body proper",
-            "Brainstem": "brainstem",
-            "Cardiac Nerve Plexus": "cardiac nerve plexus",
-            "Colon": "colon",
-            "Heart": "heart",
-            "Lungs": "lungs",
-            # "Myenteric Nerve Plexus": "myenteric nerve plexus",
-            "Spinal Cord": "spinal cord",
-            "Stomach": "stomach",
-            "Urinary Bladder": "urinary bladder",
-            "Vagus Nerve": "vagus nerve",
-        }
-    },
     "MAPPED_SPECIES": {
         "title": "SPECIES",
         "node": "case_filter",
         "field": "species",
         "element": {
-            "Human": ["Homo sapiens", "Sus Scrofa", "Felis catus"],
-            "Mouse": ["Mus musculus"],
-            "Rat": ["Rattus norvegicus"],
-        }
-    },
-    "MAPPED_GENDER": {
-        "title": "GENDER",
-        "node": "case_filter",
-        "field": "sex",
-        "element": {
-            "Female": "Female",
-            "Male": "Male",
-        }
-    },
-    "MAPPED_AGE_CATEGORY": {
-        "title": "AGE CATEGORY",
-        "node": "case_filter",
-        "field": "age_category",
-        "element": {
-            "Adolescent": "Adolescent",
-            "Adult": "prime adult stage",
-            "Juvenile": "Juvenile",
+            "Cat": "Felis catus",
+            "Human": "Homo sapiens",
+            "Mouse": "Mus musculus",
+            "Pig": "Sus scrofa",
+            "Rat": "Rattus norvegicus",
         }
     }
 }

@@ -12,14 +12,6 @@ app package
 ..    :undoc-members:
 ..    :show-inheritance:
 
-.. app.dbtable module
-.. ------------------
-
-.. .. automodule:: app.dbtable
-..    :members:
-..    :undoc-members:
-..    :show-inheritance:
-
 app.main module
 ---------------
 
