@@ -282,7 +282,9 @@ class GraphQLQueryItem(BaseModel):
             "example": {
                 "node": "dataset_description",
                 "filter": {
-                    "submitter_id": "dataset-<dataset_id>-version-<version_id>-dataset_description"
+                    "submitter_id": [
+                        "dataset-<dataset_id>-version-<version_id>-dataset_description"
+                    ]
                 },
                 "search": "",
             }
@@ -303,7 +305,8 @@ async def graphql_query(item: GraphQLQueryItem):
         ...
     }
 
-    search post format should be <string_content>
+    search post format should be <string_content>,
+    and search only available in manifest/case nodes
     """
     query_result = sgqlc.get_queried_result(item, SUBMISSION)
     return query_result[item.node]
