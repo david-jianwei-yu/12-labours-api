@@ -95,10 +95,6 @@ NOT_FOUND = 404
 METHOD_NOT_ALLOWED = 405
 INTERNAL_SERVER_ERROR = 500
 
-GEN3_CREDENTIALS = {
-    "api_key": Gen3Config.GEN3_API_KEY,
-    "key_id": Gen3Config.GEN3_KEY_ID
-}
 
 SUBMISSION = None
 SESSION = None
@@ -112,7 +108,10 @@ s = Search()
 async def start_up():
     try:
         global SUBMISSION
-        global QUERY
+        GEN3_CREDENTIALS = {
+            "api_key": Gen3Config.GEN3_API_KEY,
+            "key_id": Gen3Config.GEN3_KEY_ID
+        }
         AUTH = Gen3Auth(endpoint=Gen3Config.GEN3_ENDPOINT_URL,
                         refresh_token=GEN3_CREDENTIALS)
         SUBMISSION = Gen3Submission(AUTH)
