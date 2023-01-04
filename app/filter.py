@@ -11,7 +11,6 @@ INTERNAL_SERVER_ERROR = 500
 
 # This list contains all the "Array" type fields that used as a filter
 FIELDS = [
-    "keywords",
     "study_organ_system"
 ]
 
@@ -19,11 +18,10 @@ FIELDS = [
 class Filter:
     def generate_filtered_datasets(self, filter, field, data):
         result = []
-        for element in data:
-            value_list = [value for value in element[field]]
+        for dataset in data:
             for kwd in filter[field]:
-                if kwd in value_list:
-                    result.append(element)
+                if kwd in dataset[field]:
+                    result.append(dataset)
         return result
 
     def get_filtered_datasets(self, filter, data):
