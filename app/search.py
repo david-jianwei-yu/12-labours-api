@@ -22,12 +22,16 @@ SEARCHFIELD = [
 
 
 class Search:
-    def generate_dataset_dictionary(self, keyword_list, query, SESSION):
+    def generate_dataset_dictionary(self, keyword_list, SESSION):
         dataset_dict = {}
         for keyword in keyword_list:
             query = SESSION.query(Collection.name, DataObjectMeta.value).filter(
                 In(DataObjectMeta.name, SEARCHFIELD)).filter(
                 Like(DataObjectMeta.value, f"%{keyword}%"))
+            # Any keyword that does not match with the database content will cause a search no result
+            if len(query.all()) == 0:
+                dataset_dict = {}
+                return dataset_dict
             for result in query:
                 content_list = re.findall(
                     "[a-zA-Z0-9]+", result[DataObjectMeta.value])
@@ -38,15 +42,18 @@ class Search:
                         dataset_dict[dataset] = 1
                     else:
                         dataset_dict[dataset] += 1
+                # Any keyword that does not match with the database content will cause a search no result
+                else:
+                    dataset_dict = {}
+                    return dataset_dict
         return dataset_dict
 
     # The dataset list order is based on how the dataset content is relevant to the input string.
     def get_searched_datasets(self, input, SESSION):
         try:
             keyword_list = re.findall("[a-zA-Z0-9]+", input.lower())
-            query = SESSION.query(Collection.name, DataObjectMeta.value)
             dataset_dict = self.generate_dataset_dictionary(
-                keyword_list, query, SESSION)
+                keyword_list, SESSION)
             dataset_list = sorted(
                 dataset_dict, key=dataset_dict.get, reverse=True)
         except Exception as e:
