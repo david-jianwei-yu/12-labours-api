@@ -34,10 +34,10 @@ class Search:
                 return dataset_dict
             for result in query:
                 content_list = re.findall(
-                    "[a-zA-Z0-9]+", result[DataObjectMeta.value])
+                    '[a-zA-Z0-9]+', result[DataObjectMeta.value])
                 if keyword in content_list:
                     dataset = re.sub(
-                        f"{iRODSConfig.IRODS_ENDPOINT_URL}/", "", result[Collection.name])
+                        f'{iRODSConfig.IRODS_ENDPOINT_URL}/', '', result[Collection.name])
                     if dataset not in dataset_dict.keys():
                         dataset_dict[dataset] = 1
                     else:
@@ -51,7 +51,7 @@ class Search:
     # The dataset list order is based on how the dataset content is relevant to the input string.
     def get_searched_datasets(self, input, SESSION):
         try:
-            keyword_list = re.findall("[a-zA-Z0-9]+", input.lower())
+            keyword_list = re.findall('[a-zA-Z0-9]+', input.lower())
             dataset_dict = self.generate_dataset_dictionary(
                 keyword_list, SESSION)
             dataset_list = sorted(

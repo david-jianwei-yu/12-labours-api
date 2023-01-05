@@ -31,7 +31,7 @@ class Filter:
         dataset_list = set()
         for record in data:
             dataset_list.add(re.findall(
-                "dataset-[0-9]*-version-[0-9]*", record["submitter_id"])[0])
+                'dataset-[0-9]*-version-[0-9]*', record["submitter_id"])[0])
         return list(dataset_list)
 
     def filter_relation(self, item):
