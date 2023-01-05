@@ -29,10 +29,14 @@ class SimpleGraphQLClient:
         # Convert camel case to snake case
         snake_case_query = re.sub(
             '_[A-Z]', lambda x:  x.group(0).lower(), re.sub('([a-z])([A-Z])', r'\1_\2', str(query)))
-        # This is used to update the filter query to fit with the Gen3 graphql format
+        # Remove all null filter arguments, this can minimize the generate_query function if statement length
+        if "null" in snake_case_query:
+            snake_case_query = re.sub(
+                '[,]? [_a-z]+: null', '', snake_case_query)
+        # Update the filter query node name
         if "filter" in item.node:
-            snake_case_query = re.sub("_filter", "", snake_case_query)
-            item.node = re.sub("_filter", "", item.node)
+            snake_case_query = re.sub('_filter', '', snake_case_query)
+            item.node = re.sub('_filter', '', item.node)
         # Only pagination graphql will need to add count field
         if type(item.search) == dict:
             snake_case_query = self.add_count_field(item, snake_case_query)
@@ -41,85 +45,52 @@ class SimpleGraphQLClient:
     def generate_query(self, item):
         query = Operation(Query)
         if item.node == "experiment":
-            if "submitter_id" in item.filter:
-                experiment_query = self.convert_query(
-                    item,
-                    query.experiment(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                        submitter_id=item.filter["submitter_id"]
-                    )
+            return self.convert_query(
+                item,
+                query.experiment(
+                    first=item.limit,
+                    offset=(item.page-1)*item.limit,
+                    submitter_id=item.filter["submitter_id"] if "submitter_id" in item.filter else None
                 )
-            else:
-                experiment_query = self.convert_query(
-                    item,
-                    query.experiment(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                    )
-                )
-            return experiment_query
+            )
         elif item.node == "dataset_description":
-            if "submitter_id" in item.filter:
-                dataset_description_query = self.convert_query(
-                    item,
-                    query.datasetDescription(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                        submitter_id=item.filter["submitter_id"]
-                    )
+            return self.convert_query(
+                item,
+                query.datasetDescription(
+                    first=item.limit,
+                    offset=(item.page-1)*item.limit,
+                    submitter_id=item.filter["submitter_id"] if "submitter_id" in item.filter else None
                 )
-            else:
-                dataset_description_query = self.convert_query(
-                    item,
-                    query.datasetDescription(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                    )
-                )
-            return dataset_description_query
+            )
         elif item.node == "dataset_description_filter":
-            dataset_description_filter_query = self.convert_query(
+            return self.convert_query(
                 item,
                 query.datasetDescriptionFilter(
                     first=item.limit,
                     offset=(item.page-1)*item.limit,
                 )
             )
-            return dataset_description_filter_query
         elif item.node == "manifest":
-            if "additional_types" in item.filter:
-                manifest_query = self.convert_query(
-                    item,
-                    query.manifest(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                        quick_search=item.search,
-                        additional_types=item.filter["additional_types"]
-                    )
+            return self.convert_query(
+                item,
+                query.manifest(
+                    first=item.limit,
+                    offset=(item.page-1)*item.limit,
+                    quick_search=item.search,
+                    additional_types=item.filter["additional_types"] if "additional_types" in item.filter else None
                 )
-            else:
-                manifest_query = self.convert_query(
-                    item,
-                    query.manifest(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                    )
-                )
-            return manifest_query
+            )
         elif item.node == "manifest_filter":
-            if "additional_types" in item.filter:
-                manifest_filter_query = self.convert_query(
-                    item,
-                    query.manifestFilter(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                        additional_types=item.filter["additional_types"]
-                    )
+            return self.convert_query(
+                item,
+                query.manifestFilter(
+                    first=item.limit,
+                    offset=(item.page-1)*item.limit,
+                    additional_types=item.filter["additional_types"] if "additional_types" in item.filter else None
                 )
-            return manifest_filter_query
+            )
         elif item.node == "case":
-            case_query = self.convert_query(
+            return self.convert_query(
                 item,
                 query.case(
                     first=item.limit,
@@ -127,36 +98,17 @@ class SimpleGraphQLClient:
                     quick_search=item.search,
                 )
             )
-            return case_query
         elif item.node == "case_filter":
-            if "species" in item.filter:
-                case_filter_query = self.convert_query(
-                    item,
-                    query.caseFilter(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                        species=item.filter["species"]
-                    )
+            return self.convert_query(
+                item,
+                query.caseFilter(
+                    first=item.limit,
+                    offset=(item.page-1)*item.limit,
+                    species=item.filter["species"] if "species" in item.filter else None,
+                    sex=item.filter["sex"] if "sex" in item.filter else None,
+                    age_category=item.filter["age_category"] if "age_category" in item.filter else None
                 )
-            elif "sex" in item.filter:
-                case_filter_query = self.convert_query(
-                    item,
-                    query.caseFilter(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                        sex=item.filter["sex"]
-                    )
-                )
-            elif "age_category" in item.filter:
-                case_filter_query = self.convert_query(
-                    item,
-                    query.caseFilter(
-                        first=item.limit,
-                        offset=(item.page-1)*item.limit,
-                        age_category=item.filter["age_category"]
-                    )
-                )
-            return case_filter_query
+            )
         else:
             raise HTTPException(status_code=NOT_FOUND,
                                 detail="GraphQL query cannot be generated by sgqlc")

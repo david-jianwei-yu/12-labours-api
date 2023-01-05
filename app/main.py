@@ -318,8 +318,7 @@ def update_pagination_item(item, input):
         filter_dict = {"submitter_id": []}
         temp_node_dict = {}
         for element in item.filter.values():
-            query_item.node = element["node"]
-            query_item.filter = element["filter"]
+            query_item.node, query_item.filter = element["node"], element["filter"]
             filter_node = re.sub("_filter", "", query_item.node)
             filter_field = list(query_item.filter.keys())[0]
             # Only do fetch when there is no related temp data stored in temp_node_dict
