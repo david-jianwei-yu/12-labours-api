@@ -28,6 +28,10 @@ class SubCaseNode(Node):
     species = String
 
 
+class SubManifestNode(Node):
+    filename = String
+
+
 class SubDatasetDescriptionNode(Node):
     title = String
     subtitle = String
@@ -40,6 +44,7 @@ class SubDatasetDescriptionNode(Node):
 class ExperimentNode(Node):
     submitter_id = String
     dataset_descriptions = list_of(SubDatasetDescriptionNode)
+    manifests = list_of(SubManifestNode)
     cases = list_of(SubCaseNode)
 
 

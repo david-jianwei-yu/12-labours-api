@@ -39,6 +39,10 @@ class SimpleGraphQLClient:
             item.node = re.sub('_filter', '', item.node)
         # Only pagination graphql will need to add count field
         if type(item.search) == dict:
+            # Only fetch the thumbnail manifest file
+            if "manifests" in snake_case_query:
+                snake_case_query = re.sub(
+                    'manifests', 'manifests(additional_types: ["image/x.vnd.abi.thumbnail+jpeg"], quick_search: "Layout1_thumbnail.jpeg")', snake_case_query)
             snake_case_query = self.add_count_field(item, snake_case_query)
         return "{" + snake_case_query + "}"
 
