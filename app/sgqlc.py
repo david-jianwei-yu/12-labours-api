@@ -46,6 +46,10 @@ class SimpleGraphQLClient:
             snake_case_query = self.add_count_field(item, snake_case_query)
         return "{" + snake_case_query + "}"
 
+    # if the node name contains "_filter",
+    # the query generator will only be used for /graphql/pagination API
+    # else is for /graphql/query API,
+    # this will fetch all the fields that Gen3 metadata has
     def generate_query(self, item):
         query = Operation(Query)
         if item.node == "experiment":
