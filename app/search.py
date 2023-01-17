@@ -34,18 +34,14 @@ class Search:
                 return dataset_dict
             for result in query:
                 content_list = re.findall(
-                    '[a-zA-Z0-9]+', result[DataObjectMeta.value])
-                if keyword in content_list:
+                    f'(\s{keyword}|{keyword}\s)', result[DataObjectMeta.value])
+                if content_list != []:
                     dataset = re.sub(
                         f'{iRODSConfig.IRODS_ENDPOINT_URL}/', '', result[Collection.name])
                     if dataset not in dataset_dict.keys():
                         dataset_dict[dataset] = 1
                     else:
                         dataset_dict[dataset] += 1
-                # Any keyword that does not match with the database content will cause a search no result
-                else:
-                    dataset_dict = {}
-                    return dataset_dict
         return dataset_dict
 
     # The dataset list order is based on how the dataset content is relevant to the input string.

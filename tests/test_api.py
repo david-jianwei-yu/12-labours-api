@@ -153,6 +153,74 @@ def test_graphql_query(client):
 
 
 def test_graphql_pagination(client):
+    filter_pass_case = {
+        "node": "experiment",
+        "filter": {
+            "1": {
+                "node": "manifest_filter",
+                "filter": {
+                    "additional_types": [
+                        "text/vnd.abi.plot+tab-separated-values",
+                        "text/vnd.abi.plot+csv"
+                    ]
+                }
+            },
+            "2": {
+                "node": "case_filter",
+                "filter": {
+                        "species": [
+                            "Rattus norvegicus"
+                        ]
+                }
+            },
+            "3": {
+                "node": "dataset_description_filter",
+                "filter": {
+                        "study_organ_system": [
+                            "stomach"
+                        ]
+                }
+            },
+            "4": {
+                "node": "case_filter",
+                "filter": {
+                        "sex": [
+                            "Male"
+                        ]
+                }
+            }
+        },
+        "relation": "and"
+    }
+    response = client.post("/graphql/pagination/", json=filter_pass_case)
+    result = response.json()
+    assert response.status_code == 200
+    assert result["data"][0]["submitter_id"] == "dataset-46-version-2"
+    assert result["total"] == 1
+
+    search_pass_case = {
+        "node": "experiment",
+        "filter": {},
+        "relation": "and"
+    }
+    response = client.post(
+        "/graphql/pagination/?search=rats", json=search_pass_case)
+    result = response.json()
+    assert response.status_code == 200
+    assert result["data"][0]["submitter_id"] == "dataset-46-version-2"
+    assert result["total"] == 1
+
+    search_not_found = {
+        "node": "experiment",
+        "filter": {},
+        "relation": "and"
+    }
+    response = client.post(
+        "/graphql/pagination/?search=dog", json=search_not_found)
+    result = response.json()
+    assert response.status_code == 404
+    assert result["detail"] == "There is no matched content in the database"
+
     pass_case = {
         "node": "experiment",
         "filter": {
