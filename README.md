@@ -48,10 +48,14 @@ $ uvicorn main:app or uvicorn main:app --port <port number>
 The connection between the backend and Gen3 Data Commons is directly through sending requests to Gen3 API. The backend will frequently request the access token to keep continuous interactions.
 
 ```bash
-global HEADER
-TOKEN = requests.post(
-    f"{Gen3Config.GEN3_ENDPOINT_URL}/user/credentials/cdis/access_token", json=GEN3_CREDENTIALS).json()
-HEADER = {"Authorization": "bearer " + TOKEN["access_token"]}
+global SUBMISSION
+GEN3_CREDENTIALS = {
+    "api_key": Gen3Config.GEN3_API_KEY,
+    "key_id": Gen3Config.GEN3_KEY_ID
+}
+AUTH = Gen3Auth(endpoint=Gen3Config.GEN3_ENDPOINT_URL,
+                refresh_token=GEN3_CREDENTIALS)
+SUBMISSION = Gen3Submission(AUTH)
 ```
 
 More information about the usage of this database in [the documentation](https://gen3.org/resources/user/using-api/).

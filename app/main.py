@@ -1,3 +1,4 @@
+import re
 import mimetypes
 
 from app.config import Config, Gen3Config, iRODSConfig
@@ -14,7 +15,7 @@ from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
 
 from app.sgqlc import SimpleGraphQLClient
-from app.filter import Filter
+from app.filter import Filter, FIELDS
 
 from irods.session import iRODSSession
 from app.search import Search
@@ -49,7 +50,7 @@ tags_metadata = [
     },
     {
         "name": "iRODS",
-        "description": "Open Source Data Management Software",
+        "description": "iRODS is an open source data management software",
         "externalDocs": {
             "description": "iRODS official website",
             "url": "https://irods.org/",
@@ -94,10 +95,6 @@ NOT_FOUND = 404
 METHOD_NOT_ALLOWED = 405
 INTERNAL_SERVER_ERROR = 500
 
-GEN3_CREDENTIALS = {
-    "api_key": Gen3Config.GEN3_API_KEY,
-    "key_id": Gen3Config.GEN3_KEY_ID
-}
 
 SUBMISSION = None
 SESSION = None
@@ -111,7 +108,10 @@ s = Search()
 async def start_up():
     try:
         global SUBMISSION
-        global QUERY
+        GEN3_CREDENTIALS = {
+            "api_key": Gen3Config.GEN3_API_KEY,
+            "key_id": Gen3Config.GEN3_KEY_ID
+        }
         AUTH = Gen3Auth(endpoint=Gen3Config.GEN3_ENDPOINT_URL,
                         refresh_token=GEN3_CREDENTIALS)
         SUBMISSION = Gen3Submission(AUTH)
@@ -280,9 +280,11 @@ class GraphQLQueryItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "node": ["dataset_description"],
+                "node": "dataset_description",
                 "filter": {
-                    "submitter_id": "dataset-<dataset_id>-version-<version_id>-dataset_description"
+                    "submitter_id": [
+                        "dataset-<dataset_id>-version-<version_id>-dataset_description"
+                    ]
                 },
                 "search": "",
             }
@@ -303,7 +305,8 @@ async def graphql_query(item: GraphQLQueryItem):
         ...
     }
 
-    search post format should be <string_content>
+    search post format should be <string_content>,
+    and search only available in manifest/case nodes
     """
     query_result = sgqlc.get_queried_result(item, SUBMISSION)
     return query_result[item.node]
@@ -313,12 +316,24 @@ def update_pagination_item(item, input):
     if item.filter != {}:
         query_item = GraphQLQueryItem()
         filter_dict = {"submitter_id": []}
+        temp_node_dict = {}
         for element in item.filter.values():
-            query_item.node = element["node"]
-            query_item.filter = element["filter"]
-            query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
+            query_item.node, query_item.filter = element["node"], element["filter"]
+            filter_node = re.sub('_filter', '', query_item.node)
+            filter_field = list(query_item.filter.keys())[0]
+            # Only do fetch when there is no related temp data stored in temp_node_dict
+            # or the node field type is "String"
+            if filter_node not in temp_node_dict.keys() or filter_field not in FIELDS:
+                query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
+                # The data will be stored when the field type is an "Array"
+                # The default filter relation of the Gen3 "Array" type field is "AND"
+                # We need "OR", therefore entire node data will go through a self-written filter function
+                if filter_field in FIELDS:
+                    temp_node_dict[filter_node] = query_result[filter_node]
+            elif filter_node in temp_node_dict.keys() and filter_field in FIELDS:
+                query_result = temp_node_dict
             filter_dict["submitter_id"].append(f.get_filtered_datasets(
-                query_item.filter, query_result[query_item.node]))
+                query_item.filter, query_result[filter_node]))
         item.filter = filter_dict
         f.filter_relation(item)
 

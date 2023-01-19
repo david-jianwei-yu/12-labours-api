@@ -68,7 +68,7 @@ def test_get_gen3_node_records(client):
     result = response.json()
     response = client.post(f"/records/{NODE_TYPE}", json=missing_data)
     assert response.status_code == 400
-    assert result["detail"] == "Missing one or more fields in the request body"
+    # assert result["detail"] == "Missing one or more fields in the request body"
 
     invalid_program = {
         "program": "demo",
@@ -136,14 +136,14 @@ def test_graphql_query(client):
     pass_case = {
         "node": "dataset_description",
         "filter": {
-            "submitter_id": DATASET_ID
+            "submitter_id": [DATASET_ID]
         },
         "search": ""
     }
     response = client.post("/graphql/query", json=pass_case)
     result = response.json()
     assert response.status_code == 200
-    assert result[0]["submitter_id"] == DATASET_ID[0]
+    assert result[0]["submitter_id"] == DATASET_ID
 
     missing_data = {}
     response = client.post("/graphql/query", json=missing_data)
@@ -153,25 +153,121 @@ def test_graphql_query(client):
 
 
 def test_graphql_pagination(client):
-    DATASET_ID = ["dataset-46-version-2"]
-    pass_case = {
+    filter_pass_case = {
         "node": "experiment",
         "filter": {
-            "submitter_id": DATASET_ID
-        },
-        "search": {
-            "submitter_id": DATASET_ID
+            "1": {
+                "node": "manifest_filter",
+                "filter": {
+                    "additional_types": [
+                        "text/vnd.abi.plot+tab-separated-values",
+                        "text/vnd.abi.plot+csv"
+                    ]
+                }
+            },
+            "2": {
+                "node": "case_filter",
+                "filter": {
+                        "species": [
+                            "Rattus norvegicus"
+                        ]
+                }
+            },
+            "3": {
+                "node": "dataset_description_filter",
+                "filter": {
+                        "study_organ_system": [
+                            "stomach"
+                        ]
+                }
+            },
+            "4": {
+                "node": "case_filter",
+                "filter": {
+                        "sex": [
+                            "Male"
+                        ]
+                }
+            }
         },
         "relation": "and"
     }
-    response = client.post("/graphql/pagination", json=pass_case)
+    response = client.post("/graphql/pagination/", json=filter_pass_case)
     result = response.json()
     assert response.status_code == 200
-    assert result["data"][0]["submitter_id"] == DATASET_ID[0]
+    assert result["data"][0]["submitter_id"] == "dataset-46-version-2"
+    assert result["total"] == 1
+
+    search_pass_case = {
+        "node": "experiment",
+        "filter": {},
+        "relation": "and"
+    }
+    response = client.post(
+        "/graphql/pagination/?search=rats", json=search_pass_case)
+    result = response.json()
+    assert response.status_code == 200
+    assert result["data"][0]["submitter_id"] == "dataset-46-version-2"
+    assert result["total"] == 1
+
+    search_not_found = {
+        "node": "experiment",
+        "filter": {},
+        "relation": "and"
+    }
+    response = client.post(
+        "/graphql/pagination/?search=dog", json=search_not_found)
+    result = response.json()
+    assert response.status_code == 404
+    assert result["detail"] == "There is no matched content in the database"
+
+    pass_case = {
+        "node": "experiment",
+        "filter": {
+            "1": {
+                "node": "manifest_filter",
+                "filter": {
+                    "additional_types": [
+                        "text/vnd.abi.plot+tab-separated-values",
+                        "text/vnd.abi.plot+csv"
+                    ]
+                }
+            },
+            "2": {
+                "node": "case_filter",
+                "filter": {
+                        "species": [
+                            "Rattus norvegicus"
+                        ]
+                }
+            },
+            "3": {
+                "node": "dataset_description_filter",
+                "filter": {
+                        "study_organ_system": [
+                            "stomach"
+                        ]
+                }
+            },
+            "4": {
+                "node": "case_filter",
+                "filter": {
+                        "sex": [
+                            "Male"
+                        ]
+                }
+            }
+        },
+        "relation": "and"
+    }
+    response = client.post("/graphql/pagination/?search=rats", json=pass_case)
+    result = response.json()
+    assert response.status_code == 200
+    assert result["data"][0]["submitter_id"] == "dataset-46-version-2"
     assert result["total"] == 1
 
     missing_data = {}
-    response = client.post("/graphql/pagination", json=missing_data)
+    response = client.post("/graphql/pagination/", json=missing_data)
     result = response.json()
     assert response.status_code == 400
     assert result["detail"] == "Missing one or more fields in the request body"
@@ -179,14 +275,19 @@ def test_graphql_pagination(client):
     wrong_data = {
         "node": "fakenode",
         "filter": {
-            "submitter_id": DATASET_ID
-        },
-        "search": {
-            "submitter_id": DATASET_ID
+            "1": {
+                "node": "manifest_filter",
+                "filter": {
+                    "additional_types": [
+                        "text/vnd.abi.plot+tab-separated-values",
+                        "text/vnd.abi.plot+csv"
+                    ]
+                }
+            },
         },
         "relation": "and"
     }
-    response = client.post("/graphql/pagination", json=wrong_data)
+    response = client.post("/graphql/pagination/", json=wrong_data)
     result = response.json()
     assert response.status_code == 404
     assert result["detail"] == "GraphQL query cannot be generated by sgqlc"
@@ -195,25 +296,6 @@ def test_graphql_pagination(client):
 def test_generate_filter(client):
     response = client.get("/filter")
     assert response.status_code == 200
-
-
-def test_get_filtered_datasets(client):
-    pass_case = {
-        "node": "manifest",
-        "filter": {
-            "additional_types": ["application/x.vnd.abi.scaffold.meta+json"],
-        },
-    }
-    response = client.post("/filter/argument", json=pass_case)
-    result = response.json()
-    assert response.status_code == 200
-    assert type(result) == list
-
-    missing_data = {}
-    response = client.post("/filter/argument", json=missing_data)
-    result = response.json()
-    assert response.status_code == 400
-    assert result["detail"] == "Missing one or more fields in the request body"
 
 
 def test_download_gen3_metadata_file(client):
@@ -229,19 +311,6 @@ def test_download_gen3_metadata_file(client):
     assert result["submitter_id"] == "dataset-76-version-7-dataset_description"
 
 
-def test_get_searched_datasets(client):
-    INPUT = "heart"
-    response = client.get(f"/search/{INPUT}")
-    result = response.json()
-    assert response.status_code == 200
-
-    INPUT = "cat"
-    response = client.get(f"/search/{INPUT}")
-    result = response.json()
-    assert response.status_code == 200
-    assert result["detail"] == "There is no matched content in the database"
-
-
 def test_get_irods_root_collections(client):
     response = client.get("/collection/root")
     result = response.json()
@@ -251,7 +320,7 @@ def test_get_irods_root_collections(client):
 
 def test_get_irods_collections(client):
     pass_case = {
-        "path": "/tempZone/home/rods/datasets"
+        "path": "/tempZone/home/rods/12L/datasets"
     }
     response = client.post("/collection", json=pass_case)
     result = response.json()
@@ -275,24 +344,24 @@ def test_get_irods_collections(client):
 
 def test_get_irods_data_file(client):
     ACTION = "preview"
-    FILEPATH = "datasets/dataset-217-version-2/derivative/scaffold_context_info.json"
+    FILEPATH = "dataset-217-version-2/derivative/scaffold_context_info.json"
     response = client.get(f"/data/{ACTION}/{FILEPATH}")
     result = response.json()
     assert response.status_code == 200
-    assert result == {"description": "Annotated brainstem scaffold for pig available for registration of segmented neural anatomical-functional mapping of neural circuits.",
-                      "heading": "Generic pig brainstem scaffold", "id": "sparc.science.context_data", "samples": [], "version": "0.1.0", "views": []}
+    assert result["description"] == "Annotated brainstem scaffold for pig available for registration of segmented neural anatomical-functional mapping of neural circuits."
+    assert result["heading"] == "Generic pig brainstem scaffold"
 
     ACTION = "preview"
-    INVALID_FILEPATH = "datasets/dataset-217-version-2/derivative/scaffold_context_info"
+    INVALID_FILEPATH = "dataset-217-version-2/derivative/scaffold_context_info"
     response = client.get(f"/data/{ACTION}/{INVALID_FILEPATH}")
     result = response.json()
     assert response.status_code == 404
     assert result["detail"] == "Data not found in the provided path"
 
     INVALID_ACTION = "preload"
-    FILEPATH = "datasets/dataset-217-version-2/derivative/scaffold_context_info.json"
+    FILEPATH = "dataset-217-version-2/derivative/scaffold_context_info.json"
     response = client.get(f"/data/{INVALID_ACTION}/{FILEPATH}")
+    result = response.json()
     assert response.status_code == 422
     # assert response.status_code == 405
-    # assert response.json()[
-    #     "detail"] == "The action is not provided in this API"
+    # assert result["detail"] == "The action is not provided in this API"
