@@ -30,6 +30,8 @@ class SubCaseNode(Node):
 
 class SubManifestNode(Node):
     filename = String
+    is_derived_from = list_of(String)
+    is_source_of = list_of(String)
 
 
 class SubDatasetDescriptionNode(Node):
