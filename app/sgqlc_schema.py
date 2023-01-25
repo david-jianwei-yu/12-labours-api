@@ -155,7 +155,8 @@ class Query(Type):
             "first": Int,
             "offset": Int,
             "quick_search": String,
-            "additional_types": list_of(String)
+            "additional_types": list_of(String),
+            "file_type": list_of(String)
         }
     )
     manifestFilter = Field(

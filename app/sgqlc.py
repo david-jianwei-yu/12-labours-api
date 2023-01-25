@@ -85,7 +85,8 @@ class SimpleGraphQLClient:
                     first=item.limit,
                     offset=(item.page-1)*item.limit,
                     quick_search=item.search,
-                    additional_types=item.filter["additional_types"] if "additional_types" in item.filter else None
+                    additional_types=item.filter["additional_types"] if "additional_types" in item.filter else None,
+                    file_type=item.filter["file_type"] if "file_type" in item.filter else None
                 )
             )
         elif item.node == "manifest_filter":
