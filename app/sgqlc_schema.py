@@ -5,18 +5,25 @@ from sgqlc.types import String, Int, Type, Field, list_of
 # FILTER USE ONLY
 # Minimize the query fields
 # Increase the generating speed
+class SubExperimentNode(Node):
+    submitter_id = String
+
+
 class DatasetDescriptionFilter(Node):
+    experiments = list_of(SubExperimentNode)
     submitter_id = String
     keywords = list_of(String)
     study_organ_system = list_of(String)
 
 
 class ManifestFilter(Node):
+    experiments = list_of(SubExperimentNode)
     submitter_id = String
     additional_types = list_of(String)
 
 
 class CaseFilter(Node):
+    experiments = list_of(SubExperimentNode)
     submitter_id = String
     species = String
     sex = String
