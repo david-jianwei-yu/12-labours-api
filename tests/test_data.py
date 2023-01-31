@@ -123,17 +123,19 @@ def test_dataset_description_node(client):
     ]
     assert type(result[0]["keywords"]) is list
 
-    assert result[0]["metadata_version"] == "1.2.3"
-    assert type(result[0]["metadata_version"]) is str
+    assert result[0]["metadata_version"] == ["1.2.3"]
+    assert type(result[0]["metadata_version"]) is list
 
-    assert result[0]["subtitle"] == "Annotated pig brainstem scaffold available for registration of segmented neural anatomical-functional mapping of neural circuits."
-    assert type(result[0]["subtitle"]) is str
+    assert result[0]["subtitle"] == [
+        "Annotated pig brainstem scaffold available for registration of segmented neural anatomical-functional mapping of neural circuits."]
+    assert type(result[0]["subtitle"]) is list
 
-    assert result[0]["title"] == "Generic pig brainstem scaffold"
-    assert type(result[0]["title"]) is str
+    assert result[0]["title"] == ["Generic pig brainstem scaffold"]
+    assert type(result[0]["title"]) is list
 
-    assert result[0]["acknowledgments"] == "Beckman Institute for Advanced Science and Technology, Pig Imaging Group, University Of Illiois urbana-champaign"
-    assert type(result[0]["acknowledgments"]) is str
+    assert result[0]["acknowledgments"] == [
+        "Beckman Institute for Advanced Science and Technology, Pig Imaging Group, University Of Illiois urbana-champaign"]
+    assert type(result[0]["acknowledgments"]) is list
 
     assert result[0]["funding"] == [
         "OT3OD025349"
