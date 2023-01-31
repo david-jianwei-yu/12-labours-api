@@ -1,5 +1,3 @@
-import re
-
 from app.filter_dictionary import FILTERS
 
 
