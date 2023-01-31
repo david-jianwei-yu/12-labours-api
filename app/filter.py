@@ -1,5 +1,3 @@
-import re
-
 from app.filter_dictionary import FILTERS
 
 
@@ -11,7 +9,8 @@ INTERNAL_SERVER_ERROR = 500
 
 # This list contains all the "Array" type fields that used as a filter
 FIELDS = [
-    "study_organ_system"
+    "study_organ_system",
+    "keywords"
 ]
 
 
@@ -30,8 +29,7 @@ class Filter:
             data = self.generate_filtered_datasets(filter, field, data)
         dataset_list = set()
         for record in data:
-            dataset_list.add(re.findall(
-                '(dataset-(12L[-_])?[0-9]*-version-[0-9]*)', record["submitter_id"])[0][0])
+            dataset_list.add(record["experiments"][0]["submitter_id"])
         return list(dataset_list)
 
     def filter_relation(self, item):

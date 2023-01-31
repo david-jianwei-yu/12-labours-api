@@ -12,10 +12,12 @@ FILTERS = {
     "MAPPED_ANATOMICAL_STRUCTURE": {
         "title": "ANATOMICAL STRUCTURE",
         "node": "dataset_description_filter",
-        "field": "study_organ_system",
+        # "field": "study_organ_system",
+        "field": "keywords",
         "element": {
             "Body Proper": "body proper",
             "Brainstem": "brainstem",
+            "Breast": "breast",
             "Cardiac Nerve Plexus": "cardiac nerve plexus",
             "Colon": "colon",
             "Heart": "heart",
