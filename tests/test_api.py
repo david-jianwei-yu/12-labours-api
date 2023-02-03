@@ -94,7 +94,7 @@ def test_get_gen3_node_records(client):
 
 
 def test_get_gen3_record(client):
-    UUID = "cfd7f71c-e1e6-430c-a244-6d7ec855ee96"
+    UUID = "5b9ae1bd-e780-4869-a458-b3422084c480"
 
     pass_case = {
         "program": "demo1",
@@ -104,7 +104,7 @@ def test_get_gen3_record(client):
     result = response.json()
     assert response.status_code == 200
     assert len(result) == 1
-    assert result[0]["submitter_id"] == "dataset-12L_217-version-2-dataset_description"
+    assert result[0]["submitter_id"] == "dataset-217-version-2-dataset_description"
 
     missing_data = {}
     response = client.post(f"/record/{UUID}", json=missing_data)
@@ -132,7 +132,7 @@ def test_get_gen3_record(client):
 
 
 def test_graphql_query(client):
-    DATASET_ID = "dataset-12L_217-version-2-dataset_description"
+    DATASET_ID = "dataset-217-version-2-dataset_description"
     pass_case = {
         "node": "dataset_description",
         "filter": {
@@ -187,7 +187,7 @@ def test_graphql_pagination(client):
     response = client.post("/graphql/pagination/", json=filter_pass_case)
     result = response.json()
     assert response.status_code == 200
-    assert result["data"][0]["submitter_id"] == "dataset-12L_46-version-2"
+    assert result["data"][0]["submitter_id"] == "dataset-46-version-2"
     assert result["total"] == 1
 
     search_pass_case = {
@@ -199,7 +199,7 @@ def test_graphql_pagination(client):
         "/graphql/pagination/?search=rats", json=search_pass_case)
     result = response.json()
     assert response.status_code == 200
-    assert result["data"][0]["submitter_id"] == "dataset-12L_46-version-2"
+    assert result["data"][0]["submitter_id"] == "dataset-46-version-2"
     assert result["total"] == 1
 
     search_not_found = {
@@ -247,7 +247,7 @@ def test_graphql_pagination(client):
     response = client.post("/graphql/pagination/?search=rats", json=pass_case)
     result = response.json()
     assert response.status_code == 200
-    assert result["data"][0]["submitter_id"] == "dataset-12L_46-version-2"
+    assert result["data"][0]["submitter_id"] == "dataset-46-version-2"
     assert result["total"] == 1
 
     missing_data = {}
@@ -285,14 +285,14 @@ def test_generate_filter(client):
 def test_download_gen3_metadata_file(client):
     PROG_NAME = "demo1"
     PROJ_NAME = "12L"
-    UUID = "c5b2bac3-9568-4c15-a628-5b2d14e45e54"
+    UUID = "22c4459b-5f4f-4e62-abd2-2aa205fe838b"
     FORM = "json"
     response = client.get(
         f"/metadata/download/{PROG_NAME}/{PROJ_NAME}/{UUID}/{FORM}")
     result = response.json()
     assert response.status_code == 200
     assert len(result) == 18
-    assert result["submitter_id"] == "dataset-12L_217-version-2"
+    assert result["submitter_id"] == "dataset-217-version-2"
 
 
 def test_get_irods_root_collections(client):
@@ -328,7 +328,7 @@ def test_get_irods_collections(client):
 
 def test_get_irods_data_file(client):
     ACTION = "preview"
-    FILEPATH = "dataset-12L_217-version-2/derivative/scaffold_context_info.json"
+    FILEPATH = "dataset-217-version-2/derivative/scaffold_context_info.json"
     response = client.get(f"/data/{ACTION}/{FILEPATH}")
     result = response.json()
     assert response.status_code == 200
@@ -336,14 +336,14 @@ def test_get_irods_data_file(client):
     assert result["heading"] == "Generic pig brainstem scaffold"
 
     ACTION = "preview"
-    INVALID_FILEPATH = "dataset-12L_217-version-2/derivative/scaffold_context_info"
+    INVALID_FILEPATH = "dataset-217-version-2/derivative/scaffold_context_info"
     response = client.get(f"/data/{ACTION}/{INVALID_FILEPATH}")
     result = response.json()
     assert response.status_code == 404
     assert result["detail"] == "Data not found in the provided path"
 
     INVALID_ACTION = "preload"
-    FILEPATH = "dataset-12L_217-version-2/derivative/scaffold_context_info.json"
+    FILEPATH = "dataset-217-version-2/derivative/scaffold_context_info.json"
     response = client.get(f"/data/{INVALID_ACTION}/{FILEPATH}")
     result = response.json()
     assert response.status_code == 422

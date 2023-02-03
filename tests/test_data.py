@@ -12,17 +12,18 @@ def client():
 # Database and Search Engine Knowledge Testing
 # Test the original data against the data coming out from the backend api search/filter api to make sure the information is correct and up-to-date
 # Focus on Data Structure and Format
-# Testing will based on ->//# dataset-12L_217-version-2 #//<-
+# Testing will based on ->//# dataset-217-version-2 #//<-
 def test_experiment_node(client):
+    UUID = "22c4459b-5f4f-4e62-abd2-2aa205fe838b"
     payload = {
         "program": "demo1",
         "project": "12L",
     }
     response = client.post(
-        f"/record/c5b2bac3-9568-4c15-a628-5b2d14e45e54", json=payload)
+        f"/record/{UUID}", json=payload)
     result = response.json()
 
-    assert result[0]["id"] == "c5b2bac3-9568-4c15-a628-5b2d14e45e54"
+    assert result[0]["id"] == UUID
     assert type(result[0]["id"]) is str
 
     assert result[0]["projects"][0] == {
@@ -37,7 +38,7 @@ def test_experiment_node(client):
     assert result[0]["project_id"] == "demo1-12L"
     assert type(result[0]["project_id"]) is str
 
-    assert result[0]["submitter_id"] == "dataset-12L_217-version-2"
+    assert result[0]["submitter_id"] == "dataset-217-version-2"
     assert type(result[0]["submitter_id"]) is str
 
     # "associated_experiment": null,
@@ -56,20 +57,21 @@ def test_experiment_node(client):
 
 
 def test_dataset_description_node(client):
+    UUID = "5b9ae1bd-e780-4869-a458-b3422084c480"
     payload = {
         "program": "demo1",
         "project": "12L",
     }
     response = client.post(
-        f"/record/cfd7f71c-e1e6-430c-a244-6d7ec855ee96", json=payload)
+        f"/record/{UUID}", json=payload)
     result = response.json()
 
-    assert result[0]["id"] == "cfd7f71c-e1e6-430c-a244-6d7ec855ee96"
+    assert result[0]["id"] == UUID
     assert type(result[0]["id"]) is str
 
     assert result[0]["experiments"][0] == {
-        "node_id": "c5b2bac3-9568-4c15-a628-5b2d14e45e54",
-        "submitter_id": "dataset-12L_217-version-2"
+        "node_id": "22c4459b-5f4f-4e62-abd2-2aa205fe838b",
+        "submitter_id": "dataset-217-version-2"
     }
     assert type(result[0]["experiments"][0]) is dict
 
@@ -79,7 +81,7 @@ def test_dataset_description_node(client):
     assert result[0]["project_id"] == "demo1-12L"
     assert type(result[0]["project_id"]) is str
 
-    assert result[0]["submitter_id"] == "dataset-12L_217-version-2-dataset_description"
+    assert result[0]["submitter_id"] == "dataset-217-version-2-dataset_description"
     assert type(result[0]["submitter_id"]) is str
 
     assert result[0]["contributor_affiliation"] == [
@@ -159,20 +161,21 @@ def test_dataset_description_node(client):
 
 
 def test_manifest_node(client):
+    UUID = "fd65a93f-ff62-45e4-b7b6-96419ef4f749"
     payload = {
         "program": "demo1",
         "project": "12L",
     }
     response = client.post(
-        f"/record/5937bab2-2ebf-4cf7-9f99-1ef85361ccbc", json=payload)
+        f"/record/{UUID}", json=payload)
     result = response.json()
 
-    assert result[0]["id"] == "5937bab2-2ebf-4cf7-9f99-1ef85361ccbc"
+    assert result[0]["id"] == UUID
     assert type(result[0]["id"]) is str
 
     assert result[0]["experiments"][0] == {
-        "node_id": "c5b2bac3-9568-4c15-a628-5b2d14e45e54",
-        "submitter_id": "dataset-12L_217-version-2"
+        "node_id": "22c4459b-5f4f-4e62-abd2-2aa205fe838b",
+        "submitter_id": "dataset-217-version-2"
     }
     assert type(result[0]["experiments"][0]) is dict
 
@@ -182,7 +185,7 @@ def test_manifest_node(client):
     assert result[0]["project_id"] == "demo1-12L"
     assert type(result[0]["project_id"]) is str
 
-    assert result[0]["submitter_id"] == "dataset-12L-217-version-2-manifest-derivative-pig-brainstem-Layout1-view.json"
+    assert result[0]["submitter_id"] == "dataset-217-version-2-manifest-derivative-pig-brainstem-Layout1-view.json"
     assert type(result[0]["submitter_id"]) is str
 
     assert result[0]["filename"] == "derivative/pig_brainstem_Layout1_view.json"
@@ -205,23 +208,24 @@ def test_manifest_node(client):
     # "supplemental_json_metadata": null
 
 
-# Dataset-12L_217-version-2 does not have any file in case node
-# Using ->//# dataset-12L_46-version-2 #//<- instead
+# Dataset-217-version-2 does not have any file in case node
+# Using ->//# dataset-46-version-2 #//<- instead
 def test_case_node(client):
+    UUID = "c58ab983-6cf9-4174-a7a9-20cdf1d6bc33"
     payload = {
         "program": "demo1",
         "project": "12L",
     }
     response = client.post(
-        f"/record/fea6b6da-b221-4b53-9d14-622110cc2b1f", json=payload)
+        f"/record/{UUID}", json=payload)
     result = response.json()
 
-    assert result[0]["id"] == "fea6b6da-b221-4b53-9d14-622110cc2b1f"
+    assert result[0]["id"] == UUID
     assert type(result[0]["id"]) is str
 
     assert result[0]["experiments"][0] == {
-        "node_id": "f9ae49b5-98f7-4b13-9fc6-ff46e1fd2f17",
-        "submitter_id": "dataset-12L_46-version-2"
+        "node_id": "f7bc3db5-4d4c-4c50-9124-0434a66a51a2",
+        "submitter_id": "dataset-46-version-2"
     }
     assert type(result[0]["experiments"][0]) is dict
 
@@ -231,7 +235,7 @@ def test_case_node(client):
     assert result[0]["project_id"] == "demo1-12L"
     assert type(result[0]["project_id"]) is str
 
-    assert result[0]["submitter_id"] == "dataset-12L-46-version-2-subjects-sub-11011"
+    assert result[0]["submitter_id"] == "dataset-46-version-2-subjects-sub-11011"
     assert type(result[0]["submitter_id"]) is str
 
     assert result[0]["age"] == "12 weeks"
@@ -277,85 +281,85 @@ def test_case_node(client):
 
 def test_irods_collections(client):
     payload1 = {
-        "path": "/tempZone/home/rods/12L/datasets/dataset-12L_217-version-2"
+        "path": "/tempZone/home/rods/12L/datasets/dataset-217-version-2"
     }
     response = client.post("/collection", json=payload1)
     result = response.json()
     assert result["folders"] == [
         {
             "name": "derivative",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_217-version-2/derivative"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-217-version-2/derivative"
         },
         {
             "name": "primary",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_217-version-2/primary"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-217-version-2/primary"
         }
     ]
     assert result["files"] == [
         {
             "name": "dataset_description_gen3.json",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_217-version-2/dataset_description_gen3.json"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-217-version-2/dataset_description_gen3.json"
         },
         {
             "name": "dataset_description.xlsx",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_217-version-2/dataset_description.xlsx"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-217-version-2/dataset_description.xlsx"
         },
         {
             "name": "manifest_gen3.json",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_217-version-2/manifest_gen3.json"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-217-version-2/manifest_gen3.json"
         }
     ]
 
     payload2 = {
-        "path": "/tempZone/home/rods/12L/datasets/dataset-12L_46-version-2"
+        "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2"
     }
     response = client.post("/collection", json=payload2)
     result = response.json()
     assert result["folders"] == [
         {
             "name": "derivative",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_46-version-2/derivative"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2/derivative"
         },
         {
             "name": "docs",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_46-version-2/docs"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2/docs"
         },
         {
             "name": "primary",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_46-version-2/primary"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2/primary"
         },
         {
             "name": "source",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_46-version-2/source"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2/source"
         }
     ]
     assert result["files"] == [
         {
             "name": "dataset_description.json",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_46-version-2/dataset_description.json"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2/dataset_description.json"
         },
         {
             "name": "dataset_description.xlsx",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_46-version-2/dataset_description.xlsx"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2/dataset_description.xlsx"
         },
         {
             "name": "experiment.json",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_46-version-2/experiment.json"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2/experiment.json"
         },
         {
             "name": "manifest_gen3.json",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_46-version-2/manifest_gen3.json"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2/manifest_gen3.json"
         },
         {
             "name": "manifest.xlsx",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_46-version-2/manifest.xlsx"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2/manifest.xlsx"
         },
         {
             "name": "subjects.json",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_46-version-2/subjects.json"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2/subjects.json"
         },
         {
             "name": "subjects.xlsx",
-            "path": "/tempZone/home/rods/12L/datasets/dataset-12L_46-version-2/subjects.xlsx"
+            "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2/subjects.xlsx"
         }
     ]
