@@ -9,7 +9,8 @@ INTERNAL_SERVER_ERROR = 500
 
 # This list contains all the "Array" type fields that used as a filter
 FIELDS = [
-    "study_organ_system"
+    "study_organ_system",
+    "keywords"
 ]
 
 
