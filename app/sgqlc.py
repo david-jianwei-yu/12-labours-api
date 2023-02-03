@@ -42,7 +42,7 @@ class SimpleGraphQLClient:
             # Only fetch the thumbnail manifest file
             if "manifests" in snake_case_query:
                 snake_case_query = re.sub(
-                    'manifests', 'manifests(additional_types: ["image/x.vnd.abi.thumbnail+jpeg", "image/x.vnd.abi.thumbnail+png"])', snake_case_query)
+                    'manifests', 'manifests(additional_types: ["application/x.vnd.abi.scaffold.view+json"])', snake_case_query)
             snake_case_query = self.add_count_field(item, snake_case_query)
         return "{" + snake_case_query + "}"
 
@@ -85,7 +85,8 @@ class SimpleGraphQLClient:
                     first=item.limit,
                     offset=(item.page-1)*item.limit,
                     quick_search=item.search,
-                    additional_types=item.filter["additional_types"] if "additional_types" in item.filter else None
+                    additional_types=item.filter["additional_types"] if "additional_types" in item.filter else None,
+                    file_type=item.filter["file_type"] if "file_type" in item.filter else None
                 )
             )
         elif item.node == "manifest_filter":
