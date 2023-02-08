@@ -5,19 +5,23 @@ from sgqlc.types import String, Int, Type, Field, list_of
 # FILTER USE ONLY
 # Minimize the query fields
 # Increase the generating speed
-class DatasetDescriptionFilter(Node):
+class SubExperimentNode(Node):
     submitter_id = String
+
+
+class DatasetDescriptionFilter(Node):
+    experiments = list_of(SubExperimentNode)
     keywords = list_of(String)
     study_organ_system = list_of(String)
 
 
 class ManifestFilter(Node):
-    submitter_id = String
+    experiments = list_of(SubExperimentNode)
     additional_types = list_of(String)
 
 
 class CaseFilter(Node):
-    submitter_id = String
+    experiments = list_of(SubExperimentNode)
     species = String
     sex = String
     age_category = String
@@ -30,6 +34,8 @@ class SubCaseNode(Node):
 
 class SubManifestNode(Node):
     filename = String
+    is_derived_from = list_of(String)
+    is_source_of = list_of(String)
 
 
 class SubDatasetDescriptionNode(Node):
@@ -153,7 +159,8 @@ class Query(Type):
             "first": Int,
             "offset": Int,
             "quick_search": String,
-            "additional_types": list_of(String)
+            "additional_types": list_of(String),
+            "file_type": list_of(String)
         }
     )
     manifestFilter = Field(

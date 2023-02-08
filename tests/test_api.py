@@ -94,7 +94,7 @@ def test_get_gen3_node_records(client):
 
 
 def test_get_gen3_record(client):
-    UUID = "fcf89c10-20ae-43a9-afb4-a7b107a2b541"
+    UUID = "5b9ae1bd-e780-4869-a458-b3422084c480"
 
     pass_case = {
         "program": "demo1",
@@ -104,7 +104,7 @@ def test_get_gen3_record(client):
     result = response.json()
     assert response.status_code == 200
     assert len(result) == 1
-    assert result[0]["submitter_id"] == "dataset-76-version-7-dataset_description"
+    assert result[0]["submitter_id"] == "dataset-217-version-2-dataset_description"
 
     missing_data = {}
     response = client.post(f"/record/{UUID}", json=missing_data)
@@ -128,11 +128,11 @@ def test_get_gen3_record(client):
     response = client.post(f"/record/{UUID}", json=invalid_project)
     result = response.json()
     assert response.status_code == 404
-    assert result["detail"] == "Unable to find fcf89c10-20ae-43a9-afb4-a7b107a2b541 and check if the correct project or uuid is used"
+    assert result["detail"] == f"Unable to find {UUID} and check if the correct project or uuid is used"
 
 
 def test_graphql_query(client):
-    DATASET_ID = "dataset-46-version-2-dataset_description"
+    DATASET_ID = "dataset-217-version-2-dataset_description"
     pass_case = {
         "node": "dataset_description",
         "filter": {
@@ -174,14 +174,6 @@ def test_graphql_pagination(client):
                 }
             },
             "3": {
-                "node": "dataset_description_filter",
-                "filter": {
-                        "study_organ_system": [
-                            "stomach"
-                        ]
-                }
-            },
-            "4": {
                 "node": "case_filter",
                 "filter": {
                         "sex": [
@@ -242,14 +234,6 @@ def test_graphql_pagination(client):
                 }
             },
             "3": {
-                "node": "dataset_description_filter",
-                "filter": {
-                        "study_organ_system": [
-                            "stomach"
-                        ]
-                }
-            },
-            "4": {
                 "node": "case_filter",
                 "filter": {
                         "sex": [
@@ -301,14 +285,14 @@ def test_generate_filter(client):
 def test_download_gen3_metadata_file(client):
     PROG_NAME = "demo1"
     PROJ_NAME = "12L"
-    UUID = "fcf89c10-20ae-43a9-afb4-a7b107a2b541"
+    UUID = "22c4459b-5f4f-4e62-abd2-2aa205fe838b"
     FORM = "json"
     response = client.get(
         f"/metadata/download/{PROG_NAME}/{PROJ_NAME}/{UUID}/{FORM}")
     result = response.json()
     assert response.status_code == 200
-    assert len(result) == 29
-    assert result["submitter_id"] == "dataset-76-version-7-dataset_description"
+    assert len(result) == 18
+    assert result["submitter_id"] == "dataset-217-version-2"
 
 
 def test_get_irods_root_collections(client):
