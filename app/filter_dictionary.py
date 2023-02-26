@@ -15,18 +15,18 @@ FILTERS = {
         # "field": "study_organ_system",
         "field": "keywords",
         "element": {
-            "Body Proper": "body proper",
+            # "Body Proper": "body proper",
             "Brainstem": "brainstem",
             "Breast": "breast",
-            "Cardiac Nerve Plexus": "cardiac nerve plexus",
+            # "Cardiac Nerve Plexus": "cardiac nerve plexus",
             "Colon": "colon",
             "Heart": "heart",
             "Lungs": "lungs",
             # "Myenteric Nerve Plexus": "myenteric nerve plexus",
             "Spinal Cord": "spinal cord",
             "Stomach": "stomach",
-            "Urinary Bladder": "urinary bladder",
-            "Vagus Nerve": "vagus nerve",
+            # "Urinary Bladder": "urinary bladder",
+            # "Vagus Nerve": "vagus nerve",
         }
     },
     "MAPPED_SEX": {
