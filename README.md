@@ -10,11 +10,15 @@ This is the API service providing query and data requests for the 12 Labours pro
 
 ## Python 3.6 or above
 
-Make sure you have python 3 installed `python3 --version`
+Make sure you have python 3 installed `python3 --version`.
+
+Python version `3.9.0` used for this project.
 
 ## Environment variables
 
-Here is the list of environment variables used by the app
+Here is the list of environment variables used by the app.
+
+Please fill in the environment variables in the `env.txt` file and rename the file name to `.env`.
 
 ```bash
 GEN3_ENDPOINT_URL =
@@ -87,8 +91,8 @@ More information about the usage of this package in [the documentation](https://
 
 If you do not have the 12 Labours portal user environment variables setup already:
 
-1. Create a .env file with the configuration variables of the 12 Labours portal user or add them to your bash profile.
-2. If you created a separate file, run source {fileName}.env.
+1. Fill in the `env.txt` file with the configuration variables of the 12 Labours portal user.
+2. Rename the file name to `.env`.
 
 After the previous steps or if you already have those environment variables setup, run:
 
