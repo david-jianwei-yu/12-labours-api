@@ -20,7 +20,7 @@ class SimpleGraphQLClient:
         if item.filter != {}:
             # Manually modify and add count filed into graphql query
             filter_argument = re.sub(
-                '\'([_a-z]+)\'', r'\1', re.sub('\{([^{].*[^}])\}', r'\1', f'{item.filter}'))
+                '\'([_a-z]+)\'', r'\1', re.sub(r'\{([^{].*[^}])\}', r'\1', f'{item.filter}'))
             count_field = re.sub(
                 '\'', '\"', f'total: _{item.node}_count({filter_argument})')
         return query + count_field
