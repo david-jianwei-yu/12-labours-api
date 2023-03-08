@@ -29,20 +29,20 @@ class SimpleGraphQLClient:
         # Convert camel case to snake case
         snake_case_query = re.sub(
             '_[A-Z]', lambda x:  x.group(0).lower(), re.sub('([a-z])([A-Z])', r'\1_\2', str(query)))
-        # Remove all null filter arguments, this can minimize the generate_query function if statement length
+        # Remove all null filter arguments, this can simplify the generate_query function
         if "null" in snake_case_query:
             snake_case_query = re.sub(
                 '[,]? [_a-z]+: null', '', snake_case_query)
         # Update the filter query node name
-        if "filter" in item.node:
+        if "filter" in item.node:  # query situation
             snake_case_query = re.sub('_filter', '', snake_case_query)
             item.node = re.sub('_filter', '', item.node)
-        # Only pagination graphql will need to add count field
-        if type(item.search) == dict:
+        if type(item.search) == dict:  # pagination situation
             # Only fetch the thumbnail manifest file
             if "manifests" in snake_case_query:
                 snake_case_query = re.sub(
                     'manifests', 'manifests(additional_types: ["application/x.vnd.abi.scaffold.view+json"])', snake_case_query)
+            # Only pagination will need to add count field
             snake_case_query = self.add_count_field(item, snake_case_query)
         return "{" + snake_case_query + "}"
 
