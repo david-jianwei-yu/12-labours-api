@@ -27,7 +27,7 @@ class CaseFilter(Node):
     age_category = String
 
 
-# QUERY USE ONLY
+# QUERY/PAGINATION USE ONLY
 class SubCaseNode(Node):
     species = String
 
@@ -50,7 +50,10 @@ class SubDatasetDescriptionNode(Node):
 class ExperimentNode(Node):
     submitter_id = String
     dataset_descriptions = list_of(SubDatasetDescriptionNode)
-    manifests = list_of(SubManifestNode)
+    manifests1 = list_of(SubManifestNode)
+    manifests2 = list_of(SubManifestNode)
+    manifests3 = list_of(SubManifestNode)
+    manifests4 = list_of(SubManifestNode)
     cases = list_of(SubCaseNode)
 
 

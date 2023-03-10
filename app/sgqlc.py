@@ -25,6 +25,17 @@ class SimpleGraphQLClient:
                 '\'', '\"', f'total: _{item.node}_count({filter_argument})')
         return query + count_field
 
+    def update_manifests_information(self, query):
+        query = re.sub(
+            'manifests1', 'scaffolds: manifests(additional_types: ["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"])', query)
+        query = re.sub(
+            'manifests2', 'scaffoldViews: manifests(additional_types: ["application/x.vnd.abi.scaffold.view+json"])', query)
+        query = re.sub(
+            'manifests3', 'plots: manifests(additional_types: ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+csv"])', query)
+        query = re.sub(
+            'manifests4', 'thumbnails: manifests(file_type: [".jpg", ".png"])', query)
+        return query
+
     def convert_query(self, item, query):
         # Convert camel case to snake case
         snake_case_query = re.sub(
@@ -37,12 +48,11 @@ class SimpleGraphQLClient:
         if "filter" in item.node:
             snake_case_query = re.sub('_filter', '', snake_case_query)
             item.node = re.sub('_filter', '', item.node)
-        # Only pagination graphql will need to add count field
-        if type(item.search) == dict:
-            # Only fetch the thumbnail manifest file
-            if "manifests" in snake_case_query:
-                snake_case_query = re.sub(
-                    'manifests', 'manifests(additional_types: ["application/x.vnd.abi.scaffold.view+json"])', snake_case_query)
+        if type(item.search) == dict:  # pagination situation
+            snake_case_query = self.update_manifests_information(
+                snake_case_query)
+            print(snake_case_query)
+            # Only pagination will need to add count field
             snake_case_query = self.add_count_field(item, snake_case_query)
         return "{" + snake_case_query + "}"
 
