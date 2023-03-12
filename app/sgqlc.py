@@ -20,7 +20,7 @@ class SimpleGraphQLClient:
         if item.filter != {}:
             # Manually modify and add count filed into graphql query
             filter_argument = re.sub(
-                '\'([_a-z]+)\'', r'\1', re.sub('\{([^{].*[^}])\}', r'\1', f'{item.filter}'))
+                '\'([_a-z]+)\'', r'\1', re.sub(r'\{([^{].*[^}])\}', r'\1', f'{item.filter}'))
             count_field = re.sub(
                 '\'', '\"', f'total: _{item.node}_count({filter_argument})')
         return query + count_field
@@ -40,12 +40,12 @@ class SimpleGraphQLClient:
         # Convert camel case to snake case
         snake_case_query = re.sub(
             '_[A-Z]', lambda x:  x.group(0).lower(), re.sub('([a-z])([A-Z])', r'\1_\2', str(query)))
-        # Remove all null filter arguments, this can minimize the generate_query function if statement length
+        # Remove all null filter arguments, this can simplify the generate_query function
         if "null" in snake_case_query:
             snake_case_query = re.sub(
                 '[,]? [_a-z]+: null', '', snake_case_query)
         # Update the filter query node name
-        if "filter" in item.node:
+        if "filter" in item.node:  # query situation
             snake_case_query = re.sub('_filter', '', snake_case_query)
             item.node = re.sub('_filter', '', item.node)
         if type(item.search) == dict:  # pagination situation

@@ -34,7 +34,7 @@ class Search:
                 return dataset_dict
             for result in query:
                 content_list = re.findall(
-                    f'(\s{keyword}|{keyword}\s)', result[DataObjectMeta.value])
+                    fr'(\s{keyword}|{keyword}\s)', result[DataObjectMeta.value])
                 if content_list != []:
                     dataset = re.sub(
                         f'{iRODSConfig.IRODS_ENDPOINT_URL}/', '', result[Collection.name])

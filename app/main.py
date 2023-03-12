@@ -141,7 +141,7 @@ async def root():
 #
 
 
-@ app.get("/program", tags=["Gen3"])
+@ app.get("/program", tags=["Gen3"], summary="Get gen3 program information", response_description="Gen3 program name")
 async def get_gen3_program():
     """
     Return all programs information from the Gen3 Data Commons.
@@ -156,16 +156,16 @@ async def get_gen3_program():
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-class Program(str, Enum):
-    program = "demo1"
+class ProgramParam(str, Enum):
+    demo1 = "demo1"
 
 
-@ app.get("/project/{program}", tags=["Gen3"])
-async def get_gen3_project(program: Program):
+@ app.get("/project/{program}", tags=["Gen3"], summary="Get gen3 project information", response_description="Gen3 project name")
+async def get_gen3_project(program: ProgramParam):
     """
-    Return all projects information from a program.
+    Return all projects information from a gen3 program.
 
-    :param program: Gen3 program name.
+    - **program**: Gen3 program name.
     """
     try:
         project = SUBMISSION.get_projects(program)
@@ -191,7 +191,7 @@ class Gen3Item(BaseModel):
         }
 
 
-@ app.post("/dictionary", tags=["Gen3"])
+@ app.post("/dictionary", tags=["Gen3"], summary="Get gen3 dictionary information", response_description="Gen3 dictionary name")
 async def get_gen3_dictionary(item: Gen3Item):
     """
     Return all dictionary nodes from the Gen3 Data Commons
@@ -213,19 +213,19 @@ async def get_gen3_dictionary(item: Gen3Item):
             status_code=NOT_FOUND, detail=f"Program {item.program} or project {item.project} not found")
 
 
-class Node(str, Enum):
+class NodeParam(str, Enum):
     experiment = "experiment"
     dataset_description = "dataset_description"
     manifest = "manifest"
+    case = "case"
 
 
-@ app.post("/records/{node}", tags=["Gen3"])
-async def get_gen3_node_records(node: Node, item: Gen3Item):
+@ app.post("/records/{node}", tags=["Gen3"], summary="Get gen3 node records information", response_description="A list of json object contains all records metadata within a node")
+async def get_gen3_node_records(node: NodeParam, item: Gen3Item):
     """
     Return all records information in a dictionary node.
 
-    :param node: The dictionary node to export.
-    :return: A list of json object containing all records in the dictionary node.
+    - **node**: The dictionary node to export.
     """
     if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
@@ -246,13 +246,12 @@ async def get_gen3_node_records(node: Node, item: Gen3Item):
         return node_record
 
 
-@ app.post("/record/{uuid}", tags=["Gen3"])
+@ app.post("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", response_description="A json object contains gen3 record metadata")
 async def get_gen3_record(uuid: str, item: Gen3Item):
     """
     Return record information in the Gen3 Data Commons.
 
-    :param uuid: uuid of the record.
-    :return: A list of json object.
+    - **uuid**: uuid of the record.
     """
     if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
@@ -283,7 +282,7 @@ class GraphQLQueryItem(BaseModel):
                 "node": "dataset_description",
                 "filter": {
                     "submitter_id": [
-                        "dataset-<dataset_id>-version-<version_id>-dataset_description"
+                        "dataset-102-version-4-dataset_description"
                     ]
                 },
                 "search": "",
@@ -291,22 +290,17 @@ class GraphQLQueryItem(BaseModel):
         }
 
 
-@ app.post("/graphql/query", tags=["Gen3"])
+@ app.post("/graphql/query", tags=["Gen3"], summary="GraphQL query gen3 information")
 async def graphql_query(item: GraphQLQueryItem):
     """
     Return queries metadata records. The API uses GraphQL query language.
 
-    filter post format should looks like: 
-    {
-        "<filed_name>": [
-            "<attribute_name>", 
-            ...
-        ], 
-        ...
-    }
+    **filter**
+    - {"<filed_name>": ["<attribute_name>", ...], ...}
 
-    search post format should be <string_content>,
-    and search only available in manifest/case nodes
+    **search**
+    - string content,
+    - only available in manifest/case nodes
     """
     query_result = sgqlc.get_queried_result(item, SUBMISSION)
     return query_result[item.node]
@@ -364,33 +358,22 @@ class GraphQLPaginationItem(BaseModel):
         }
 
 
-@ app.post("/graphql/pagination/", tags=["Gen3"])
+@ app.post("/graphql/pagination/", tags=["Gen3"], summary="Display datasets", response_description="A list of datasets")
 async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     """
     /graphql/pagination/?search=<string>
 
     Return filtered/searched metadata records. The API uses GraphQL query language.
 
-    Default page = 1
-    Default limit = 50
-    Default search = ""
-    Default relation = "and"
+    - Default page = 1
+    - Default limit = 50
+    - Default search = ""
+    - Default relation = "and"
 
     filter post format should looks like: 
-    {
-        "id": {
-            "node": "<gen3_node>", 
-            "filter": {
-                "<gen3_field>": [
-                    <filed_content>,
-                    ...
-                ]
-            }
-        }, 
-        ...
-    }
+    {"id": {"node": "<gen3_node>", "filter": {"<gen3_field>": [<filed_content>,...]}}, ...}
 
-    :param search: string content.
+    - **search**: string content.
     """
     update_pagination_item(item, search)
     query_result = sgqlc.get_queried_result(item, SUBMISSION)
@@ -407,7 +390,7 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     }
 
 
-@ app.get("/filter", tags=["Gen3"])
+@ app.get("/filter", tags=["Gen3"], summary="Get filter information")
 async def generate_filter():
     """
     Return the support data for frontend filters component.
@@ -415,25 +398,24 @@ async def generate_filter():
     return f.generate_filter_information()
 
 
-class Project(str, Enum):
+class ProjectParam(str, Enum):
     project = "12L"
 
 
-class Format(str, Enum):
+class FormatParam(str, Enum):
     json = "json"
     tsv = "tsv"
 
 
-@ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"])
-async def download_gen3_metadata_file(program: Program, project: Project, uuid: str, format: Format):
+@ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="A JSON or CSV file contains the metadata")
+async def download_gen3_metadata_file(program: ProgramParam, project: ProjectParam, uuid: str, format: FormatParam):
     """
-    Return a single file for a given uuid.
+    Return a single metadata file for a given uuid.
 
-    :param program: program name.
-    :param project: project name.
-    :param uuid: uuid of the file.
-    :param format: file format (must be one of the following: json, tsv).
-    :return: A JSON or CSV file contains the metadata.
+    - **program**: program name.
+    - **project**: project name.
+    - **uuid**: uuid of the file.
+    - **format**: file format (must be one of the following: json, tsv).
     """
     try:
         metadata = SUBMISSION.export_record(program, project, uuid, format)
@@ -474,7 +456,7 @@ def get_collection_list(data):
     return collect_list
 
 
-@ app.get("/collection/root", tags=["iRODS"])
+@ app.get("/collection/root", tags=["iRODS"], summary="Get root information", response_description="All folders/files name and path under root folder")
 async def get_irods_root_collections():
     """
     Return all collections from the root folder.
@@ -495,12 +477,12 @@ class CollectionItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "path": "/tempZone/home/rods/datasets",
+                "path": f"{iRODSConfig.IRODS_ENDPOINT_URL}/dataset-102-version-4",
             }
         }
 
 
-@ app.post("/collection", tags=["iRODS"])
+@ app.post("/collection", tags=["iRODS"], summary="Get folder information", response_description="All folders/files name and path under selected folder")
 async def get_irods_collections(item: CollectionItem):
     """
     Return all collections from the required folder.
@@ -519,23 +501,22 @@ async def get_irods_collections(item: CollectionItem):
                             detail="Data not found in the provided path")
 
 
-class Action(str, Enum):
+class ActionParam(str, Enum):
     preview = "preview"
     download = "download"
 
 
-@ app.get("/data/{action}/{filepath:path}", tags=["iRODS"])
-async def get_irods_data_file(action: Action, filepath: str):
+@ app.get("/data/{action}/{filepath:path}", tags=["iRODS"], summary="Download irods file", response_description="A file with data")
+async def get_irods_data_file(action: ActionParam, filepath: str):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
     OR
     Return a specific download file from iRODS or a preview of most types data.
 
-    :param action: Action should be either preview or download.
-    :param filepath: Required iRODS file path.
-    :return: A file with data.
+    - **action**: Action should be either preview or download.
+    - **filepath**: Required iRODS file path.
     """
-    chunk_size = 1024*1024
+    chunk_size = 1024*1024*1024
     try:
         file = SESSION.data_objects.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{filepath}")
