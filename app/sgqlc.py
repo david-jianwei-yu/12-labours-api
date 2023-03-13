@@ -2,15 +2,9 @@ import re
 
 from fastapi import HTTPException
 
+from app.data_schema import *
 from sgqlc.operation import Operation
 from app.sgqlc_schema import Query
-
-
-BAD_REQUEST = 400
-UNAUTHORIZED = 401
-NOT_FOUND = 404
-METHOD_NOT_ALLOWED = 405
-INTERNAL_SERVER_ERROR = 500
 
 
 class SimpleGraphQLClient:
@@ -51,7 +45,6 @@ class SimpleGraphQLClient:
         if type(item.search) == dict:  # pagination situation
             snake_case_query = self.update_manifests_information(
                 snake_case_query)
-            print(snake_case_query)
             # Only pagination will need to add count field
             snake_case_query = self.add_count_field(item, snake_case_query)
         return "{" + snake_case_query + "}"
