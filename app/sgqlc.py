@@ -2,15 +2,9 @@ import re
 
 from fastapi import HTTPException
 
+from app.data_schema import *
 from sgqlc.operation import Operation
 from app.sgqlc_schema import Query
-
-
-BAD_REQUEST = 400
-UNAUTHORIZED = 401
-NOT_FOUND = 404
-METHOD_NOT_ALLOWED = 405
-INTERNAL_SERVER_ERROR = 500
 
 
 class SimpleGraphQLClient:
@@ -37,12 +31,10 @@ class SimpleGraphQLClient:
         if "filter" in item.node:
             snake_case_query = re.sub('_filter', '', snake_case_query)
             item.node = re.sub('_filter', '', item.node)
-        # Only pagination graphql will need to add count field
-        if type(item.search) == dict:
-            # Only fetch the thumbnail manifest file
-            if "manifests" in snake_case_query:
-                snake_case_query = re.sub(
-                    'manifests', 'manifests(additional_types: ["application/x.vnd.abi.scaffold.view+json"])', snake_case_query)
+        if type(item.search) == dict:  # pagination situation
+            snake_case_query = self.update_manifests_information(
+                snake_case_query)
+            # Only pagination will need to add count field
             snake_case_query = self.add_count_field(item, snake_case_query)
         return "{" + snake_case_query + "}"
 
