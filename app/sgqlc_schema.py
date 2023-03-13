@@ -9,7 +9,6 @@ class SubExperimentNode(Node):
 
 class SubDatasetDescriptionNode(Node):
     title = String
-    subtitle = String
     study_organ_system = list_of(String)
     number_of_subjects = Int
     number_of_samples = Int
@@ -39,8 +38,8 @@ class Thumbnail(Node):  # Sub manifest
     is_source_of = list_of(String)
 
 
-# class SubCaseNode(Node):
-#     species = String
+class SubCaseNode(Node):
+    species = String
 
 
 # FILTER USE ONLY
@@ -72,7 +71,7 @@ class ExperimentNode(Node):
     manifests2 = list_of(ScaffoldView)
     manifests3 = list_of(Plot)
     manifests4 = list_of(Thumbnail)
-    # cases = list_of(SubCaseNode)
+    cases = list_of(SubCaseNode)
 
 
 class DatasetDescriptionNode(Node):

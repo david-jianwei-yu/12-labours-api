@@ -4,6 +4,7 @@ from app.data_schema import GraphQLQueryItem
 from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter, FIELDS
 from app.search import Search
+from app.filter_dictionary import FILTERS
 
 sgqlc = SimpleGraphQLClient()
 f = Filter()
@@ -44,23 +45,42 @@ class Pagination:
             if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
                 s.search_filter_relation(item)
 
+    def update_species(self, data):
+        result = []
+        for ele in data:
+            subspecies = ele.get("species")
+            if subspecies != "NA":
+                species_dict = FILTERS["MAPPED_SPECIES"]["element"]
+                species = list(species_dict.keys())[list(
+                    species_dict.values()).index(subspecies)]
+                if species not in result:
+                    result.append(species)
+        return result
+
+    def update_thumbnails(self, data):
+        result = []
+        for ele in data:
+            if ele["additional_types"] == None:
+                result.append(ele)
+        return result
+
     def update_pagination_output(self, result):
         items = []
         for ele in result:
             item = {
-                # "cases": ele["cases"],
                 "contributors": ele["dataset_descriptions"][0]["contributor_name"],
                 "keywords": ele["dataset_descriptions"][0]["keywords"],
                 "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
                 "numberSubjects": int(ele["dataset_descriptions"][0]["number_of_subjects"][0]),
                 "name": ele["dataset_descriptions"][0]["title"][0],
+                "url": "",
                 "datasetId": ele["submitter_id"],
                 "organs": ele["dataset_descriptions"][0]["study_organ_system"],
-                "species": [],
+                "species": self.update_species(ele["cases"]),
                 "plots": ele["plots"],
                 "scaffoldViews": ele["scaffoldViews"],
                 "scaffolds": ele["scaffolds"],
-                "thumbnails": ele["thumbnails"],
+                "thumbnails": self.update_thumbnails(ele["thumbnails"]),
             }
             items.append(item)
         return items

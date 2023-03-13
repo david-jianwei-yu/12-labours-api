@@ -187,7 +187,7 @@ def test_graphql_pagination(client):
     response = client.post("/graphql/pagination/", json=filter_pass_case)
     result = response.json()
     assert response.status_code == 200
-    assert result["data"][0]["submitter_id"] == "dataset-46-version-2"
+    assert result["items"][0]["datasetId"] == "dataset-46-version-2"
     assert result["total"] == 1
 
     search_pass_case = {
@@ -199,7 +199,7 @@ def test_graphql_pagination(client):
         "/graphql/pagination/?search=rats", json=search_pass_case)
     result = response.json()
     assert response.status_code == 200
-    assert result["data"][0]["submitter_id"] == "dataset-46-version-2"
+    assert result["items"][0]["datasetId"] == "dataset-46-version-2"
     assert result["total"] == 1
 
     search_not_found = {
@@ -247,7 +247,7 @@ def test_graphql_pagination(client):
     response = client.post("/graphql/pagination/?search=rats", json=pass_case)
     result = response.json()
     assert response.status_code == 200
-    assert result["data"][0]["submitter_id"] == "dataset-46-version-2"
+    assert result["items"][0]["datasetId"] == "dataset-46-version-2"
     assert result["total"] == 1
 
     missing_data = {}
