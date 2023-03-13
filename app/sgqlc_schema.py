@@ -2,13 +2,50 @@ from sgqlc.types.relay import Node
 from sgqlc.types import String, Int, Type, Field, list_of
 
 
-# FILTER USE ONLY
-# Minimize the query fields
-# Increase the generating speed
+# SUB NODE ONLY
 class SubExperimentNode(Node):
     submitter_id = String
 
 
+class SubDatasetDescriptionNode(Node):
+    title = String
+    subtitle = String
+    study_organ_system = list_of(String)
+    number_of_subjects = Int
+    number_of_samples = Int
+    keywords = list_of(String)
+    contributor_name = list_of(String)
+
+
+class Scaffold(Node):  # Sub manifest
+    filename = String
+
+
+class ScaffoldView(Node):  # Sub manifest
+    filename = String
+    is_source_of = list_of(String)
+
+
+class Plot(Node):  # Sub manifest
+    filename = String
+    is_derived_from = list_of(String)
+    is_source_of = list_of(String)
+    supplemental_json_metadata = String
+
+
+class Thumbnail(Node):  # Sub manifest
+    filename = String
+    additional_types = String
+    is_source_of = list_of(String)
+
+
+# class SubCaseNode(Node):
+#     species = String
+
+
+# FILTER USE ONLY
+# Minimize the query fields
+# Increase the generating speed
 class DatasetDescriptionFilter(Node):
     experiments = list_of(SubExperimentNode)
     keywords = list_of(String)
@@ -28,33 +65,14 @@ class CaseFilter(Node):
 
 
 # QUERY/PAGINATION USE ONLY
-class SubCaseNode(Node):
-    species = String
-
-
-class SubManifestNode(Node):
-    filename = String
-    is_derived_from = list_of(String)
-    is_source_of = list_of(String)
-
-
-class SubDatasetDescriptionNode(Node):
-    title = String
-    subtitle = String
-    study_organ_system = list_of(String)
-    number_of_subjects = Int
-    number_of_samples = Int
-    keywords = list_of(String)
-
-
 class ExperimentNode(Node):
     submitter_id = String
     dataset_descriptions = list_of(SubDatasetDescriptionNode)
-    manifests1 = list_of(SubManifestNode)
-    manifests2 = list_of(SubManifestNode)
-    manifests3 = list_of(SubManifestNode)
-    manifests4 = list_of(SubManifestNode)
-    cases = list_of(SubCaseNode)
+    manifests1 = list_of(Scaffold)
+    manifests2 = list_of(ScaffoldView)
+    manifests3 = list_of(Plot)
+    manifests4 = list_of(Thumbnail)
+    # cases = list_of(SubCaseNode)
 
 
 class DatasetDescriptionNode(Node):
