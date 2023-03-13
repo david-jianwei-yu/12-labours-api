@@ -1,11 +1,5 @@
+from app.data_schema import *
 from app.filter_dictionary import FILTERS
-
-
-BAD_REQUEST = 400
-UNAUTHORIZED = 401
-NOT_FOUND = 404
-METHOD_NOT_ALLOWED = 405
-INTERNAL_SERVER_ERROR = 500
 
 # This list contains all the "Array" type fields that used as a filter
 FIELDS = [
