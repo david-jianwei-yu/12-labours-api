@@ -278,9 +278,11 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
 @ app.get("/filter/", tags=["Gen3"], summary="Get filter information")
 async def generate_filter(sidebar: bool):
     """
-    /graphql/pagination/?position=<string>
+    /filter/?sidebar=<boolean>
 
-    Return the support data for frontend filters component.
+    Return the support data for portal filters component.
+
+    - **sidebar**: boolean content.
     """
     if sidebar == True:
         return f.generate_sidebar_filter_information()
