@@ -121,9 +121,11 @@ async def root():
     return "This is the fastapi backend."
 
 
-#
-# Gen3 Data Commons
-#
+#########################
+### Gen3              ###
+### Gen3 Data Commons ###
+#########################
+
 
 def get_name_list(data, name, path):
     name_dict = {name: []}
@@ -273,11 +275,15 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     }
 
 
-@ app.get("/filter", tags=["Gen3"], summary="Get filter information")
-async def generate_filter():
+@ app.get("/filter/", tags=["Gen3"], summary="Get filter information")
+async def generate_filter(sidebar: bool):
     """
+    /graphql/pagination/?position=<string>
+
     Return the support data for frontend filters component.
     """
+    if sidebar == True:
+        return f.generate_sidebar_filter_information()
     return f.generate_filter_information()
 
 
@@ -315,9 +321,10 @@ async def download_gen3_metadata_file(program: ProgramParam, project: ProjectPar
                                      f"attachment;filename={uuid}.csv"})
 
 
-#
-# iRODS
-#
+############################################
+### iRODS                                ###
+### Integrated Rule-Oriented Data System ###
+############################################
 
 
 def get_collection_list(data):

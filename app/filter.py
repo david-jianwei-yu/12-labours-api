@@ -54,3 +54,26 @@ class Filter:
             for ele in FILTERS[element]["element"]:
                 filter_information["ids"].append(ele)
         return filter_information
+
+    def generate_sidebar_filter_information(self):
+        sidebar_filter_information = []
+        for element in FILTERS:
+            sidebar_filter_parent = {
+                "key": "",
+                "label": "",
+                "children": [],
+            }
+            sidebar_filter_parent["key"] = FILTERS[element]["node"] + \
+                ">" + FILTERS[element]["field"]
+            sidebar_filter_parent["label"] = FILTERS[element]["title"]
+            for ele in FILTERS[element]["element"]:
+                sidebar_filter_children = {
+                    "facetPropPath": "",
+                    "label": "",
+                }
+                sidebar_filter_children["facetPropPath"] = sidebar_filter_parent["key"]
+                sidebar_filter_children["label"] = ele
+                sidebar_filter_parent["children"].append(
+                    sidebar_filter_children)
+            sidebar_filter_information.append(sidebar_filter_parent)
+        return sidebar_filter_information
