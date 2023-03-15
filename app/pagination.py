@@ -90,11 +90,11 @@ class Pagination:
             return ""
         return data
 
-    def handle_multiple_name(self, data):
+    def handle_multiple_cite(self):
         pass
 
-    # path: filename, name: isDerivedFrom/isDescribedBy/isSourceOf
-    def handle_path(self, path, name):
+    # name: filename(full path), cite: isDerivedFrom/isDescribedBy/isSourceOf
+    def handle_path(self, filename, cite):
         full_path = ""
         path_object = {
             "path": [],
@@ -102,39 +102,52 @@ class Pagination:
                 "path": []
             }
         }
-        full_path_list = path.split("/")
-        full_path_list[-1] = name.split("/")[-1]
-        if name != "":
+        if cite != "":
+            full_path_list = filename.split("/")
+            full_path_list[-1] = cite.split("/")[-1]
             full_path = "/".join(full_path_list)
         path_object["path"].append(full_path)
-        path_object["relative"]["path"].append(name)
+        path_object["relative"]["path"].append(cite.split("/")[-1])
         return path_object
 
-    def update_manifests_based(self, id, data):
+    def handle_image_url(self, filetype, id, filename, source_of):
+        url_suffix = ""
+        if filetype == "scaffoldViews" or filetype == "thumbnails":
+            url_suffix = f"http://localhost:8000/data/preview/{id}"
+            if source_of != "":
+                path_list = filename.split("/")
+                path_list[-1] = source_of.split("/")[-1]
+                filepath = "/".join(path_list)
+                url_suffix += f"/{filepath}"
+            else:
+                url_suffix += f"/{filename}"
+        return url_suffix
+
+    def update_manifests_based(self, filetype, uuid, dataset_id, data):
         items = []
         for ele in data:
             item = {
-                "image_url": "",
+                "image_url": self.handle_image_url(filetype, dataset_id, ele["filename"], self.handle_empty_value(ele["is_source_of"])),
                 "additional_mimetype": {
                     "name": self.handle_empty_value(ele["additional_types"])
                 },
                 "datacite": {
-                    "isDerivedFrom": self.handle_path(self.handle_empty_value(ele["filename"]), self.handle_empty_value(ele["is_derived_from"])),
-                    "isDescribedBy": self.handle_path(self.handle_empty_value(ele["filename"]), self.handle_empty_value(ele["is_described_by"])),
-                    "isSourceOf": self.handle_path(self.handle_empty_value(ele["filename"]), self.handle_empty_value(ele["is_source_of"])),
+                    "isDerivedFrom": self.handle_path(ele["filename"], self.handle_empty_value(ele["is_derived_from"])),
+                    "isDescribedBy": self.handle_path(ele["filename"], self.handle_empty_value(ele["is_described_by"])),
+                    "isSourceOf": self.handle_path(ele["filename"], self.handle_empty_value(ele["is_source_of"])),
                     "supplemental_json_metadata": {
                         "description": self.handle_empty_value(ele["supplemental_json_metadata"])
                     },
                 },
                 "dataset": {
-                    "identifier": self.handle_empty_value(id),
-                    "path": self.handle_empty_value(ele["filename"]),
+                    "identifier": uuid,
+                    "path": ele["filename"],
                 },
                 "file_type": {
                     "name": self.handle_empty_value(ele["file_type"]),
                 },
-                "identifier": self.handle_empty_value(ele["id"]),
-                "name": self.handle_empty_value(ele["filename"].split("/")[-1]),
+                "identifier": ele["id"],
+                "name": ele["filename"].split("/")[-1],
             }
             items.append(item)
         return items
@@ -148,14 +161,14 @@ class Pagination:
                 "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
                 "numberSubjects": int(ele["dataset_descriptions"][0]["number_of_subjects"][0]),
                 "name": ele["dataset_descriptions"][0]["title"][0],
-                "url": "",
+                "url": "https://staging.12-labours-demo.org/data/browser/dataset/" + ele["submitter_id"] + "?datasetTab=abstract",
                 "datasetId": ele["submitter_id"],
                 "organs": ele["dataset_descriptions"][0]["study_organ_system"],
                 "species": self.update_species(ele["cases"]),
-                "plots": self.update_manifests_based(ele["id"], ele["plots"]),
-                "scaffoldViews": self.update_manifests_based(ele["id"], ele["scaffoldViews"]),
-                "scaffolds": self.update_manifests_based(ele["id"], ele["scaffolds"]),
-                "thumbnails": self.update_manifests_based(ele["id"], self.update_thumbnails(ele["thumbnails"])),
+                "plots": self.update_manifests_based("plots", ele["id"], ele["submitter_id"], ele["plots"]),
+                "scaffoldViews": self.update_manifests_based("scaffoldViews", ele["id"], ele["submitter_id"], ele["scaffoldViews"]),
+                "scaffolds": self.update_manifests_based("scaffolds", ele["id"], ele["submitter_id"], ele["scaffolds"]),
+                "thumbnails": self.update_manifests_based("thumbnails", ele["id"], ele["submitter_id"], self.update_thumbnails(ele["thumbnails"])),
             }
             items.append(item)
         return items
