@@ -16,26 +16,14 @@ class SubDatasetDescriptionNode(Node):
     contributor_name = list_of(String)
 
 
-class Scaffold(Node):  # Sub manifest
+class SubManifestNode(Node):
     filename = String
-
-
-class ScaffoldView(Node):  # Sub manifest
-    filename = String
-    is_source_of = list_of(String)
-
-
-class Plot(Node):  # Sub manifest
-    filename = String
+    file_type = String
+    additional_types = String
     is_derived_from = list_of(String)
+    is_described_by = list_of(String)
     is_source_of = list_of(String)
     supplemental_json_metadata = String
-
-
-class Thumbnail(Node):  # Sub manifest
-    filename = String
-    additional_types = String
-    is_source_of = list_of(String)
 
 
 class SubCaseNode(Node):
@@ -67,10 +55,10 @@ class CaseFilter(Node):
 class ExperimentNode(Node):
     submitter_id = String
     dataset_descriptions = list_of(SubDatasetDescriptionNode)
-    manifests1 = list_of(Scaffold)
-    manifests2 = list_of(ScaffoldView)
-    manifests3 = list_of(Plot)
-    manifests4 = list_of(Thumbnail)
+    manifests1 = list_of(SubManifestNode)
+    manifests2 = list_of(SubManifestNode)
+    manifests3 = list_of(SubManifestNode)
+    manifests4 = list_of(SubManifestNode)
     cases = list_of(SubCaseNode)
 
 

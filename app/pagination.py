@@ -85,6 +85,60 @@ class Pagination:
                 result.append(ele)
         return result
 
+    def handle_empty_value(self, data):
+        if data == None or data == "NA":
+            return ""
+        return data
+
+    def handle_multiple_name(self, data):
+        pass
+
+    # path: filename, name: isDerivedFrom/isDescribedBy/isSourceOf
+    def handle_path(self, path, name):
+        full_path = ""
+        path_object = {
+            "path": [],
+            "relative": {
+                "path": []
+            }
+        }
+        full_path_list = path.split("/")
+        full_path_list[-1] = name.split("/")[-1]
+        if name != "":
+            full_path = "/".join(full_path_list)
+        path_object["path"].append(full_path)
+        path_object["relative"]["path"].append(name)
+        return path_object
+
+    def update_manifests_based(self, id, data):
+        items = []
+        for ele in data:
+            item = {
+                "image_url": "",
+                "additional_mimetype": {
+                    "name": self.handle_empty_value(ele["additional_types"])
+                },
+                "datacite": {
+                    "isDerivedFrom": self.handle_path(self.handle_empty_value(ele["filename"]), self.handle_empty_value(ele["is_derived_from"])),
+                    "isDescribedBy": self.handle_path(self.handle_empty_value(ele["filename"]), self.handle_empty_value(ele["is_described_by"])),
+                    "isSourceOf": self.handle_path(self.handle_empty_value(ele["filename"]), self.handle_empty_value(ele["is_source_of"])),
+                    "supplemental_json_metadata": {
+                        "description": self.handle_empty_value(ele["supplemental_json_metadata"])
+                    },
+                },
+                "dataset": {
+                    "identifier": self.handle_empty_value(id),
+                    "path": self.handle_empty_value(ele["filename"]),
+                },
+                "file_type": {
+                    "name": self.handle_empty_value(ele["file_type"]),
+                },
+                "identifier": self.handle_empty_value(ele["id"]),
+                "name": self.handle_empty_value(ele["filename"].split("/")[-1]),
+            }
+            items.append(item)
+        return items
+
     def update_pagination_output(self, result):
         items = []
         for ele in result:
@@ -93,15 +147,15 @@ class Pagination:
                 "keywords": ele["dataset_descriptions"][0]["keywords"],
                 "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
                 "numberSubjects": int(ele["dataset_descriptions"][0]["number_of_subjects"][0]),
-                "title": ele["dataset_descriptions"][0]["title"][0],
+                "name": ele["dataset_descriptions"][0]["title"][0],
                 "url": "",
                 "datasetId": ele["submitter_id"],
                 "organs": ele["dataset_descriptions"][0]["study_organ_system"],
                 "species": self.update_species(ele["cases"]),
-                "plots": ele["plots"],
-                "scaffoldViews": ele["scaffoldViews"],
-                "scaffolds": ele["scaffolds"],
-                "thumbnails": self.update_thumbnails(ele["thumbnails"]),
+                "plots": self.update_manifests_based(ele["id"], ele["plots"]),
+                "scaffoldViews": self.update_manifests_based(ele["id"], ele["scaffoldViews"]),
+                "scaffolds": self.update_manifests_based(ele["id"], ele["scaffolds"]),
+                "thumbnails": self.update_manifests_based(ele["id"], self.update_thumbnails(ele["thumbnails"])),
             }
             items.append(item)
         return items
