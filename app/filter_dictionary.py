@@ -1,3 +1,4 @@
+
 FILTERS = {
     "MAPPED_AGE_CATEGORY": {
         "title": "AGE CATEGORY",
@@ -43,7 +44,7 @@ FILTERS = {
         "node": "manifest_filter",
         "field": "additional_types",
         "element": {
-            "Plot": ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+csv"],
+            "Plot": ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"],
             "Scaffold": ["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"],
             # "CSV": ["text/csv"],
             # "SEGMENTATION_FILES": ["application/vnd.mbfbioscience.metadata+xml", "application/vnd.mbfbioscience.neurolucida+xml"],

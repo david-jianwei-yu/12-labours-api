@@ -25,7 +25,7 @@ class SimpleGraphQLClient:
         query = re.sub(
             'manifests2', 'scaffoldViews: manifests(additional_types: ["application/x.vnd.abi.scaffold.view+json"])', query)
         query = re.sub(
-            'manifests3', 'plots: manifests(additional_types: ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+csv"])', query)
+            'manifests3', 'plots: manifests(additional_types: ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"])', query)
         query = re.sub(
             'manifests4', 'thumbnails: manifests(file_type: [".jpg", ".png"])', query)
         return query

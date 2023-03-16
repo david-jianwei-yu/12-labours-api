@@ -90,8 +90,14 @@ class Pagination:
             return ""
         return data
 
-    def handle_multiple_cite(self):
-        pass
+    def handle_multiple_cite(self, path, path_object, filename, data):
+        for ele in eval(data):
+            full_path_list = filename.split("/")
+            full_path_list[-1] = ele.split("/")[-1]
+            path = "/".join(full_path_list)
+            path_object["path"].append(path)
+            path_object["relative"]["path"].append(ele.split("/")[-1])
+        return path_object
 
     # name: filename(full path), cite: isDerivedFrom/isDescribedBy/isSourceOf
     def handle_path(self, filename, cite):
@@ -103,6 +109,10 @@ class Pagination:
             }
         }
         if cite != "":
+            if len(cite.split(",")) > 1:
+                path_object = self.handle_multiple_cite(
+                    full_path, path_object, filename, cite)
+                return path_object
             full_path_list = filename.split("/")
             full_path_list[-1] = cite.split("/")[-1]
             full_path = "/".join(full_path_list)
