@@ -113,7 +113,6 @@ class Pagination:
     def handle_image_url(self, filetype, id, filename, source_of):
         url_suffix = ""
         if filetype == "scaffoldViews" or filetype == "thumbnails":
-            url_suffix = f"/data/preview/{id}"
             if source_of != "":
                 path_list = filename.split("/")
                 path_list[-1] = source_of.split("/")[-1]
@@ -161,7 +160,6 @@ class Pagination:
                 "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
                 "numberSubjects": int(ele["dataset_descriptions"][0]["number_of_subjects"][0]),
                 "name": ele["dataset_descriptions"][0]["title"][0],
-                "url": "",
                 "datasetId": ele["submitter_id"],
                 "organs": ele["dataset_descriptions"][0]["study_organ_system"],
                 "species": self.update_species(ele["cases"]),
