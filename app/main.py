@@ -252,6 +252,7 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
 
     - Default page = 1
     - Default limit = 50
+    - Default filter = {}
     - Default search = ""
     - Default relation = "and"
 
@@ -269,7 +270,7 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     return {
         "items": p.update_pagination_output(query_result[item.node]),
         # Maximum number of records display in one page
-        "limit": item.limit,
+        "numberPerPage": item.limit,
         "page": item.page,
         "total": query_result["total"]
     }

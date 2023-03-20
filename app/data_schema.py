@@ -57,9 +57,9 @@ class GraphQLQueryItem(BaseModel):
 
 
 class GraphQLPaginationItem(BaseModel):
+    node: Union[str, None] = "experiment"
     page: Union[int, None] = 1
     limit: Union[int, None] = 50
-    node: Union[str, None] = None
     filter: Union[dict, None] = {}
     search: Union[dict, None] = {}
     relation: Union[str, None] = "and"
@@ -69,7 +69,6 @@ class GraphQLPaginationItem(BaseModel):
             "example": {
                 "page": 1,
                 "limit": 50,
-                "node": "experiment",
                 "filter": {},
                 "relation": "and"
             }

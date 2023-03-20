@@ -13,19 +13,22 @@ s = Search()
 
 class Pagination:
     def update_filter_values(self, filter):
-        key = list(filter.keys())[0]
+        field = list(filter.keys())[0]
         value_list = []
-        for filter_key in list(filter.values())[0]:
+        for ele_name in list(filter.values())[0]:
             for ele in FILTERS:
-                if FILTERS[ele]["field"] == key and filter_key in list(FILTERS[ele]["element"].keys()):
-                    filter_value = FILTERS[ele]["element"][filter_key]
-                    if type(filter_value) == list:
-                        value_list.extend(filter_value)
+                # Check if ele can match with a exist filter object
+                if FILTERS[ele]["field"] == field:
+                    # Check if ele_name is a key under filter object element field
+                    if ele_name in list(FILTERS[ele]["element"].keys()):
+                        ele_value = FILTERS[ele]["element"][ele_name]
+                        if type(ele_value) == list:
+                            value_list.extend(ele_value)
+                        else:
+                            value_list.append(ele_value)
                     else:
-                        value_list.append(filter_value)
-        if value_list == []:
-            return filter
-        return {key: value_list}
+                        return filter
+        return {field: value_list}
 
     def update_pagination_item(self, item, input, SUBMISSION, SESSION):
         if item.filter != {}:
@@ -90,17 +93,7 @@ class Pagination:
             return ""
         return data
 
-    def handle_multiple_cite(self, path, path_object, filename, data):
-        for ele in eval(data):
-            full_path_list = filename.split("/")
-            full_path_list[-1] = ele.split("/")[-1]
-            path = "/".join(full_path_list)
-            path_object["path"].append(path)
-            path_object["relative"]["path"].append(ele.split("/")[-1])
-        return path_object
-
-    # name: filename(full path), cite: isDerivedFrom/isDescribedBy/isSourceOf
-    def handle_path(self, filename, cite):
+    def handle_multiple_cite(self, filename, cite):
         full_path = ""
         path_object = {
             "path": [],
@@ -108,19 +101,35 @@ class Pagination:
                 "path": []
             }
         }
-        if cite != "":
-            if len(cite.split(",")) > 1:
-                path_object = self.handle_multiple_cite(
-                    full_path, path_object, filename, cite)
-                return path_object
+        for ele in eval(cite):
             full_path_list = filename.split("/")
-            full_path_list[-1] = cite.split("/")[-1]
+            full_path_list[-1] = ele.split("/")[-1]
             full_path = "/".join(full_path_list)
-        path_object["path"].append(full_path)
-        path_object["relative"]["path"].append(cite.split("/")[-1])
+            path_object["path"].append(full_path)
+            path_object["relative"]["path"].append(ele.split("/")[-1])
         return path_object
 
-    def handle_image_url(self, filetype, id, filename, source_of):
+    # filename: (contains full file path), data: isDerivedFrom/isDescribedBy/isSourceOf
+    def handle_path(self, filename, data):
+        full_path = ""
+        path_object = {
+            "path": [],
+            "relative": {
+                "path": []
+            }
+        }
+        if data != "":
+            if len(data.split(",")) > 1:
+                path_object = self.handle_multiple_cite(filename, data)
+                return path_object
+            full_path_list = filename.split("/")
+            full_path_list[-1] = data.split("/")[-1]
+            full_path = "/".join(full_path_list)
+        path_object["path"].append(full_path)
+        path_object["relative"]["path"].append(data.split("/")[-1])
+        return path_object
+
+    def handle_image_url(self, filetype, filename, source_of):
         url_suffix = ""
         if filetype == "scaffoldViews" or filetype == "thumbnails":
             if source_of != "":
@@ -132,11 +141,11 @@ class Pagination:
                 url_suffix += f"/{filename}"
         return url_suffix
 
-    def update_manifests_based(self, filetype, uuid, dataset_id, data):
+    def update_manifests_based(self, filetype, uuid, data):
         items = []
         for ele in data:
             item = {
-                "image_url": self.handle_image_url(filetype, dataset_id, ele["filename"], self.handle_empty_value(ele["is_source_of"])),
+                "image_url": self.handle_image_url(filetype, ele["filename"], self.handle_empty_value(ele["is_source_of"])),
                 "additional_mimetype": {
                     "name": self.handle_empty_value(ele["additional_types"])
                 },
@@ -173,10 +182,10 @@ class Pagination:
                 "datasetId": ele["submitter_id"],
                 "organs": ele["dataset_descriptions"][0]["study_organ_system"],
                 "species": self.update_species(ele["cases"]),
-                "plots": self.update_manifests_based("plots", ele["id"], ele["submitter_id"], ele["plots"]),
-                "scaffoldViews": self.update_manifests_based("scaffoldViews", ele["id"], ele["submitter_id"], ele["scaffoldViews"]),
-                "scaffolds": self.update_manifests_based("scaffolds", ele["id"], ele["submitter_id"], ele["scaffolds"]),
-                "thumbnails": self.update_manifests_based("thumbnails", ele["id"], ele["submitter_id"], self.update_thumbnails(ele["thumbnails"])),
+                "plots": self.update_manifests_based("plots", ele["id"], ele["plots"]),
+                "scaffoldViews": self.update_manifests_based("scaffoldViews", ele["id"], ele["scaffoldViews"]),
+                "scaffolds": self.update_manifests_based("scaffolds", ele["id"], ele["scaffolds"]),
+                "thumbnails": self.update_manifests_based("thumbnails", ele["id"], self.update_thumbnails(ele["thumbnails"])),
             }
             items.append(item)
         return items
