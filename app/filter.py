@@ -64,7 +64,8 @@ class Filter:
                 "children": [],
             }
             sidebar_filter_parent["key"] = FILTERS[element]["node"] + \
-                ">" + FILTERS[element]["field"]
+                ">" + FILTERS[element]["field"] + \
+                ">" + str(FILTERS[element]["element"])
             sidebar_filter_parent["label"] = FILTERS[element]["title"]
             for ele in FILTERS[element]["element"]:
                 sidebar_filter_children = {
