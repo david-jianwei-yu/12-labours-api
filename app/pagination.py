@@ -1,4 +1,5 @@
 import re
+import json
 
 from app.data_schema import GraphQLQueryItem
 from app.sgqlc import SimpleGraphQLClient
@@ -101,7 +102,7 @@ class Pagination:
                 "path": []
             }
         }
-        for ele in eval(cite):
+        for ele in json.loads(re.sub("'", '"', cite)):
             full_path_list = filename.split("/")
             full_path_list[-1] = ele.split("/")[-1]
             full_path = "/".join(full_path_list)
