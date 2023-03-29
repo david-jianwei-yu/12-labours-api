@@ -1,6 +1,7 @@
 import re
 import json
 
+from app.config import Config
 from app.data_schema import GraphQLQueryItem
 from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter, FIELDS
@@ -130,8 +131,8 @@ class Pagination:
         path_object["relative"]["path"].append(data.split("/")[-1])
         return path_object
 
-    def handle_image_url(self, filetype, filename, source_of):
-        url_suffix = ""
+    def handle_image_url(self, filetype, datasetId, filename, source_of):
+        url_suffix = f"{Config.BASE_URL}/data/preview/{datasetId}"
         if filetype == "scaffoldViews" or filetype == "thumbnails":
             if source_of != "":
                 path_list = filename.split("/")
@@ -142,11 +143,12 @@ class Pagination:
                 url_suffix += f"/{filename}"
         return url_suffix
 
-    def update_manifests_based(self, filetype, uuid, data):
+    def update_manifests_based(self, filetype, uuid, datasetId, data):
         items = []
         for ele in data:
             item = {
-                "image_url": self.handle_image_url(filetype, ele["filename"], self.handle_empty_value(ele["is_source_of"])),
+                "image_url": self.handle_image_url(filetype, datasetId, ele["filename"], self.handle_empty_value(ele["is_source_of"])),
+                "source_url_prefix": f"{Config.BASE_URL}/data/download/{datasetId}/",
                 "additional_mimetype": {
                     "name": self.handle_empty_value(ele["additional_types"])
                 },
@@ -175,6 +177,7 @@ class Pagination:
         items = []
         for ele in result:
             item = {
+                "data_url": f"{Config.PORTAL_URL}/data/browser/dataset/" + ele["submitter_id"] + "?datasetTab=abstract",
                 "contributors": ele["dataset_descriptions"][0]["contributor_name"],
                 "keywords": ele["dataset_descriptions"][0]["keywords"],
                 "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
@@ -183,10 +186,10 @@ class Pagination:
                 "datasetId": ele["submitter_id"],
                 "organs": ele["dataset_descriptions"][0]["study_organ_system"],
                 "species": self.update_species(ele["cases"]),
-                "plots": self.update_manifests_based("plots", ele["id"], ele["plots"]),
-                "scaffoldViews": self.update_manifests_based("scaffoldViews", ele["id"], ele["scaffoldViews"]),
-                "scaffolds": self.update_manifests_based("scaffolds", ele["id"], ele["scaffolds"]),
-                "thumbnails": self.update_manifests_based("thumbnails", ele["id"], self.update_thumbnails(ele["thumbnails"])),
+                "plots": self.update_manifests_based("plots", ele["id"], ele["submitter_id"], ele["plots"]),
+                "scaffoldViews": self.update_manifests_based("scaffoldViews", ele["id"], ele["submitter_id"], ele["scaffoldViews"]),
+                "scaffolds": self.update_manifests_based("scaffolds", ele["id"], ele["submitter_id"], ele["scaffolds"]),
+                "thumbnails": self.update_manifests_based("thumbnails", ele["id"], ele["submitter_id"], self.update_thumbnails(ele["thumbnails"])),
             }
             items.append(item)
         return items
