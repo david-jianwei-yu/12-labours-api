@@ -132,16 +132,18 @@ class Pagination:
         return path_object
 
     def handle_image_url(self, filetype, datasetId, filename, source_of):
-        url_suffix = f"{Config.BASE_URL}/data/preview/{datasetId}"
+        full_url = f"{Config.BASE_URL}/data/preview/{datasetId}"
         if filetype == "scaffoldViews" or filetype == "thumbnails":
             if source_of != "":
                 path_list = filename.split("/")
                 path_list[-1] = source_of.split("/")[-1]
                 filepath = "/".join(path_list)
-                url_suffix += f"/{filepath}"
+                full_url += f"/{filepath}"
             else:
-                url_suffix += f"/{filename}"
-        return url_suffix
+                full_url += f"/{filename}"
+        else:
+            full_url = ""
+        return full_url
 
     def update_manifests_based(self, filetype, uuid, datasetId, data):
         items = []
