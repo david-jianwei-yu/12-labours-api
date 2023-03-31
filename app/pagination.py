@@ -67,6 +67,17 @@ class Pagination:
             if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
                 s.search_filter_relation(item)
 
+    def update_contributors(self, data):
+        result = []
+        if data == []:
+            return result
+        for ele in data:
+            contributor = {
+                "name": ele
+            }
+            result.append(contributor)
+        return result
+
     def update_species(self, data):
         result = []
         if data == []:
@@ -180,7 +191,7 @@ class Pagination:
         for ele in result:
             item = {
                 "data_url": f"{Config.PORTAL_URL}/data/browser/dataset/" + ele["submitter_id"] + "?datasetTab=abstract",
-                "contributors": ele["dataset_descriptions"][0]["contributor_name"],
+                "contributors": self.update_contributors(ele["dataset_descriptions"][0]["contributor_name"]),
                 "keywords": ele["dataset_descriptions"][0]["keywords"],
                 "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
                 "numberSubjects": int(ele["dataset_descriptions"][0]["number_of_subjects"][0]),
@@ -192,6 +203,7 @@ class Pagination:
                 "scaffoldViews": self.update_manifests_based("scaffoldViews", ele["id"], ele["submitter_id"], ele["scaffoldViews"]),
                 "scaffolds": self.update_manifests_based("scaffolds", ele["id"], ele["submitter_id"], ele["scaffolds"]),
                 "thumbnails": self.update_manifests_based("thumbnails", ele["id"], ele["submitter_id"], self.update_thumbnails(ele["thumbnails"])),
+                "detailsReady": True,
             }
             items.append(item)
         return items
