@@ -138,16 +138,16 @@ class Pagination:
         result["relative"]["path"].append(cite.split("/")[-1])
         return result
 
-    def handle_image_url(self, filetype, datasetId, filename, source_of):
-        full_url = f"{Config.BASE_URL}/data/preview/{datasetId}"
-        if filetype == "scaffoldViews" or filetype == "thumbnails":
+    def handle_image_url(self, prefix, filename, source_of, has_image):
+        full_url = prefix
+        if has_image:
             if source_of != "":
                 path_list = filename.split("/")
                 path_list[-1] = source_of.split("/")[-1]
                 filepath = "/".join(path_list)
-                full_url += f"/{filepath}"
+                full_url += filepath
             else:
-                full_url += f"/{filename}"
+                full_url += filename
         else:
             return ""
         return full_url
@@ -157,12 +157,11 @@ class Pagination:
             return ""
         return data
 
-    def update_manifests_based(self, filetype, uuid, datasetId, data):
+    def update_manifests_based(self, uuid, prefix, data, image=False):
         result = []
         for ele in data:
             item = {
-                "image_url": self.handle_image_url(filetype, datasetId, ele["filename"], self.handle_empty_value(ele["is_source_of"])),
-                "source_url_prefix": f"{Config.BASE_URL}/data/download/{datasetId}/",
+                "image_url": self.handle_image_url(prefix, ele["filename"], self.handle_empty_value(ele["is_source_of"]), image),
                 "additional_mimetype": {
                     "name": self.handle_empty_value(ele["additional_types"])
                 },
@@ -190,20 +189,23 @@ class Pagination:
     def update_pagination_output(self, data):
         result = []
         for ele in data:
+            dataset_id = ele["submitter_id"]
+            image_url_prefix = f"{Config.BASE_URL}/data/preview/{dataset_id}/"
             item = {
-                "data_url": f"{Config.PORTAL_URL}/data/browser/dataset/" + ele["submitter_id"] + "?datasetTab=abstract",
+                "data_url": f"{Config.PORTAL_URL}/data/browser/dataset/{dataset_id}?datasetTab=abstract",
+                "source_url_prefix": f"{Config.BASE_URL}/data/download/{dataset_id}/",
                 "contributors": self.update_contributors(ele["dataset_descriptions"][0]["contributor_name"]),
                 "keywords": ele["dataset_descriptions"][0]["keywords"],
                 "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
                 "numberSubjects": int(ele["dataset_descriptions"][0]["number_of_subjects"][0]),
                 "name": ele["dataset_descriptions"][0]["title"][0],
-                "datasetId": ele["submitter_id"],
+                "datasetId": dataset_id,
                 "organs": ele["dataset_descriptions"][0]["study_organ_system"],
                 "species": self.update_species(ele["cases"]),
-                "plots": self.update_manifests_based("plots", ele["id"], ele["submitter_id"], ele["plots"]),
-                "scaffoldViews": self.update_manifests_based("scaffoldViews", ele["id"], ele["submitter_id"], ele["scaffoldViews"]),
-                "scaffolds": self.update_manifests_based("scaffolds", ele["id"], ele["submitter_id"], ele["scaffolds"]),
-                "thumbnails": self.update_manifests_based("thumbnails", ele["id"], ele["submitter_id"], self.update_thumbnails(ele["thumbnails"])),
+                "plots": self.update_manifests_based(ele["id"], image_url_prefix, ele["plots"]),
+                "scaffoldViews": self.update_manifests_based(ele["id"], image_url_prefix, ele["scaffoldViews"], True),
+                "scaffolds": self.update_manifests_based(ele["id"], image_url_prefix, ele["scaffolds"]),
+                "thumbnails": self.update_manifests_based(ele["id"], image_url_prefix, self.update_thumbnails(ele["thumbnails"]), True),
                 "detailsReady": True,
             }
             result.append(item)
