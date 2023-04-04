@@ -29,10 +29,10 @@ class Gen3Item(BaseModel):
 
 
 class NodeParam(str, Enum):
-    experiment = "experiment_query"
-    dataset_description = "dataset_description_query"
-    manifest = "manifest_query"
-    case = "case_query"
+    experiment = "experiment"
+    dataset_description = "dataset_description"
+    manifest = "manifest"
+    case = "case"
 
 
 class GraphQLQueryItem(BaseModel):
