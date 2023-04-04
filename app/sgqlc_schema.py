@@ -148,36 +148,13 @@ class ExperimentPagination(Node):
 
 
 class Query(Type):
-    experimentQuery = Field(
-        ExperimentQuery,
-        args={
-            "first": Int,
-            "offset": Int,
-            "submitter_id": list_of(String),
-        }
-    )
-    experimentPagination = Field(
-        ExperimentPagination,
-        args={
-            "first": Int,
-            "offset": Int,
-            "submitter_id": list_of(String),
-        }
-    )
+    # FILTER
     datasetDescriptionFilter = Field(
         DatasetDescriptionFilter,
         args={
             "first": Int,
             "offset": Int,
-            "study_organ_system": list_of(String),
-        }
-    )
-    datasetDescriptionQuery = Field(
-        DatasetDescriptionQuery,
-        args={
-            "first": Int,
-            "offset": Int,
-            "quick_search": String,
+            # "study_organ_system": list_of(String),
         }
     )
     manifestFilter = Field(
@@ -186,14 +163,6 @@ class Query(Type):
             "first": Int,
             "offset": Int,
             "additional_types": list_of(String)
-        }
-    )
-    manifestQuery = Field(
-        ManifestQuery,
-        args={
-            "first": Int,
-            "offset": Int,
-            "quick_search": String,
         }
     )
     caseFilter = Field(
@@ -206,11 +175,45 @@ class Query(Type):
             "age_category": list_of(String),
         }
     )
+    # QUERY
+    experimentQuery = Field(
+        ExperimentQuery,
+        args={
+            "first": Int,
+            "offset": Int,
+            "submitter_id": list_of(String),
+        }
+    )
+    datasetDescriptionQuery = Field(
+        DatasetDescriptionQuery,
+        args={
+            "first": Int,
+            "offset": Int,
+            "quick_search": String,
+        }
+    )
+    manifestQuery = Field(
+        ManifestQuery,
+        args={
+            "first": Int,
+            "offset": Int,
+            "quick_search": String,
+        }
+    )
     caseQuery = Field(
         CaseQuery,
         args={
             "first": Int,
             "offset": Int,
             "quick_search": String,
+        }
+    )
+    # PAGINATION
+    experimentPagination = Field(
+        ExperimentPagination,
+        args={
+            "first": Int,
+            "offset": Int,
+            "submitter_id": list_of(String),
         }
     )

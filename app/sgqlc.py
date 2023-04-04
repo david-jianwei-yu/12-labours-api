@@ -51,62 +51,30 @@ class SimpleGraphQLClient:
         if "null" in snake_case_query:
             snake_case_query = re.sub(
                 '[,]? [_a-z]+: null', '', snake_case_query)
+        # Either pagination or experiment node query
         if "experiment" in item.node:
             snake_case_query = self.update_manifests_information(
                 snake_case_query)
+            # Only pagination will need count field
             if type(item.search) == dict:
-                # Only pagination will need to add count field
                 snake_case_query = self.add_count_field(item, snake_case_query)
         snake_case_query, item.node = self.remove_node_suffix(
             item.node, snake_case_query)
         return "{" + snake_case_query + "}"
 
-    # if the node name contains "_pagination",
-    # the query generator will only be used for /graphql/pagination API
-    # if the node name contains "_filter",
-    # the query generator will only be used for /filter/ API
-    # if the node name contains "_query",
-    # the query generator will only be used for /graphql/query API,
-    # this will fetch all the fields that Gen3 metadata has
+    # generated query will fetch all the fields that Gen3 metadata has
     def generate_query(self, item):
         query = Operation(Query)
-        if item.node == "experiment_query":
-            if type(item.search) == str and item.search != "":
-                raise HTTPException(status_code=METHOD_NOT_ALLOWED,
-                                    detail="Search function does not support while querying in experiment node")
-            return self.convert_query(
-                item,
-                query.experimentQuery(
-                    first=0,
-                    offset=0,
-                    submitter_id=item.filter["submitter_id"] if "submitter_id" in item.filter else None
-                )
-            )
-        elif item.node == "experiment_pagination":
-            return self.convert_query(
-                item,
-                query.experimentPagination(
-                    first=item.limit,
-                    offset=(item.page-1)*item.limit,
-                    submitter_id=item.filter["submitter_id"] if "submitter_id" in item.filter else None
-                )
-            )
-        elif item.node == "dataset_description_filter":
+        # FILTER
+        # if the node name contains "_filter",
+        # the query generator will be used for /filter/ and /graphql/pagination API
+        if item.node == "dataset_description_filter":
             return self.convert_query(
                 item,
                 query.datasetDescriptionFilter(
                     first=0,
                     offset=0,
-                    study_organ_system=item.filter["study_organ_system"] if "study_organ_system" in item.filter else None
-                )
-            )
-        elif item.node == "dataset_description_query":
-            return self.convert_query(
-                item,
-                query.datasetDescriptionQuery(
-                    first=0,
-                    offset=0,
-                    quick_search=item.search,
+                    # study_organ_system=item.filter["study_organ_system"] if "study_organ_system" in item.filter else None
                 )
             )
         elif item.node == "manifest_filter":
@@ -116,15 +84,6 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     additional_types=item.filter["additional_types"] if "additional_types" in item.filter else None
-                )
-            )
-        elif item.node == "manifest_query":
-            return self.convert_query(
-                item,
-                query.manifestQuery(
-                    first=0,
-                    offset=0,
-                    quick_search=item.search,
                 )
             )
         elif item.node == "case_filter":
@@ -138,6 +97,39 @@ class SimpleGraphQLClient:
                     age_category=item.filter["age_category"] if "age_category" in item.filter else None
                 )
             )
+        # QUERY
+        # if the node name contains "_query",
+        # the query generator will only be used for /graphql/query API
+        elif item.node == "experiment_query":
+            if type(item.search) == str and item.search != "":
+                raise HTTPException(status_code=METHOD_NOT_ALLOWED,
+                                    detail="Search function does not support while querying in experiment node")
+            return self.convert_query(
+                item,
+                query.experimentQuery(
+                    first=0,
+                    offset=0,
+                    submitter_id=item.filter["submitter_id"] if "submitter_id" in item.filter else None
+                )
+            )
+        elif item.node == "dataset_description_query":
+            return self.convert_query(
+                item,
+                query.datasetDescriptionQuery(
+                    first=0,
+                    offset=0,
+                    quick_search=item.search,
+                )
+            )
+        elif item.node == "manifest_query":
+            return self.convert_query(
+                item,
+                query.manifestQuery(
+                    first=0,
+                    offset=0,
+                    quick_search=item.search,
+                )
+            )
         elif item.node == "case_query":
             return self.convert_query(
                 item,
@@ -145,6 +137,18 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     quick_search=item.search,
+                )
+            )
+        # PAGINATION
+        # if the node name contains "_pagination",
+        # the query generator will only be used for /graphql/pagination API
+        elif item.node == "experiment_pagination":
+            return self.convert_query(
+                item,
+                query.experimentPagination(
+                    first=item.limit,
+                    offset=(item.page-1)*item.limit,
+                    submitter_id=item.filter["submitter_id"] if "submitter_id" in item.filter else None
                 )
             )
         else:
