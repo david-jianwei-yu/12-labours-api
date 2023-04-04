@@ -61,9 +61,12 @@ class SimpleGraphQLClient:
             item.node, snake_case_query)
         return "{" + snake_case_query + "}"
 
-    # if the node name contains "_filter",
+    # if the node name contains "_pagination",
     # the query generator will only be used for /graphql/pagination API
-    # else is for /graphql/query API,
+    # if the node name contains "_filter",
+    # the query generator will only be used for /filter/ API
+    # if the node name contains "_query",
+    # the query generator will only be used for /graphql/query API,
     # this will fetch all the fields that Gen3 metadata has
     def generate_query(self, item):
         query = Operation(Query)
