@@ -12,7 +12,7 @@ class SimpleGraphQLClient:
         # Add default count field to query
         count_field = f"total: _{item.node}_count"
         if item.filter != {}:
-            # Manually modify and add count filed into graphql query
+            # Manually modify and add count field into graphql query
             filter_argument = re.sub(
                 '\'([_a-z]+)\'', r'\1', re.sub(r'\{([^{].*[^}])\}', r'\1', f'{item.filter}'))
             count_field = re.sub(
@@ -20,15 +20,28 @@ class SimpleGraphQLClient:
         return query + count_field
 
     def update_manifests_information(self, query):
-        query = re.sub(
-            'manifests1', 'scaffolds: manifests(additional_types: ["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"])', query)
-        query = re.sub(
-            'manifests2', 'scaffoldViews: manifests(additional_types: ["application/x.vnd.abi.scaffold.view+json"])', query)
-        query = re.sub(
-            'manifests3', 'plots: manifests(additional_types: ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"])', query)
-        query = re.sub(
-            'manifests4', 'thumbnails: manifests(file_type: [".jpg", ".png"])', query)
+        data = {
+            'manifests1': ['scaffolds', 'additional_types', '["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"]'],
+            'manifests2': ['scaffoldViews', 'additional_types', '["application/x.vnd.abi.scaffold.view+json"]'],
+            'manifests3': ['plots', 'additional_types', '["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"]'],
+            'manifests4': ['thumbnails', 'file_type', '[".jpg", ".png"]']
+        }
+        for key in data.keys():
+            query = re.sub(
+                key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]})', query)
         return query
+
+    def remove_node_suffix(self, node, query):
+        suffix = ""
+        if "filter" in node:
+            suffix = "_filter"
+        elif "query" in node:
+            suffix = "_query"
+        elif "pagination" in node:
+            suffix = "_pagination"
+        query = re.sub(suffix, '', query)
+        node = re.sub(suffix, '', node)
+        return query, node
 
     def convert_query(self, item, query):
         # Convert camel case to snake case
@@ -38,15 +51,14 @@ class SimpleGraphQLClient:
         if "null" in snake_case_query:
             snake_case_query = re.sub(
                 '[,]? [_a-z]+: null', '', snake_case_query)
-        # Update the filter query node name
-        if "filter" in item.node:  # query situation
-            snake_case_query = re.sub('_filter', '', snake_case_query)
-            item.node = re.sub('_filter', '', item.node)
-        if type(item.search) == dict:  # pagination situation
+        if "experiment" in item.node:
             snake_case_query = self.update_manifests_information(
                 snake_case_query)
-            # Only pagination will need to add count field
-            snake_case_query = self.add_count_field(item, snake_case_query)
+            if type(item.search) == dict:
+                # Only pagination will need to add count field
+                snake_case_query = self.add_count_field(item, snake_case_query)
+        snake_case_query, item.node = self.remove_node_suffix(
+            item.node, snake_case_query)
         return "{" + snake_case_query + "}"
 
     # if the node name contains "_filter",
@@ -55,19 +67,19 @@ class SimpleGraphQLClient:
     # this will fetch all the fields that Gen3 metadata has
     def generate_query(self, item):
         query = Operation(Query)
-        if item.node == "experiment":
+        if item.node == "experiment_query":
             return self.convert_query(
                 item,
-                query.experiment(
-                    first=item.limit,
-                    offset=(item.page-1)*item.limit,
+                query.experimentQuery(
+                    first=0,
+                    offset=0,
                     submitter_id=item.filter["submitter_id"] if "submitter_id" in item.filter else None
                 )
             )
-        elif item.node == "dataset_description":
+        elif item.node == "experiment_pagination":
             return self.convert_query(
                 item,
-                query.datasetDescription(
+                query.experimentPagination(
                     first=item.limit,
                     offset=(item.page-1)*item.limit,
                     submitter_id=item.filter["submitter_id"] if "submitter_id" in item.filter else None
@@ -77,36 +89,35 @@ class SimpleGraphQLClient:
             return self.convert_query(
                 item,
                 query.datasetDescriptionFilter(
-                    first=item.limit,
-                    offset=(item.page-1)*item.limit,
+                    first=0,
+                    offset=0,
+                    study_organ_system=item.filter["study_organ_system"] if "study_organ_system" in item.filter else None
                 )
             )
-        elif item.node == "manifest":
+        elif item.node == "dataset_description_query":
             return self.convert_query(
                 item,
-                query.manifest(
-                    first=item.limit,
-                    offset=(item.page-1)*item.limit,
+                query.datasetDescriptionQuery(
+                    first=0,
+                    offset=0,
                     quick_search=item.search,
-                    additional_types=item.filter["additional_types"] if "additional_types" in item.filter else None,
-                    file_type=item.filter["file_type"] if "file_type" in item.filter else None
                 )
             )
         elif item.node == "manifest_filter":
             return self.convert_query(
                 item,
                 query.manifestFilter(
-                    first=item.limit,
-                    offset=(item.page-1)*item.limit,
+                    first=0,
+                    offset=0,
                     additional_types=item.filter["additional_types"] if "additional_types" in item.filter else None
                 )
             )
-        elif item.node == "case":
+        elif item.node == "manifest_query":
             return self.convert_query(
                 item,
-                query.case(
-                    first=item.limit,
-                    offset=(item.page-1)*item.limit,
+                query.manifestQuery(
+                    first=0,
+                    offset=0,
                     quick_search=item.search,
                 )
             )
@@ -114,11 +125,20 @@ class SimpleGraphQLClient:
             return self.convert_query(
                 item,
                 query.caseFilter(
-                    first=item.limit,
-                    offset=(item.page-1)*item.limit,
+                    first=0,
+                    offset=0,
                     species=item.filter["species"] if "species" in item.filter else None,
                     sex=item.filter["sex"] if "sex" in item.filter else None,
                     age_category=item.filter["age_category"] if "age_category" in item.filter else None
+                )
+            )
+        elif item.node == "case_query":
+            return self.convert_query(
+                item,
+                query.caseQuery(
+                    first=0,
+                    offset=0,
+                    quick_search=item.search,
                 )
             )
         else:
