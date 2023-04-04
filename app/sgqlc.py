@@ -71,6 +71,9 @@ class SimpleGraphQLClient:
     def generate_query(self, item):
         query = Operation(Query)
         if item.node == "experiment_query":
+            if type(item.search) == str and item.search != "":
+                raise HTTPException(status_code=METHOD_NOT_ALLOWED,
+                                    detail="Search function does not support while querying in experiment node")
             return self.convert_query(
                 item,
                 query.experimentQuery(
