@@ -162,12 +162,6 @@ class SimpleGraphQLClient:
 
         query = self.generate_query(item)
         try:
-            query_result = SUBMISSION.query(query)["data"]
+            return SUBMISSION.query(query)["data"]
         except Exception as e:
             raise HTTPException(status_code=NOT_FOUND, detail=str(e))
-
-        if query_result[item.node] != []:
-            return query_result
-        else:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="Data cannot be found in the node")
