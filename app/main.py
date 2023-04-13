@@ -232,12 +232,17 @@ async def graphql_query(item: GraphQLQueryItem):
     """
     Return queries metadata records. The API uses GraphQL query language.
 
+    **node**
+    - dataset_description_query
+    - manifest_query
+    - case_query
+
     **filter**
-    - {"<filed_name>": ["<attribute_name>", ...], ...}
+    - {"submitter_id": ["<submitter_id>", ...], ...}
 
     **search**
     - string content,
-    - only available in manifest/case nodes
+    - only available in dataset_description/manifest/case nodes
     """
     query_result = sgqlc.get_queried_result(item, SUBMISSION)
     return query_result[item.node]
@@ -256,10 +261,14 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     - Default search = ""
     - Default relation = "and"
 
-    filter post format should looks like: 
-    {"id": {"node": "<gen3_node>", "filter": {"<gen3_field>": [<filed_content>,...]}}, ...}
+    **node**
+    - experiment_pagination
 
-    - **search**: string content.
+    **filter(zero or more)** 
+    - {"\\<id\\>": {"node": "<gen3_node>", "filter": {"<gen3_field>": [<filed_content>,...]}}, ...}
+
+    **search(parameter)**: 
+    - string content
     """
     p.update_pagination_item(item, search, SUBMISSION, SESSION)
     query_result = sgqlc.get_queried_result(item, SUBMISSION)

@@ -132,9 +132,9 @@ def test_get_gen3_record(client):
 
 
 def test_graphql_query(client):
-    DATASET_ID = "dataset-217-version-2-dataset_description"
+    DATASET_ID = "dataset-217-version-2"
     pass_case = {
-        "node": "dataset_description",
+        "node": "experiment_query",
         "filter": {
             "submitter_id": [DATASET_ID]
         },
@@ -154,7 +154,6 @@ def test_graphql_query(client):
 
 def test_graphql_pagination(client):
     filter_pass_case = {
-        "node": "experiment",
         "filter": {
             "1": {
                 "node": "manifest_filter",
@@ -191,7 +190,6 @@ def test_graphql_pagination(client):
     assert result["total"] == 1
 
     search_pass_case = {
-        "node": "experiment",
         "filter": {},
         "relation": "and"
     }
@@ -203,7 +201,6 @@ def test_graphql_pagination(client):
     assert result["total"] == 1
 
     search_not_found = {
-        "node": "experiment",
         "filter": {},
         "relation": "and"
     }
@@ -214,7 +211,6 @@ def test_graphql_pagination(client):
     assert result["detail"] == "There is no matched content in the database"
 
     pass_case = {
-        "node": "experiment",
         "filter": {
             "1": {
                 "node": "manifest_filter",
@@ -250,17 +246,10 @@ def test_graphql_pagination(client):
     assert result["items"][0]["datasetId"] == "dataset-46-version-2"
     assert result["total"] == 1
 
-    missing_data = {}
-    response = client.post("/graphql/pagination/", json=missing_data)
-    result = response.json()
-    assert response.status_code == 400
-    assert result["detail"] == "Missing one or more fields in the request body"
-
     wrong_data = {
-        "node": "fakenode",
         "filter": {
             "1": {
-                "node": "manifest_filter",
+                "node": "fakenode_filter",
                 "filter": {
                     "additional_types": [
                         "text/vnd.abi.plot+tab-separated-values",
@@ -278,7 +267,10 @@ def test_graphql_pagination(client):
 
 
 def test_generate_filter(client):
-    response = client.get("/filter")
+    response = client.get("/filter/?sidebar=true")
+    assert response.status_code == 200
+
+    response = client.get("/filter/?sidebar=false")
     assert response.status_code == 200
 
 

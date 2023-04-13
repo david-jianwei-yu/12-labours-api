@@ -2,67 +2,33 @@ from sgqlc.types.relay import Node
 from sgqlc.types import String, Int, Type, Field, list_of
 
 
-# SUB NODE ONLY
-class SubExperimentNode(Node):
-    submitter_id = String
-
-
-class SubDatasetDescriptionNode(Node):
-    title = String
-    study_organ_system = list_of(String)
-    number_of_subjects = Int
-    number_of_samples = Int
-    keywords = list_of(String)
-    contributor_name = list_of(String)
-
-
-class SubManifestNode(Node):
-    filename = String
-    file_type = String
-    additional_types = String
-    is_derived_from = list_of(String)
-    is_described_by = list_of(String)
-    is_source_of = list_of(String)
-    supplemental_json_metadata = String
-
-
-class SubCaseNode(Node):
-    species = String
-
-
 # FILTER USE ONLY
 # Minimize the query fields
 # Increase the generating speed
+class SubExperiment(Node):
+    submitter_id = String
+
+
 class DatasetDescriptionFilter(Node):
-    experiments = list_of(SubExperimentNode)
+    experiments = list_of(SubExperiment)
     keywords = list_of(String)
     study_organ_system = list_of(String)
 
 
 class ManifestFilter(Node):
-    experiments = list_of(SubExperimentNode)
+    experiments = list_of(SubExperiment)
     additional_types = list_of(String)
 
 
 class CaseFilter(Node):
-    experiments = list_of(SubExperimentNode)
+    experiments = list_of(SubExperiment)
     species = String
     sex = String
     age_category = String
 
 
-# QUERY/PAGINATION USE ONLY
-class ExperimentNode(Node):
-    submitter_id = String
-    dataset_descriptions = list_of(SubDatasetDescriptionNode)
-    manifests1 = list_of(SubManifestNode)
-    manifests2 = list_of(SubManifestNode)
-    manifests3 = list_of(SubManifestNode)
-    manifests4 = list_of(SubManifestNode)
-    cases = list_of(SubCaseNode)
-
-
-class DatasetDescriptionNode(Node):
+# QUERY USE ONLY
+class DatasetDescriptionQuery(Node):
     type = String
     title = String
     subtitle = String
@@ -91,7 +57,7 @@ class DatasetDescriptionNode(Node):
     # study_collection_title = String
 
 
-class ManifestNode(Node):
+class ManifestQuery(Node):
     type = String
     timestamp = String
     submitter_id = String
@@ -106,7 +72,7 @@ class ManifestNode(Node):
     supplemental_json_metadata = String
 
 
-class CaseNode(Node):
+class CaseQuery(Node):
     type = String
     submitter_id = String
     subject_id = String
@@ -137,38 +103,58 @@ class CaseNode(Node):
     # reference_atlas = String
 
 
+class ExperimentQuery(Node):
+    submitter_id = String
+    dataset_descriptions = list_of(DatasetDescriptionQuery)
+    manifests1 = list_of(ManifestQuery)
+    manifests2 = list_of(ManifestQuery)
+    manifests3 = list_of(ManifestQuery)
+    manifests4 = list_of(ManifestQuery)
+    cases = list_of(CaseQuery)
+
+
+# PAGINATION USE ONLY
+class SubDatasetDescription(Node):
+    title = String
+    study_organ_system = list_of(String)
+    number_of_subjects = Int
+    number_of_samples = Int
+    keywords = list_of(String)
+    contributor_name = list_of(String)
+
+
+class SubManifest(Node):
+    filename = String
+    file_type = String
+    additional_types = String
+    is_derived_from = list_of(String)
+    is_described_by = list_of(String)
+    is_source_of = list_of(String)
+    supplemental_json_metadata = String
+
+
+class SubCase(Node):
+    species = String
+
+
+class ExperimentPagination(Node):
+    submitter_id = String
+    dataset_descriptions = list_of(SubDatasetDescription)
+    manifests1 = list_of(SubManifest)
+    manifests2 = list_of(SubManifest)
+    manifests3 = list_of(SubManifest)
+    manifests4 = list_of(SubManifest)
+    cases = list_of(SubCase)
+
+
 class Query(Type):
-    experiment = Field(
-        ExperimentNode,
-        args={
-            "first": Int,
-            "offset": Int,
-            "submitter_id": list_of(String),
-        }
-    )
-    datasetDescription = Field(
-        DatasetDescriptionNode,
-        args={
-            "first": Int,
-            "offset": Int,
-            "submitter_id": list_of(String),
-        }
-    )
+    # FILTER
     datasetDescriptionFilter = Field(
         DatasetDescriptionFilter,
         args={
             "first": Int,
             "offset": Int,
-        }
-    )
-    manifest = Field(
-        ManifestNode,
-        args={
-            "first": Int,
-            "offset": Int,
-            "quick_search": String,
-            "additional_types": list_of(String),
-            "file_type": list_of(String)
+            # "study_organ_system": list_of(String),
         }
     )
     manifestFilter = Field(
@@ -179,22 +165,55 @@ class Query(Type):
             "additional_types": list_of(String)
         }
     )
-    case = Field(
-        CaseNode,
+    caseFilter = Field(
+        CaseFilter,
+        args={
+            "first": Int,
+            "offset": Int,
+            "species": list_of(String),
+            "sex": list_of(String),
+            "age_category": list_of(String),
+        }
+    )
+    # QUERY
+    experimentQuery = Field(
+        ExperimentQuery,
+        args={
+            "first": Int,
+            "offset": Int,
+            "submitter_id": list_of(String),
+        }
+    )
+    datasetDescriptionQuery = Field(
+        DatasetDescriptionQuery,
         args={
             "first": Int,
             "offset": Int,
             "quick_search": String,
         }
     )
-    caseFilter = Field(
-        CaseFilter,
+    manifestQuery = Field(
+        ManifestQuery,
         args={
             "first": Int,
             "offset": Int,
             "quick_search": String,
-            "species": list_of(String),
-            "sex": list_of(String),
-            "age_category": list_of(String),
+        }
+    )
+    caseQuery = Field(
+        CaseQuery,
+        args={
+            "first": Int,
+            "offset": Int,
+            "quick_search": String,
+        }
+    )
+    # PAGINATION
+    experimentPagination = Field(
+        ExperimentPagination,
+        args={
+            "first": Int,
+            "offset": Int,
+            "submitter_id": list_of(String),
         }
     )
