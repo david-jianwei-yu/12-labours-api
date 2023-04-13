@@ -1,3 +1,4 @@
+
 FILTERS = {
     "MAPPED_AGE_CATEGORY": {
         "title": "AGE CATEGORY",
@@ -12,17 +13,18 @@ FILTERS = {
     "MAPPED_ANATOMICAL_STRUCTURE": {
         "title": "ANATOMICAL STRUCTURE",
         "node": "dataset_description_filter",
-        # "field": "study_organ_system",
-        "field": "keywords",
+        "field": "study_organ_system",
+        # "field": "keywords",
         "element": {
             "Body Proper": "body proper",
             "Brainstem": "brainstem",
             "Breast": "breast",
             "Cardiac Nerve Plexus": "cardiac nerve plexus",
             "Colon": "colon",
+            "Diaphragm": "diaphragm",
             "Heart": "heart",
-            "Lungs": "lungs",
-            # "Myenteric Nerve Plexus": "myenteric nerve plexus",
+            "Lung": "lung",
+            "Skin Epidermis": "skin epidermis",
             "Spinal Cord": "spinal cord",
             "Stomach": "stomach",
             "Urinary Bladder": "urinary bladder",
@@ -43,7 +45,7 @@ FILTERS = {
         "node": "manifest_filter",
         "field": "additional_types",
         "element": {
-            "Plot": ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+csv"],
+            "Plot": ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"],
             "Scaffold": ["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"],
             # "CSV": ["text/csv"],
             # "SEGMENTATION_FILES": ["application/vnd.mbfbioscience.metadata+xml", "application/vnd.mbfbioscience.neurolucida+xml"],

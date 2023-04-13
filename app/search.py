@@ -1,18 +1,12 @@
 import re
-
 from fastapi import HTTPException
 
+from app.data_schema import *
 from app.config import iRODSConfig
 
 from irods.column import Like, In
 from irods.models import Collection, DataObjectMeta
 
-
-BAD_REQUEST = 400
-UNAUTHORIZED = 401
-NOT_FOUND = 404
-METHOD_NOT_ALLOWED = 405
-INTERNAL_SERVER_ERROR = 500
 
 SEARCHFIELD = [
     "TITLE",
@@ -34,7 +28,7 @@ class Search:
                 return dataset_dict
             for result in query:
                 content_list = re.findall(
-                    f'(\s{keyword}|{keyword}\s)', result[DataObjectMeta.value])
+                    fr'(\s{keyword}|{keyword}\s)', result[DataObjectMeta.value])
                 if content_list != []:
                     dataset = re.sub(
                         f'{iRODSConfig.IRODS_ENDPOINT_URL}/', '', result[Collection.name])

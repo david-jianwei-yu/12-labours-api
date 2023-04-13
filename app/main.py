@@ -1,24 +1,16 @@
-import re
 import mimetypes
-
-from app.config import Config, Gen3Config, iRODSConfig
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
-
-from typing import Union
-from pydantic import BaseModel
-from enum import Enum
-
 from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
-
-from app.sgqlc import SimpleGraphQLClient
-from app.filter import Filter, FIELDS
-
 from irods.session import iRODSSession
-from app.search import Search
+
+from app.config import Config, Gen3Config, iRODSConfig
+from app.data_schema import *
+from app.sgqlc import SimpleGraphQLClient
+from app.filter import Filter
+from app.pagination import Pagination
 
 description = """
 ## Gen3
@@ -61,16 +53,16 @@ tags_metadata = [
 app = FastAPI(
     title="12 Labours Portal",
     description=description,
-    # version="0.0.1",
-    # terms_of_service="http://example.com/terms/",
+    # version="",
+    # terms_of_service="",
     contact={
         "name": "Auckland Bioengineering Institute",
         "url": "https://www.auckland.ac.nz/en/abi.html",
-        "email": "bioeng-enquiries@auckland.ac.nz",
+        # "email": "bioeng-enquiries@auckland.ac.nz",
     },
     # license_info={
-    #     "name": "Apache 2.0",
-    #     "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
+    #     "name": "",
+    #     "url": "",
     # }
     openapi_tags=tags_metadata
 )
@@ -89,19 +81,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BAD_REQUEST = 400
-UNAUTHORIZED = 401
-NOT_FOUND = 404
-METHOD_NOT_ALLOWED = 405
-INTERNAL_SERVER_ERROR = 500
-
-
 SUBMISSION = None
 SESSION = None
 
 sgqlc = SimpleGraphQLClient()
 f = Filter()
-s = Search()
+p = Pagination()
 
 
 @ app.on_event("startup")
@@ -136,62 +121,46 @@ async def root():
     return "This is the fastapi backend."
 
 
-#
-# Gen3 Data Commons
-#
+#########################
+### Gen3              ###
+### Gen3 Data Commons ###
+#########################
 
 
-@ app.get("/program", tags=["Gen3"])
+def get_name_list(data, name, path):
+    name_dict = {name: []}
+    for ele in data["links"]:
+        name_dict[name].append(ele.replace(path, ""))
+    return name_dict
+
+
+@ app.get("/program", tags=["Gen3"], summary="Get gen3 program information", response_description="Gen3 program name")
 async def get_gen3_program():
     """
     Return all programs information from the Gen3 Data Commons.
     """
     try:
         program = SUBMISSION.get_programs()
-        program_dict = {"program": []}
-        for ele in program["links"]:
-            program_dict["program"].append(ele.replace("/v0/submission/", ""))
-        return program_dict
+        return get_name_list(program, "program", "/v0/submission/")
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-class Program(str, Enum):
-    program = "demo1"
-
-
-@ app.get("/project/{program}", tags=["Gen3"])
-async def get_gen3_project(program: Program):
+@ app.get("/project/{program}", tags=["Gen3"], summary="Get gen3 project information", response_description="Gen3 project name")
+async def get_gen3_project(program: ProgramParam):
     """
-    Return all projects information from a program.
+    Return all projects information from a gen3 program.
 
-    :param program: Gen3 program name.
+    - **program**: Gen3 program name.
     """
     try:
         project = SUBMISSION.get_projects(program)
-        project_dict = {"project": []}
-        for ele in project["links"]:
-            project_dict["project"].append(
-                ele.replace(f"/v0/submission/{program}/", ""))
-        return project_dict
+        return get_name_list(project, "project", f"/v0/submission/{program}/")
     except Exception as e:
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-class Gen3Item(BaseModel):
-    program: Union[str, None] = None
-    project: Union[str, None] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "program": "demo1",
-                "project": "12L",
-            }
-        }
-
-
-@ app.post("/dictionary", tags=["Gen3"])
+@ app.post("/dictionary", tags=["Gen3"], summary="Get gen3 dictionary information", response_description="Gen3 dictionary name")
 async def get_gen3_dictionary(item: Gen3Item):
     """
     Return all dictionary nodes from the Gen3 Data Commons
@@ -203,29 +172,18 @@ async def get_gen3_dictionary(item: Gen3Item):
     try:
         dictionary = SUBMISSION.get_project_dictionary(
             item.program, item.project)
-        dictionary_dict = {"dictionary": []}
-        for ele in dictionary["links"]:
-            dictionary_dict["dictionary"].append(ele.replace(
-                f"/v0/submission/{item.program}/{item.project}/_dictionary/", ""))
-        return dictionary_dict
+        return get_name_list(dictionary, "dictionary", f"/v0/submission/{item.program}/{item.project}/_dictionary/")
     except Exception:
         raise HTTPException(
             status_code=NOT_FOUND, detail=f"Program {item.program} or project {item.project} not found")
 
 
-class Node(str, Enum):
-    experiment = "experiment"
-    dataset_description = "dataset_description"
-    manifest = "manifest"
-
-
-@ app.post("/records/{node}", tags=["Gen3"])
-async def get_gen3_node_records(node: Node, item: Gen3Item):
+@ app.post("/records/{node}", tags=["Gen3"], summary="Get gen3 node records information", response_description="A list of json object contains all records metadata within a node")
+async def get_gen3_node_records(node: NodeParam, item: Gen3Item):
     """
     Return all records information in a dictionary node.
 
-    :param node: The dictionary node to export.
-    :return: A list of json object containing all records in the dictionary node.
+    - **node**: The dictionary node to export.
     """
     if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
@@ -246,13 +204,12 @@ async def get_gen3_node_records(node: Node, item: Gen3Item):
         return node_record
 
 
-@ app.post("/record/{uuid}", tags=["Gen3"])
+@ app.post("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", response_description="A json object contains gen3 record metadata")
 async def get_gen3_record(uuid: str, item: Gen3Item):
     """
     Return record information in the Gen3 Data Commons.
 
-    :param uuid: uuid of the record.
-    :return: A list of json object.
+    - **uuid**: uuid of the record.
     """
     if item.program == None or item.project == None:
         raise HTTPException(status_code=BAD_REQUEST,
@@ -270,170 +227,78 @@ async def get_gen3_record(uuid: str, item: Gen3Item):
         return record
 
 
-class GraphQLQueryItem(BaseModel):
-    page: Union[int, None] = 1
-    limit: Union[int, None] = 0
-    node: Union[str, None] = None
-    filter: Union[dict, None] = {}
-    search: Union[str, None] = ""
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "node": "dataset_description",
-                "filter": {
-                    "submitter_id": [
-                        "dataset-<dataset_id>-version-<version_id>-dataset_description"
-                    ]
-                },
-                "search": "",
-            }
-        }
-
-
-@ app.post("/graphql/query", tags=["Gen3"])
+@ app.post("/graphql/query", tags=["Gen3"], summary="GraphQL query gen3 information")
 async def graphql_query(item: GraphQLQueryItem):
     """
     Return queries metadata records. The API uses GraphQL query language.
 
-    filter post format should looks like: 
-    {
-        "<filed_name>": [
-            "<attribute_name>", 
-            ...
-        ], 
-        ...
-    }
+    **filter**
+    - {"<filed_name>": ["<attribute_name>", ...], ...}
 
-    search post format should be <string_content>,
-    and search only available in manifest/case nodes
+    **search**
+    - string content,
+    - only available in manifest/case nodes
     """
     query_result = sgqlc.get_queried_result(item, SUBMISSION)
     return query_result[item.node]
 
 
-def update_pagination_item(item, input):
-    if item.filter != {}:
-        query_item = GraphQLQueryItem()
-        filter_dict = {"submitter_id": []}
-        temp_node_dict = {}
-        for element in item.filter.values():
-            query_item.node, query_item.filter = element["node"], element["filter"]
-            filter_node = re.sub('_filter', '', query_item.node)
-            filter_field = list(query_item.filter.keys())[0]
-            # Only do fetch when there is no related temp data stored in temp_node_dict
-            # or the node field type is "String"
-            if filter_node not in temp_node_dict.keys() or filter_field not in FIELDS:
-                query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
-                # The data will be stored when the field type is an "Array"
-                # The default filter relation of the Gen3 "Array" type field is "AND"
-                # We need "OR", therefore entire node data will go through a self-written filter function
-                if filter_field in FIELDS:
-                    temp_node_dict[filter_node] = query_result[filter_node]
-            elif filter_node in temp_node_dict.keys() and filter_field in FIELDS:
-                query_result = temp_node_dict
-            filter_dict["submitter_id"].append(f.get_filtered_datasets(
-                query_item.filter, query_result[filter_node]))
-        item.filter = filter_dict
-        f.filter_relation(item)
-
-    if input != "":
-        # If input does not match any content in the database, item.search will be empty dictionary
-        item.search["submitter_id"] = s.get_searched_datasets(input, SESSION)
-        if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
-            s.search_filter_relation(item)
-
-
-class GraphQLPaginationItem(BaseModel):
-    page: Union[int, None] = 1
-    limit: Union[int, None] = 50
-    node: Union[str, None] = None
-    filter: Union[dict, None] = {}
-    search: Union[dict, None] = {}
-    relation: Union[str, None] = "and"
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "page": 1,
-                "limit": 50,
-                "node": "experiment",
-                "filter": {},
-                "relation": "and"
-            }
-        }
-
-
-@ app.post("/graphql/pagination/", tags=["Gen3"])
+@ app.post("/graphql/pagination/", tags=["Gen3"], summary="Display datasets", response_description="A list of datasets")
 async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     """
     /graphql/pagination/?search=<string>
 
     Return filtered/searched metadata records. The API uses GraphQL query language.
 
-    Default page = 1
-    Default limit = 50
-    Default search = ""
-    Default relation = "and"
+    - Default page = 1
+    - Default limit = 50
+    - Default filter = {}
+    - Default search = ""
+    - Default relation = "and"
 
     filter post format should looks like: 
-    {
-        "id": {
-            "node": "<gen3_node>", 
-            "filter": {
-                "<gen3_field>": [
-                    <filed_content>,
-                    ...
-                ]
-            }
-        }, 
-        ...
-    }
+    {"id": {"node": "<gen3_node>", "filter": {"<gen3_field>": [<filed_content>,...]}}, ...}
 
-    :param search: string content.
+    - **search**: string content.
     """
-    update_pagination_item(item, search)
+    p.update_pagination_item(item, search, SUBMISSION, SESSION)
     query_result = sgqlc.get_queried_result(item, SUBMISSION)
     if item.search != {}:
         # Sort only if search is not empty, since search results are sorted by word relevance
         query_result[item.node] = sorted(
             query_result[item.node], key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
     return {
-        "data": query_result[item.node],
+        "items": p.update_pagination_output(query_result[item.node]),
         # Maximum number of records display in one page
-        "limit": item.limit,
+        "numberPerPage": item.limit,
         "page": item.page,
         "total": query_result["total"]
     }
 
 
-@ app.get("/filter", tags=["Gen3"])
-async def generate_filter():
+@ app.get("/filter/", tags=["Gen3"], summary="Get filter information")
+async def generate_filter(sidebar: bool):
     """
-    Return the support data for frontend filters component.
+    /filter/?sidebar=<boolean>
+
+    Return the support data for portal filters component.
+
+    - **sidebar**: boolean content.
     """
+    if sidebar == True:
+        return f.generate_sidebar_filter_information()
     return f.generate_filter_information()
 
 
-class Project(str, Enum):
-    project = "12L"
-
-
-class Format(str, Enum):
-    json = "json"
-    tsv = "tsv"
-
-
-@ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"])
-async def download_gen3_metadata_file(program: Program, project: Project, uuid: str, format: Format):
+@ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="A JSON or CSV file contains the metadata")
+async def download_gen3_metadata_file(program: ProgramParam, project: ProjectParam, uuid: str, format: FormatParam):
     """
-    Return a single file for a given uuid.
+    Return a single metadata file for a given uuid.
 
-    :param program: program name.
-    :param project: project name.
-    :param uuid: uuid of the file.
-    :param format: file format (must be one of the following: json, tsv).
-    :return: A JSON or CSV file contains the metadata.
+    - **program**: program name.
+    - **project**: project name.
+    - **uuid**: uuid of the file.
+    - **format**: file format (must be one of the following: json, tsv).
     """
     try:
         metadata = SUBMISSION.export_record(program, project, uuid, format)
@@ -459,9 +324,10 @@ async def download_gen3_metadata_file(program: Program, project: Project, uuid: 
                                      f"attachment;filename={uuid}.csv"})
 
 
-#
-# iRODS
-#
+############################################
+### iRODS                                ###
+### Integrated Rule-Oriented Data System ###
+############################################
 
 
 def get_collection_list(data):
@@ -474,7 +340,7 @@ def get_collection_list(data):
     return collect_list
 
 
-@ app.get("/collection/root", tags=["iRODS"])
+@ app.get("/collection/root", tags=["iRODS"], summary="Get root information", response_description="All folders/files name and path under root folder")
 async def get_irods_root_collections():
     """
     Return all collections from the root folder.
@@ -489,18 +355,7 @@ async def get_irods_root_collections():
     return {"folders": folders, "files": files}
 
 
-class CollectionItem(BaseModel):
-    path: Union[str, None] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "path": "/tempZone/home/rods/datasets",
-            }
-        }
-
-
-@ app.post("/collection", tags=["iRODS"])
+@ app.post("/collection", tags=["iRODS"], summary="Get folder information", response_description="All folders/files name and path under selected folder")
 async def get_irods_collections(item: CollectionItem):
     """
     Return all collections from the required folder.
@@ -519,23 +374,17 @@ async def get_irods_collections(item: CollectionItem):
                             detail="Data not found in the provided path")
 
 
-class Action(str, Enum):
-    preview = "preview"
-    download = "download"
-
-
-@ app.get("/data/{action}/{filepath:path}", tags=["iRODS"])
-async def get_irods_data_file(action: Action, filepath: str):
+@ app.get("/data/{action}/{filepath:path}", tags=["iRODS"], summary="Download irods file", response_description="A file with data")
+async def get_irods_data_file(action: ActionParam, filepath: str):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
     OR
     Return a specific download file from iRODS or a preview of most types data.
 
-    :param action: Action should be either preview or download.
-    :param filepath: Required iRODS file path.
-    :return: A file with data.
+    - **action**: Action should be either preview or download.
+    - **filepath**: Required iRODS file path.
     """
-    chunk_size = 1024*1024
+    chunk_size = 1024*1024*1024
     try:
         file = SESSION.data_objects.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{filepath}")
