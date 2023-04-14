@@ -1,7 +1,9 @@
 import mimetypes
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
+from fastapi_utils.tasks import repeat_every
 from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
 from irods.session import iRODSSession
@@ -11,6 +13,7 @@ from app.data_schema import *
 from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter
 from app.pagination import Pagination
+from app.filter_dictionary import FilterGenerator
 
 description = """
 ## Gen3
@@ -83,10 +86,10 @@ app.add_middleware(
 
 SUBMISSION = None
 SESSION = None
-
 sgqlc = SimpleGraphQLClient()
 f = Filter()
 p = Pagination()
+fg = FilterGenerator()
 
 
 @ app.on_event("startup")
@@ -114,6 +117,12 @@ async def start_up():
         # SESSION.connection_timeout =
     except Exception:
         print("Encounter an error while creating the iRODS session.")
+
+
+@ app.on_event("startup")
+@repeat_every(seconds=60*60*24)
+def periodic_execution():
+    fg.generate_filter_dictionary(SUBMISSION)
 
 
 @ app.get("/", tags=["Root"], response_class=PlainTextResponse)
