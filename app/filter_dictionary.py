@@ -69,11 +69,11 @@ FILTERS = {
         "node": "case_filter",
         "field": "species",
         "element": {
-            # "Cat": "Felis catus",
-            # "Human": "Homo sapiens",
-            # "Mouse": "Mus musculus",
-            # "Pig": "Sus scrofa",
-            # "Rat": "Rattus norvegicus",
+            "Cat": "Felis catus",
+            "Human": "Homo sapiens",
+            "Mouse": "Mus musculus",
+            "Pig": "Sus scrofa",
+            "Rat": "Rattus norvegicus",
         }
     }
 }
@@ -102,3 +102,4 @@ class FilterGenerator:
                             filter_element[name] = value
                 FILTERS[element]["element"] = dict(
                     sorted(filter_element.items()))
+        return True

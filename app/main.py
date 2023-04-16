@@ -1,3 +1,4 @@
+import time
 import mimetypes
 
 from fastapi import FastAPI, HTTPException
@@ -86,6 +87,7 @@ app.add_middleware(
 
 SUBMISSION = None
 SESSION = None
+FILTER_GENERATED = False
 sgqlc = SimpleGraphQLClient()
 f = Filter()
 p = Pagination()
@@ -122,7 +124,8 @@ async def start_up():
 @ app.on_event("startup")
 @repeat_every(seconds=60*60*24)
 def periodic_execution():
-    fg.generate_filter_dictionary(SUBMISSION)
+    global FILTER_GENERATED
+    FILTER_GENERATED = fg.generate_filter_dictionary(SUBMISSION)
 
 
 @ app.get("/", tags=["Root"], response_class=PlainTextResponse)
@@ -303,6 +306,8 @@ async def generate_filter(sidebar: bool):
 
     - **sidebar**: boolean content.
     """
+    while not FILTER_GENERATED:
+        time.sleep(1)
     if sidebar == True:
         return f.generate_sidebar_filter_information()
     return f.generate_filter_information()
