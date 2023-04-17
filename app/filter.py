@@ -3,8 +3,7 @@ from app.filter_dictionary import FILTERS
 
 # This list contains all the "Array" type fields that used as a filter
 FIELDS = [
-    "study_organ_system",
-    "keywords"
+    "study_organ_system"
 ]
 
 
