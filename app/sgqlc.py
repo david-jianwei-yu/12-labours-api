@@ -74,7 +74,7 @@ class SimpleGraphQLClient:
                 query.datasetDescriptionFilter(
                     first=0,
                     offset=0,
-                    # study_organ_system=item.filter["study_organ_system"] if "study_organ_system" in item.filter else None
+                    # study_organ_system=item.filter.get("study_organ_system", None),
                 )
             )
         elif item.node == "manifest_filter":
@@ -83,7 +83,7 @@ class SimpleGraphQLClient:
                 query.manifestFilter(
                     first=0,
                     offset=0,
-                    additional_types=item.filter["additional_types"] if "additional_types" in item.filter else None
+                    additional_types=item.filter.get("additional_types", None),
                 )
             )
         elif item.node == "case_filter":
@@ -92,9 +92,9 @@ class SimpleGraphQLClient:
                 query.caseFilter(
                     first=0,
                     offset=0,
-                    species=item.filter["species"] if "species" in item.filter else None,
-                    sex=item.filter["sex"] if "sex" in item.filter else None,
-                    age_category=item.filter["age_category"] if "age_category" in item.filter else None
+                    species=item.filter.get("species", None),
+                    sex=item.filter.get("sex", None),
+                    age_category=item.filter.get("age_category", None),
                 )
             )
         # QUERY
@@ -109,7 +109,7 @@ class SimpleGraphQLClient:
                 query.experimentQuery(
                     first=0,
                     offset=0,
-                    submitter_id=item.filter["submitter_id"] if "submitter_id" in item.filter else None
+                    submitter_id=item.filter.get("submitter_id", None),
                 )
             )
         elif item.node == "dataset_description_query":
@@ -148,7 +148,7 @@ class SimpleGraphQLClient:
                 query.experimentPagination(
                     first=item.limit,
                     offset=(item.page-1)*item.limit,
-                    submitter_id=item.filter["submitter_id"] if "submitter_id" in item.filter else None
+                    submitter_id=item.filter.get("submitter_id", None),
                 )
             )
         else:
