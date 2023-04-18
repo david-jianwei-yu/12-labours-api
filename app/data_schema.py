@@ -36,8 +36,6 @@ class NodeParam(str, Enum):
 
 
 class GraphQLQueryItem(BaseModel):
-    page: Union[int, None] = 1
-    limit: Union[int, None] = 0
     node: Union[str, None] = None
     filter: Union[dict, None] = {}
     search: Union[str, None] = ""
@@ -45,10 +43,10 @@ class GraphQLQueryItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "node": "dataset_description",
+                "node": "experiment_query",
                 "filter": {
                     "submitter_id": [
-                        "dataset-102-version-4-dataset_description"
+                        "dataset-102-version-4"
                     ]
                 },
                 "search": "",
@@ -57,7 +55,7 @@ class GraphQLQueryItem(BaseModel):
 
 
 class GraphQLPaginationItem(BaseModel):
-    node: Union[str, None] = "experiment"
+    node: Union[str, None] = "experiment_pagination"
     page: Union[int, None] = 1
     limit: Union[int, None] = 50
     filter: Union[dict, None] = {}
