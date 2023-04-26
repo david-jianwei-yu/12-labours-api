@@ -190,10 +190,10 @@ class Pagination:
         result = []
         for ele in data:
             dataset_id = ele["submitter_id"]
-            image_url_prefix = f"{Config.BASE_URL}/data/preview/{dataset_id}/"
+            image_url_prefix = f"{Config.QUERY_API_URL}/data/preview/{dataset_id}/"
             item = {
-                "data_url": f"{Config.PORTAL_URL}/data/browser/dataset/{dataset_id}?datasetTab=abstract",
-                "source_url_prefix": f"{Config.BASE_URL}/data/download/{dataset_id}/",
+                "data_url_suffix": f"/data/browser/dataset/{dataset_id}?datasetTab=abstract",
+                "source_url_prefix": f"{Config.QUERY_API_URL}/data/download/{dataset_id}/",
                 "contributors": self.update_contributors(ele["dataset_descriptions"][0]["contributor_name"]),
                 "keywords": ele["dataset_descriptions"][0]["keywords"],
                 "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
