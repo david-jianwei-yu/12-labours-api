@@ -67,7 +67,7 @@ app = FastAPI(
     #     "name": "",
     #     "url": "",
     # }
-    openapi_tags=tags_metadata
+    openapi_tags=tags_metadata,
 )
 
 # Cross orgins, allow any for now
@@ -143,7 +143,7 @@ def get_name_list(data, name, path):
     return name_dict
 
 
-@ app.get("/program", tags=["Gen3"], summary="Get gen3 program information", response_description="Gen3 program name")
+@ app.get("/program", tags=["Gen3"], summary="Get gen3 program information", responses=program_responses)
 async def get_gen3_program():
     """
     Return all programs information from the Gen3 Data Commons.
@@ -155,7 +155,7 @@ async def get_gen3_program():
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@ app.get("/project/{program}", tags=["Gen3"], summary="Get gen3 project information", response_description="Gen3 project name")
+@ app.get("/project/{program}", tags=["Gen3"], summary="Get gen3 project information", responses=project_responses)
 async def get_gen3_project(program: ProgramParam):
     """
     Return all projects information from a gen3 program.
@@ -169,7 +169,7 @@ async def get_gen3_project(program: ProgramParam):
         raise HTTPException(status_code=NOT_FOUND, detail=str(e))
 
 
-@ app.post("/dictionary", tags=["Gen3"], summary="Get gen3 dictionary information", response_description="Gen3 dictionary name")
+@ app.post("/dictionary", tags=["Gen3"], summary="Get gen3 dictionary information", responses=dictionary_responses)
 async def get_gen3_dictionary(item: Gen3Item):
     """
     Return all dictionary nodes from the Gen3 Data Commons
@@ -187,7 +187,7 @@ async def get_gen3_dictionary(item: Gen3Item):
             status_code=NOT_FOUND, detail=f"Program {item.program} or project {item.project} not found")
 
 
-@ app.post("/records/{node}", tags=["Gen3"], summary="Get gen3 node records information", response_description="A list of json object contains all records metadata within a node")
+@ app.post("/records/{node}", tags=["Gen3"], summary="Get gen3 node records information", responses=records_responses)
 async def get_gen3_node_records(node: NodeParam, item: Gen3Item):
     """
     Return all records information in a dictionary node.
@@ -213,7 +213,7 @@ async def get_gen3_node_records(node: NodeParam, item: Gen3Item):
         return node_record
 
 
-@ app.post("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", response_description="A json object contains gen3 record metadata")
+@ app.post("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", responses=record_responses)
 async def get_gen3_record(uuid: str, item: Gen3Item):
     """
     Return record information in the Gen3 Data Commons.
@@ -236,18 +236,19 @@ async def get_gen3_record(uuid: str, item: Gen3Item):
         return record
 
 
-@ app.post("/graphql/query", tags=["Gen3"], summary="GraphQL query gen3 information")
+@ app.post("/graphql/query", tags=["Gen3"], summary="GraphQL query gen3 information", responses=query_responses)
 async def graphql_query(item: GraphQLQueryItem):
     """
     Return queries metadata records. The API uses GraphQL query language.
 
     **node**
+    - experiment_query
     - dataset_description_query
     - manifest_query
     - case_query
 
     **filter**
-    - {"submitter_id": ["<submitter_id>", ...], ...}
+    - {"field_name": ["<field_value>", ...], ...}
 
     **search**
     - string content,
@@ -257,7 +258,7 @@ async def graphql_query(item: GraphQLQueryItem):
     return query_result[item.node]
 
 
-@ app.post("/graphql/pagination/", tags=["Gen3"], summary="Display datasets", response_description="A list of datasets")
+@ app.post("/graphql/pagination/", tags=["Gen3"], summary="Display datasets", responses=pagination_responses)
 async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     """
     /graphql/pagination/?search=<string>
@@ -285,16 +286,16 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
         # Sort only if search is not empty, since search results are sorted by word relevance
         query_result[item.node] = sorted(
             query_result[item.node], key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
-    return {
+    result = {
         "items": p.update_pagination_output(query_result[item.node]),
-        # Maximum number of records display in one page
         "numberPerPage": item.limit,
         "page": item.page,
         "total": query_result["total"]
     }
+    return result
 
 
-@ app.get("/filter/", tags=["Gen3"], summary="Get filter information")
+@ app.get("/filter/", tags=["Gen3"], summary="Get filter information", responses=filter_responses)
 async def generate_filter(sidebar: bool):
     """
     /filter/?sidebar=<boolean>
@@ -308,7 +309,7 @@ async def generate_filter(sidebar: bool):
     return f.generate_filter_information()
 
 
-@ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="A JSON or CSV file contains the metadata")
+@ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
 async def download_gen3_metadata_file(program: ProgramParam, project: ProjectParam, uuid: str, format: FormatParam):
     """
     Return a single metadata file for a given uuid.
@@ -358,7 +359,7 @@ def get_collection_list(data):
     return collect_list
 
 
-@ app.get("/collection/root", tags=["iRODS"], summary="Get root information", response_description="All folders/files name and path under root folder")
+@ app.get("/collection/root", tags=["iRODS"], summary="Get root information", responses=root_responses)
 async def get_irods_root_collections():
     """
     Return all collections from the root folder.
@@ -373,7 +374,7 @@ async def get_irods_root_collections():
     return {"folders": folders, "files": files}
 
 
-@ app.post("/collection", tags=["iRODS"], summary="Get folder information", response_description="All folders/files name and path under selected folder")
+@ app.post("/collection", tags=["iRODS"], summary="Get folder information", responses=sub_responses)
 async def get_irods_collections(item: CollectionItem):
     """
     Return all collections from the required folder.
@@ -392,7 +393,7 @@ async def get_irods_collections(item: CollectionItem):
                             detail="Data not found in the provided path")
 
 
-@ app.get("/data/{action}/{filepath:path}", tags=["iRODS"], summary="Download irods file", response_description="A file with data")
+@ app.get("/data/{action}/{filepath:path}", tags=["iRODS"], summary="Download irods file", response_description="Successfully return a file with data")
 async def get_irods_data_file(action: ActionParam, filepath: str):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
