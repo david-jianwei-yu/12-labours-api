@@ -270,19 +270,19 @@ def test_graphql_pagination(client):
 def test_generate_filter(client):
     response = client.get("/filter/?sidebar=true")
     assert response.status_code == 200
-    assert FILTERS["MAPPED_AGE_CATEGORY"]["element"] != {}
-    assert FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["element"] != {}
-    assert FILTERS["MAPPED_SEX"]["element"] != {}
-    assert FILTERS["MAPPED_MIME_TYPE"]["element"] != {}
-    assert FILTERS["MAPPED_SPECIES"]["element"] != {}
+    assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["element"]) == True
+    assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["element"]) == True
+    assert bool(FILTERS["MAPPED_SEX"]["element"]) == True
+    assert bool(FILTERS["MAPPED_MIME_TYPE"]["element"]) == True
+    assert bool(FILTERS["MAPPED_SPECIES"]["element"]) == True
 
     response = client.get("/filter/?sidebar=false")
     assert response.status_code == 200
-    assert FILTERS["MAPPED_AGE_CATEGORY"]["element"] != {}
-    assert FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["element"] != {}
-    assert FILTERS["MAPPED_SEX"]["element"] != {}
-    assert FILTERS["MAPPED_MIME_TYPE"]["element"] != {}
-    assert FILTERS["MAPPED_SPECIES"]["element"] != {}
+    assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["element"]) == True
+    assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["element"]) == True
+    assert bool(FILTERS["MAPPED_SEX"]["element"]) == True
+    assert bool(FILTERS["MAPPED_MIME_TYPE"]["element"]) == True
+    assert bool(FILTERS["MAPPED_SPECIES"]["element"]) == True
 
 
 def test_download_gen3_metadata_file(client):
