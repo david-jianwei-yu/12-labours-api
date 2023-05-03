@@ -1,47 +1,29 @@
+import re
+
+from app.data_schema import *
+from app.sgqlc import SimpleGraphQLClient
 
 FILTERS = {
     "MAPPED_AGE_CATEGORY": {
-        "title": "AGE CATEGORY",
+        "title": "Age Category",
         "node": "case_filter",
         "field": "age_category",
-        "element": {
-            "Adolescent": "Adolescent",
-            "Adult": "prime adult stage",
-            "Juvenile": "Juvenile",
-        }
+        "element": {}
     },
     "MAPPED_ANATOMICAL_STRUCTURE": {
-        "title": "ANATOMICAL STRUCTURE",
+        "title": "Anatomical Structure",
         "node": "dataset_description_filter",
         "field": "study_organ_system",
-        # "field": "keywords",
-        "element": {
-            "Body Proper": "body proper",
-            "Brainstem": "brainstem",
-            "Breast": "breast",
-            "Cardiac Nerve Plexus": "cardiac nerve plexus",
-            "Colon": "colon",
-            "Diaphragm": "diaphragm",
-            "Heart": "heart",
-            "Lung": "lung",
-            "Skin Epidermis": "skin epidermis",
-            "Spinal Cord": "spinal cord",
-            "Stomach": "stomach",
-            "Urinary Bladder": "urinary bladder",
-            "Vagus Nerve": "vagus nerve",
-        }
+        "element": {}
     },
     "MAPPED_SEX": {
-        "title": "SEX",
+        "title": "Sex",
         "node": "case_filter",
         "field": "sex",
-        "element": {
-            "Female": "Female",
-            "Male": "Male",
-        }
+        "element": {}
     },
     "MAPPED_MIME_TYPE": {
-        "title": "MIME TYPE",
+        "title": "Mime Type",
         "node": "manifest_filter",
         "field": "additional_types",
         "element": {
@@ -62,7 +44,7 @@ FILTERS = {
         }
     },
     "MAPPED_SPECIES": {
-        "title": "SPECIES",
+        "title": "Species",
         "node": "case_filter",
         "field": "species",
         "element": {
@@ -74,3 +56,29 @@ FILTERS = {
         }
     }
 }
+
+
+class FilterGenerator:
+    def generate_filter_dictionary(self, SUBMISSION):
+        for element in FILTERS:
+            if FILTERS[element]["element"] == {}:
+                filter_element = {}
+                ele_node = FILTERS[element]["node"]
+                query_item = GraphQLQueryItem(node=ele_node)
+                sgqlc = SimpleGraphQLClient()
+                query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
+                ele_node = re.sub('_filter', '', ele_node)
+                for ele in query_result[ele_node]:
+                    value = ele[FILTERS[element]["field"]]
+                    if type(value) == list and value != []:
+                        for sub_value in value:
+                            name = sub_value.title()
+                            if name not in filter_element:
+                                filter_element[name] = sub_value
+                    elif type(value) == str:
+                        name = value.title()
+                        if value != "NA" and name not in filter_element:
+                            filter_element[name] = value
+                FILTERS[element]["element"] = dict(
+                    sorted(filter_element.items()))
+        return True

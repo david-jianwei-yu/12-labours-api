@@ -1,9 +1,9 @@
 import re
 
 from fastapi import HTTPException
+from sgqlc.operation import Operation
 
 from app.data_schema import *
-from sgqlc.operation import Operation
 from app.sgqlc_schema import Query
 
 

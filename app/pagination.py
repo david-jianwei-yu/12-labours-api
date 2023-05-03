@@ -34,15 +34,15 @@ class Pagination:
 
     def update_pagination_item(self, item, input, SUBMISSION, SESSION):
         if item.filter != {}:
-            query_item = GraphQLQueryItem()
             filter_dict = {"submitter_id": []}
             temp_node_dict = {}
             for element in item.filter.values():
-                query_item.node = element["node"]
-                query_item.filter = self.update_filter_values(
-                    element["filter"])
-                filter_node = re.sub('_filter', '', query_item.node)
-                filter_field = list(query_item.filter.keys())[0]
+                filter_node = element["node"]
+                filter_field = self.update_filter_values(element["filter"])
+                query_item = GraphQLQueryItem(
+                    node=filter_node, filter=filter_field)
+                filter_node = re.sub('_filter', '', filter_node)
+                filter_field = list(filter_field.keys())[0]
                 # Only do fetch when there is no related temp data stored in temp_node_dict
                 # or the node field type is "String"
                 if filter_node not in temp_node_dict.keys() or filter_field not in FIELDS:
@@ -190,10 +190,10 @@ class Pagination:
         result = []
         for ele in data:
             dataset_id = ele["submitter_id"]
-            image_url_prefix = f"{Config.BASE_URL}/data/preview/{dataset_id}/"
+            image_url_prefix = f"{Config.QUERY_API_URL}/data/preview/{dataset_id}/"
             item = {
-                "data_url": f"{Config.PORTAL_URL}/data/browser/dataset/{dataset_id}?datasetTab=abstract",
-                "source_url_prefix": f"{Config.BASE_URL}/data/download/{dataset_id}/",
+                "data_url_suffix": f"/data/browser/dataset/{dataset_id}?datasetTab=abstract",
+                "source_url_prefix": f"{Config.QUERY_API_URL}/data/download/{dataset_id}/",
                 "contributors": self.update_contributors(ele["dataset_descriptions"][0]["contributor_name"]),
                 "keywords": ele["dataset_descriptions"][0]["keywords"],
                 "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),

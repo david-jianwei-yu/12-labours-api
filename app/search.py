@@ -1,13 +1,13 @@
 import re
+
 from fastapi import HTTPException
+from irods.column import Like, In
+from irods.models import Collection, DataObjectMeta
 
 from app.data_schema import *
 from app.config import iRODSConfig
 
-from irods.column import Like, In
-from irods.models import Collection, DataObjectMeta
-
-
+SESSION = None
 SEARCHFIELD = [
     "TITLE",
     "SUBTITLE",
@@ -16,7 +16,7 @@ SEARCHFIELD = [
 
 
 class Search:
-    def generate_dataset_dictionary(self, keyword_list, SESSION):
+    def generate_dataset_dictionary(self, keyword_list):
         dataset_dict = {}
         for keyword in keyword_list:
             query = SESSION.query(Collection.name, DataObjectMeta.value).filter(
@@ -39,11 +39,12 @@ class Search:
         return dataset_dict
 
     # The dataset list order is based on how the dataset content is relevant to the input string.
-    def get_searched_datasets(self, input, SESSION):
+    def get_searched_datasets(self, input, session):
+        global SESSION
+        SESSION = session
         try:
             keyword_list = re.findall('[a-zA-Z0-9]+', input.lower())
-            dataset_dict = self.generate_dataset_dictionary(
-                keyword_list, SESSION)
+            dataset_dict = self.generate_dataset_dictionary(keyword_list)
             dataset_list = sorted(
                 dataset_dict, key=dataset_dict.get, reverse=True)
         except Exception as e:

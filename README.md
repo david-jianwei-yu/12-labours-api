@@ -14,22 +14,36 @@ Make sure you have python 3 installed `python3 --version`.
 
 Python version `3.9.0` used for this project.
 
+Pip version `22.3.1` used for this project.
+
 ## Environment variables
 
 Here is the list of environment variables used by the app.
 
+### For production:
+
 Please fill in the environment variables in the `env.txt` file and rename the file name to `.env`.
+
+### For deployment:
+
+The environment variables template has been shown below:
 
 ```bash
 GEN3_ENDPOINT_URL =
 GEN3_API_KEY =
 GEN3_KEY_ID =
+
 IRODS_ENDPOINT_URL =
 IRODS_HOST =
 IRODS_PASSWORD =
 IRODS_PORT =
 IRODS_USER =
 IRODS_ZONE =
+
+# This is the deployment url for current backend
+BASE_URL =
+# This is the deployment url for the 12 labours portal
+PORTAL_URL =
 ```
 
 ## Running the app
@@ -96,11 +110,24 @@ If you do not have the 12 Labours portal user environment variables setup alread
 
 After the previous steps or if you already have those environment variables setup, run:
 
+(Optional) If the app has not been run before, you should run the following commands first:
+
 ```bash
+# Create the virtual environment
+$ python3 -m venv ./venv
+# Active the virtual environment
+$ . ./venv/bin/activate
+# Install all required dependencies
+$ pip install -r requirements.txt
+```
+
+Otherwise, you only need to run the following commands:
+
+```bash
+# Install required dependencies for testing
+$ pip install -r requirements-dev.txt
 # Set the python path to the current diectory
 $ export PYTHONPATH=.
-# Install all required dependencies
-$ pip install -r requirements-dev.txt
 # Run the pytest
 $ pytest
 ```
