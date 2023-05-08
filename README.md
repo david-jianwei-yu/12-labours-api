@@ -14,7 +14,7 @@ Make sure you have python 3 installed `python3 --version`.
 
 Python version `3.9.0` used for this project.
 
-Pip version `22.3.1` used for this project.
+Pip version `20.3.1` used for this project.
 
 ## Environment variables
 
@@ -29,6 +29,9 @@ Please fill in the environment variables in the `env.txt` file and rename the fi
 The environment variables template has been shown below:
 
 ```bash
+# This is the deployment url for current backend
+QUERY_API_URL =
+
 GEN3_ENDPOINT_URL =
 GEN3_API_KEY =
 GEN3_KEY_ID =
@@ -39,11 +42,6 @@ IRODS_PASSWORD =
 IRODS_PORT =
 IRODS_USER =
 IRODS_ZONE =
-
-# This is the deployment url for current backend
-BASE_URL =
-# This is the deployment url for the 12 labours portal
-PORTAL_URL =
 ```
 
 ## Running the app
