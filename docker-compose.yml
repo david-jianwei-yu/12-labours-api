@@ -1,10 +1,6 @@
-version: "3"
-
 services:
   server:
     image: 12laboursapi:latest
-    ports:
-      - "8000:8000"
     environment:
       QUERY_API_URL: ${QUERY_API_URL}
       GEN3_ENDPOINT_URL: ${GEN3_ENDPOINT_URL}
@@ -16,3 +12,5 @@ services:
       IRODS_USER: ${IRODS_USER}
       IRODS_PASSWORD: ${IRODS_PASSWORD}
       IRODS_ZONE: ${IRODS_ZONE}
+    ports:
+      - "8000:8000"
