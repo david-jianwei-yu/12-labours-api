@@ -2,7 +2,6 @@ services:
   server:
     image: 12laboursapi:latest
     environment:
-      QUERY_API_URL: ${QUERY_API_URL}
       GEN3_ENDPOINT_URL: ${GEN3_ENDPOINT_URL}
       GEN3_API_KEY: ${GEN3_API_KEY}
       GEN3_KEY_ID: ${GEN3_KEY_ID}
