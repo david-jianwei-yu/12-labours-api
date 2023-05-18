@@ -1,7 +1,6 @@
 import re
 import json
 
-from app.config import Config
 from app.data_schema import GraphQLQueryItem
 from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter, FIELDS
@@ -138,8 +137,8 @@ class Pagination:
         result["relative"]["path"].append(cite.split("/")[-1])
         return result
 
-    def handle_image_url(self, prefix, filename, source_of, has_image):
-        full_url = prefix
+    def handle_image_url(self, middle, filename, source_of, has_image):
+        full_url = middle
         if has_image:
             if source_of != "":
                 path_list = filename.split("/")
@@ -157,11 +156,11 @@ class Pagination:
             return ""
         return data
 
-    def update_manifests_based(self, uuid, prefix, data, image=False):
+    def update_manifests_based(self, uuid, middle, data, image=False):
         result = []
         for ele in data:
             item = {
-                "image_url": self.handle_image_url(prefix, ele["filename"], self.handle_empty_value(ele["is_source_of"]), image),
+                "image_url": self.handle_image_url(middle, ele["filename"], self.handle_empty_value(ele["is_source_of"]), image),
                 "additional_mimetype": {
                     "name": self.handle_empty_value(ele["additional_types"])
                 },
@@ -190,10 +189,10 @@ class Pagination:
         result = []
         for ele in data:
             dataset_id = ele["submitter_id"]
-            image_url_prefix = f"{Config.QUERY_API_URL}/data/preview/{dataset_id}/"
+            image_url_middle = f"/data/preview/{dataset_id}/"
             item = {
                 "data_url_suffix": f"/data/browser/dataset/{dataset_id}?datasetTab=abstract",
-                "source_url_prefix": f"{Config.QUERY_API_URL}/data/download/{dataset_id}/",
+                "source_url_middle": f"/data/download/{dataset_id}/",
                 "contributors": self.update_contributors(ele["dataset_descriptions"][0]["contributor_name"]),
                 "keywords": ele["dataset_descriptions"][0]["keywords"],
                 "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
@@ -202,10 +201,10 @@ class Pagination:
                 "datasetId": dataset_id,
                 "organs": ele["dataset_descriptions"][0]["study_organ_system"],
                 "species": self.update_species(ele["cases"]),
-                "plots": self.update_manifests_based(ele["id"], image_url_prefix, ele["plots"]),
-                "scaffoldViews": self.update_manifests_based(ele["id"], image_url_prefix, ele["scaffoldViews"], True),
-                "scaffolds": self.update_manifests_based(ele["id"], image_url_prefix, ele["scaffolds"]),
-                "thumbnails": self.update_manifests_based(ele["id"], image_url_prefix, self.update_thumbnails(ele["thumbnails"]), True),
+                "plots": self.update_manifests_based(ele["id"], image_url_middle, ele["plots"]),
+                "scaffoldViews": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffoldViews"], True),
+                "scaffolds": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffolds"]),
+                "thumbnails": self.update_manifests_based(ele["id"], image_url_middle, self.update_thumbnails(ele["thumbnails"]), True),
                 "detailsReady": True,
             }
             result.append(item)
