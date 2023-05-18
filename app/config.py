@@ -6,7 +6,6 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config(object):
-    QUERY_API_URL = os.environ.get('QUERY_API_URL')
     DATABASE_URL = os.environ.get('DATABASE_URL')
     DEPLOY_ENV = os.environ.get("DEPLOY_ENV", "development")
     LABOURS_APP_HOST = os.environ.get("LABOURS_APP_HOST")
