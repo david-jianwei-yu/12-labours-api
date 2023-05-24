@@ -30,8 +30,6 @@ The environment variables template has been shown below:
 
 ```bash
 # This is the deployment url for current backend
-QUERY_API_URL =
-
 GEN3_ENDPOINT_URL =
 GEN3_API_KEY =
 GEN3_KEY_ID =
