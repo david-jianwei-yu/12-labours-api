@@ -1,0 +1,15 @@
+services:
+  server:
+    image: 12laboursapi:latest
+    environment:
+      GEN3_ENDPOINT_URL: ${GEN3_ENDPOINT_URL}
+      GEN3_API_KEY: ${GEN3_API_KEY}
+      GEN3_KEY_ID: ${GEN3_KEY_ID}
+      IRODS_ENDPOINT_URL: ${IRODS_ENDPOINT_URL}
+      IRODS_HOST: ${IRODS_HOST}
+      IRODS_PORT: ${IRODS_PORT}
+      IRODS_USER: ${IRODS_USER}
+      IRODS_PASSWORD: ${IRODS_PASSWORD}
+      IRODS_ZONE: ${IRODS_ZONE}
+    ports:
+      - "8000:8000"
