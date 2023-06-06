@@ -126,6 +126,10 @@ async def start_up():
 def periodic_execution():
     global FILTER_GENERATED
     FILTER_GENERATED = fg.generate_filter_dictionary(SUBMISSION)
+    retry = 0
+    while not FILTER_GENERATED:
+        time.sleep(retry + 1)
+        retry += 1
 
 
 @ app.get("/", tags=["Root"], response_class=PlainTextResponse)
@@ -307,8 +311,6 @@ async def generate_filter(sidebar: bool):
 
     - **sidebar**: boolean content.
     """
-    while not FILTER_GENERATED:
-        time.sleep(1)
     if sidebar == True:
         return f.generate_sidebar_filter_information()
     return f.generate_filter_information()

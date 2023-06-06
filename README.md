@@ -125,5 +125,5 @@ $ pip install -r requirements-dev.txt
 # Set the python path to the current diectory
 $ export PYTHONPATH=.
 # Run the pytest
-$ pytest
+$ pytest --timeout=<time in second>
 ```
