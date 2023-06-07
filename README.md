@@ -29,7 +29,6 @@ Please fill in the environment variables in the `env.txt` file and rename the fi
 The environment variables template has been shown below:
 
 ```bash
-# This is the deployment url for current backend
 GEN3_ENDPOINT_URL =
 GEN3_API_KEY =
 GEN3_KEY_ID =
@@ -125,5 +124,5 @@ $ pip install -r requirements-dev.txt
 # Set the python path to the current diectory
 $ export PYTHONPATH=.
 # Run the pytest
-$ pytest
+$ pytest --timeout=<time in second>
 ```

@@ -68,6 +68,7 @@ class FilterGenerator:
                 sgqlc = SimpleGraphQLClient()
                 query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
                 ele_node = re.sub('_filter', '', ele_node)
+                # Add data to filter_element
                 for ele in query_result[ele_node]:
                     value = ele[FILTERS[element]["field"]]
                     if type(value) == list and value != []:
@@ -79,6 +80,9 @@ class FilterGenerator:
                         name = value.title()
                         if value != "NA" and name not in filter_element:
                             filter_element[name] = value
-                FILTERS[element]["element"] = dict(
-                    sorted(filter_element.items()))
+                if filter_element == {}:
+                    return False
+                else:
+                    FILTERS[element]["element"] = dict(
+                        sorted(filter_element.items()))
         return True

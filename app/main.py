@@ -125,7 +125,9 @@ async def start_up():
 @repeat_every(seconds=60*60*24)
 def periodic_execution():
     global FILTER_GENERATED
-    FILTER_GENERATED = fg.generate_filter_dictionary(SUBMISSION)
+    FILTER_GENERATED = False
+    while not FILTER_GENERATED:
+        FILTER_GENERATED = fg.generate_filter_dictionary(SUBMISSION)
 
 
 @ app.get("/", tags=["Root"], response_class=PlainTextResponse)
@@ -307,11 +309,19 @@ async def generate_filter(sidebar: bool):
 
     - **sidebar**: boolean content.
     """
-    while not FILTER_GENERATED:
-        time.sleep(1)
-    if sidebar == True:
-        return f.generate_sidebar_filter_information()
-    return f.generate_filter_information()
+    retry = 0
+    # Stop waiting for the filter generator after hitting the retry limits
+    # The retry limit here may need to be increased if there is a large database
+    # This also depends on how fast the filter will be generated
+    while retry < 12 and not FILTER_GENERATED:
+        retry += 1
+        time.sleep(retry)
+    if FILTER_GENERATED:
+        if sidebar == True:
+            return f.generate_sidebar_filter_information()
+        return f.generate_filter_information()
+    else:
+        raise HTTPException(status_code=NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
