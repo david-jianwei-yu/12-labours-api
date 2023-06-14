@@ -1,3 +1,4 @@
+import re
 import time
 import mimetypes
 
@@ -321,7 +322,8 @@ async def generate_filter(sidebar: bool):
             return f.generate_sidebar_filter_information()
         return f.generate_filter_information()
     else:
-        raise HTTPException(status_code=NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
+        raise HTTPException(
+            status_code=NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
@@ -374,35 +376,29 @@ def get_collection_list(data):
     return collect_list
 
 
-@ app.get("/collection/root", tags=["iRODS"], summary="Get root information", responses=root_responses)
-async def get_irods_root_collections():
-    """
-    Return all collections from the root folder.
-    """
-    try:
-        collect = SESSION.collections.get(
-            f"{iRODSConfig.IRODS_ENDPOINT_URL}")
-        folders = get_collection_list(collect.subcollections)
-        files = get_collection_list(collect.data_objects)
-    except Exception as e:
-        raise HTTPException(status_code=INTERNAL_SERVER_ERROR, detail=str(e))
-    return {"folders": folders, "files": files}
-
-
 @ app.post("/collection", tags=["iRODS"], summary="Get folder information", responses=sub_responses)
 async def get_irods_collections(item: CollectionItem):
     """
     Return all collections from the required folder.
+
+    Root folder will be returned if no item or "/" is passed.
     """
-    if item.path == None:
+    folder_path = f"{iRODSConfig.IRODS_ENDPOINT_URL}"
+    if re.match("(/(.)*)+", item.path):
+        folder_path += item.path
+    else:
         raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing field in the request body")
+                            detail="Invalid path format is used")
 
     try:
-        collect = SESSION.collections.get(item.path)
+        collect = SESSION.collections.get(folder_path)
         folders = get_collection_list(collect.subcollections)
         files = get_collection_list(collect.data_objects)
-        return {"folders": folders, "files": files}
+        result = {
+            "folders": folders,
+            "files": files
+        }
+        return result
     except Exception:
         raise HTTPException(status_code=NOT_FOUND,
                             detail="Data not found in the provided path")

@@ -281,7 +281,7 @@ def test_case_node(client):
 
 def test_irods_collections(client):
     payload1 = {
-        "path": "/tempZone/home/rods/12L/datasets/dataset-217-version-2"
+        "path": "/dataset-217-version-2"
     }
     response = client.post("/collection", json=payload1)
     result = response.json()
@@ -311,7 +311,7 @@ def test_irods_collections(client):
     ]
 
     payload2 = {
-        "path": "/tempZone/home/rods/12L/datasets/dataset-46-version-2"
+        "path": "/dataset-46-version-2"
     }
     response = client.post("/collection", json=payload2)
     result = response.json()

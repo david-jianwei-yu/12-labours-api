@@ -159,24 +159,14 @@ class FormatParam(str, Enum):
 
 
 class CollectionItem(BaseModel):
-    path: Union[str, None] = None
+    path: Union[str, None] = "/"
 
     class Config:
         schema_extra = {
             "example": {
-                "path": f"{iRODSConfig.IRODS_ENDPOINT_URL}/dataset-102-version-4",
+                "path": "/dataset-102-version-4",
             }
         }
-
-
-root_responses = {
-    200: {
-        "description": "Successfully return all folders/files name and path under root folder",
-        "content": {"application/json": {"example": {
-            "folders": [], "files": []
-        }}}
-    }
-}
 
 
 sub_responses = {
@@ -186,6 +176,9 @@ sub_responses = {
             "folders": [], "files": []
         }}}
     },
+    400: {"content": {"application/json": {"example": {
+        "detail": "Invalid path format is used"
+    }}}},
     404: {"content": {"application/json": {"example": {
         "detail": "Data not found in the provided path"
     }}}}
