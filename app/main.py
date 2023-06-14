@@ -371,7 +371,7 @@ def get_collection_list(data):
     for ele in data:
         collect_list.append({
             "name": ele.name,
-            "path": ele.path
+            "path": re.sub(iRODSConfig.IRODS_ENDPOINT_URL, '', ele.path)
         })
     return collect_list
 
@@ -383,7 +383,7 @@ async def get_irods_collections(item: CollectionItem):
 
     Root folder will be returned if no item or "/" is passed.
     """
-    folder_path = f"{iRODSConfig.IRODS_ENDPOINT_URL}"
+    folder_path = iRODSConfig.IRODS_ENDPOINT_URL
     if re.match("(/(.)*)+", item.path):
         folder_path += item.path
     else:
