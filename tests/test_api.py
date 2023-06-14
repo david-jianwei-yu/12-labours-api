@@ -298,7 +298,7 @@ def test_download_gen3_metadata_file(client):
     assert result["submitter_id"] == "dataset-217-version-2"
 
 
-def test_get_irods_collections(client):
+def test_get_irods_collection(client):
     pass_case_root = {}
     response = client.post("/collection", json=pass_case_root)
     result = response.json()

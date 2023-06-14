@@ -366,18 +366,18 @@ async def download_gen3_metadata_file(program: ProgramParam, project: ProjectPar
 ############################################
 
 
-def get_collection_list(data):
-    collect_list = []
+def generate_collection_list(data):
+    collection_list = []
     for ele in data:
-        collect_list.append({
+        collection_list.append({
             "name": ele.name,
             "path": re.sub(iRODSConfig.IRODS_ENDPOINT_URL, '', ele.path)
         })
-    return collect_list
+    return collection_list
 
 
 @ app.post("/collection", tags=["iRODS"], summary="Get folder information", responses=sub_responses)
-async def get_irods_collections(item: CollectionItem):
+async def get_irods_collection(item: CollectionItem):
     """
     Return all collections from the required folder.
 
@@ -392,11 +392,11 @@ async def get_irods_collections(item: CollectionItem):
 
     try:
         collect = SESSION.collections.get(folder_path)
-        folders = get_collection_list(collect.subcollections)
-        files = get_collection_list(collect.data_objects)
+        folder_list = generate_collection_list(collect.subcollections)
+        file_list = generate_collection_list(collect.data_objects)
         result = {
-            "folders": folders,
-            "files": files
+            "folders": folder_list,
+            "files": file_list
         }
         return result
     except Exception:
