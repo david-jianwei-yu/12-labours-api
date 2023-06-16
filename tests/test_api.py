@@ -298,30 +298,31 @@ def test_download_gen3_metadata_file(client):
     assert result["submitter_id"] == "dataset-217-version-2"
 
 
-def test_get_irods_root_collections(client):
-    response = client.get("/collection/root")
+def test_get_irods_collection(client):
+    pass_case_root = {}
+    response = client.post("/collection", json=pass_case_root)
     result = response.json()
     assert response.status_code == 200
-    assert len(result) == 2
-
-
-def test_get_irods_collections(client):
-    pass_case = {
-        "path": "/tempZone/home/rods/12L/datasets"
+    assert len(response.json()) == 2
+    
+    pass_case_sub = {
+        "path": "/dataset-217-version-2"
     }
-    response = client.post("/collection", json=pass_case)
+    response = client.post("/collection", json=pass_case_sub)
     result = response.json()
     assert response.status_code == 200
     assert len(response.json()) == 2
 
-    missing_data = {}
-    response = client.post("/collection", json=missing_data)
+    empty_string_path = {
+        "path": ""
+    }
+    response = client.post("/collection", json=empty_string_path)
     result = response.json()
     assert response.status_code == 400
-    assert response.json()["detail"] == "Missing field in the request body"
+    assert response.json()["detail"] == "Invalid path format is used"
 
     wrong_path = {
-        "path": "/tempZone/home/rods/data"
+        "path": "/dummy/folder/path"
     }
     response = client.post("/collection", json=wrong_path)
     result = response.json()
