@@ -6,7 +6,7 @@ on:
       - "dev"
 
 env:
-  IMAGE_NAME: api
+  IMAGE_NAME: api-dev
 
 jobs:
   docker:

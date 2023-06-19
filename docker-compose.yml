@@ -1,6 +1,6 @@
 services:
   server:
-    image: 12labours/api:latest
+    image: 12labours/api-dev:latest
     environment:
       GEN3_ENDPOINT_URL: ${GEN3_ENDPOINT_URL}
       GEN3_API_KEY: ${GEN3_API_KEY}
