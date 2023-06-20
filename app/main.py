@@ -366,6 +366,16 @@ async def download_gen3_metadata_file(program: ProgramParam, project: ProjectPar
 ############################################
 
 
+def check_irods_server():
+    try:
+        SESSION.collections.get(iRODSConfig.IRODS_ENDPOINT_URL)
+    except Exception as e:
+        if str(e) == "":
+            e = "Please check the irods server status or environment variables"
+        raise HTTPException(status_code=INTERNAL_SERVER_ERROR,
+                            detail=str(e))
+
+
 def generate_collection_list(data):
     collection_list = []
     for ele in data:
@@ -383,15 +393,15 @@ async def get_irods_collection(item: CollectionItem):
 
     Root folder will be returned if no item or "/" is passed.
     """
-    folder_path = iRODSConfig.IRODS_ENDPOINT_URL
-    if re.match("(/(.)*)+", item.path):
-        folder_path += item.path
-    else:
+    check_irods_server()
+
+    if not re.match("(/(.)*)+", item.path):
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Invalid path format is used")
 
     try:
-        collect = SESSION.collections.get(folder_path)
+        collect = SESSION.collections.get(
+            iRODSConfig.IRODS_ENDPOINT_URL + item.path)
         folder_list = generate_collection_list(collect.subcollections)
         file_list = generate_collection_list(collect.data_objects)
         result = {
@@ -414,6 +424,8 @@ async def get_irods_data_file(action: ActionParam, filepath: str):
     - **action**: Action should be either preview or download.
     - **filepath**: Required iRODS file path.
     """
+    check_irods_server()
+
     chunk_size = 1024*1024*1024
     try:
         file = SESSION.data_objects.get(
