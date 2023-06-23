@@ -1,6 +1,6 @@
 import re
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from irods.column import Like, In
 from irods.models import Collection, DataObjectMeta
 
@@ -49,10 +49,10 @@ class Search:
                 dataset_dict, key=dataset_dict.get, reverse=True)
         except Exception as e:
             raise HTTPException(
-                status_code=INTERNAL_SERVER_ERROR, detail=str(e))
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
         if dataset_list == []:
-            raise HTTPException(status_code=NOT_FOUND,
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no matched content in the database")
         else:
             return dataset_list

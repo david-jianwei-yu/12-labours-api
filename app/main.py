@@ -2,7 +2,7 @@ import re
 import time
 import mimetypes
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
 from fastapi_utils.tasks import repeat_every
@@ -158,7 +158,8 @@ async def get_gen3_program():
         program = SUBMISSION.get_programs()
         return get_name_list(program, "program", "/v0/submission/")
     except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @ app.get("/project/{program}", tags=["Gen3"], summary="Get gen3 project information", responses=project_responses)
@@ -172,7 +173,8 @@ async def get_gen3_project(program: ProgramParam):
         project = SUBMISSION.get_projects(program)
         return get_name_list(project, "project", f"/v0/submission/{program}/")
     except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @ app.post("/dictionary", tags=["Gen3"], summary="Get gen3 dictionary information", responses=dictionary_responses)
@@ -181,7 +183,7 @@ async def get_gen3_dictionary(item: Gen3Item):
     Return all dictionary nodes from the Gen3 Data Commons
     """
     if item.program == None or item.project == None:
-        raise HTTPException(status_code=BAD_REQUEST,
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Missing one or more fields in the request body")
 
     try:
@@ -190,7 +192,7 @@ async def get_gen3_dictionary(item: Gen3Item):
         return get_name_list(dictionary, "dictionary", f"/v0/submission/{item.program}/{item.project}/_dictionary/")
     except Exception:
         raise HTTPException(
-            status_code=NOT_FOUND, detail=f"Program {item.program} or project {item.project} not found")
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Program {item.program} or project {item.project} not found")
 
 
 @ app.post("/records/{node}", tags=["Gen3"], summary="Get gen3 node records information", responses=records_responses)
@@ -201,19 +203,19 @@ async def get_gen3_node_records(node: NodeParam, item: Gen3Item):
     - **node**: The dictionary node to export.
     """
     if item.program == None or item.project == None:
-        raise HTTPException(status_code=BAD_REQUEST,
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Missing one or more fields in the request body")
 
     node_record = SUBMISSION.export_node(
         item.program, item.project, node, "json")
     if "message" in node_record:
         if "unauthorized" in node_record["message"]:
-            raise HTTPException(status_code=UNAUTHORIZED,
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail=node_record["message"])
-        raise HTTPException(status_code=NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=node_record["message"])
     elif node_record["data"] == []:
-        raise HTTPException(status_code=NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"No data found with node type {node} and check if the correct project or node type is used")
     else:
         return node_record
@@ -227,17 +229,17 @@ async def get_gen3_record(uuid: str, item: Gen3Item):
     - **uuid**: uuid of the record.
     """
     if item.program == None or item.project == None:
-        raise HTTPException(status_code=BAD_REQUEST,
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Missing one or more fields in the request body")
 
     record = SUBMISSION.export_record(
         item.program, item.project, uuid, "json")
     if "message" in record:
         if "unauthorized" in record["message"]:
-            raise HTTPException(status_code=UNAUTHORIZED,
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail=record["message"])
         raise HTTPException(
-            status_code=NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
+            status_code=status.HTTP_404_NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
     else:
         return record
 
@@ -323,7 +325,7 @@ async def generate_filter(sidebar: bool):
         return f.generate_filter_information()
     else:
         raise HTTPException(
-            status_code=NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
+            status_code=status.HTTP_404_NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
@@ -339,14 +341,15 @@ async def download_gen3_metadata_file(program: ProgramParam, project: ProjectPar
     try:
         metadata = SUBMISSION.export_record(program, project, uuid, format)
     except Exception as e:
-        raise HTTPException(status_code=BAD_REQUEST, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     if "message" in metadata:
         if "unauthorized" in metadata["message"]:
-            raise HTTPException(status_code=UNAUTHORIZED,
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail=metadata["message"])
         raise HTTPException(
-            status_code=NOT_FOUND, detail=metadata["message"]+" and check if the correct project or uuid is used")
+            status_code=status.HTTP_404_NOT_FOUND, detail=metadata["message"]+" and check if the correct project or uuid is used")
     else:
         if format == "json":
             return JSONResponse(content=metadata[0],
@@ -387,7 +390,7 @@ async def get_irods_collection(item: CollectionItem):
     if re.match("(/(.)*)+", item.path):
         folder_path += item.path
     else:
-        raise HTTPException(status_code=BAD_REQUEST,
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid path format is used")
 
     try:
@@ -400,7 +403,7 @@ async def get_irods_collection(item: CollectionItem):
         }
         return result
     except Exception:
-        raise HTTPException(status_code=NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Data not found in the provided path")
 
 
@@ -419,7 +422,7 @@ async def get_irods_data_file(action: ActionParam, filepath: str):
         file = SESSION.data_objects.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{filepath}")
     except Exception:
-        raise HTTPException(status_code=NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Data not found in the provided path")
 
     def iterate_file():
@@ -437,5 +440,5 @@ async def get_irods_data_file(action: ActionParam, filepath: str):
             0],
             headers={"Content-Disposition": f"attachment;filename={file.name}"})
     else:
-        raise HTTPException(status_code=METHOD_NOT_ALLOWED,
+        raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
                             detail="The action is not provided in this API")
