@@ -2,7 +2,7 @@ import re
 import time
 import mimetypes
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
 from fastapi_utils.tasks import repeat_every
@@ -16,6 +16,7 @@ from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter
 from app.pagination import Pagination
 from app.filter_dictionary import FilterGenerator
+from middleware.auth import Authenticator
 
 description = """
 ## Gen3
@@ -89,6 +90,7 @@ app.add_middleware(
 SUBMISSION = None
 SESSION = None
 FILTER_GENERATED = False
+a = Authenticator()
 sgqlc = SimpleGraphQLClient()
 f = Filter()
 p = Pagination()
@@ -149,14 +151,27 @@ def get_name_list(data, name, path):
     return name_dict
 
 
+@ app.get("/token/{email}", tags=["Gen3"], summary="Get gen3 access token for user", responses=program_responses)
+async def get_gen3_access_token(email):
+    result = {
+        "email": email,
+        "access_token": a.generate_access_token(email, SESSION)
+    }
+    return result
+
+
 @ app.get("/program", tags=["Gen3"], summary="Get gen3 program information", responses=program_responses)
-async def get_gen3_program():
+async def get_gen3_program(access: dict = Depends(a.get_user_authority)):
     """
     Return all programs information from the Gen3 Data Commons.
     """
     try:
         program = SUBMISSION.get_programs()
-        return get_name_list(program, "program", "/v0/submission/")
+        program_dict = get_name_list(program, "program", "/v0/submission/")
+        result = {
+            "program": list(set(access["policies"]).intersection(program_dict["program"]))
+        }
+        return result
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -304,7 +319,7 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
 
 
 @ app.get("/filter/", tags=["Gen3"], summary="Get filter information", responses=filter_responses)
-async def generate_filter(sidebar: bool):
+async def ger_filter(sidebar: bool):
     """
     /filter/?sidebar=<boolean>
 

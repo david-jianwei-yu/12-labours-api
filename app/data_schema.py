@@ -2,11 +2,13 @@ from typing import Union
 from pydantic import BaseModel
 from enum import Enum
 
-
-class UserItem(BaseModel):
-    username: str
-    email: Union[str, None] = None
-    full_name: Union[str, None] = None
+access_token_responses = {
+    200: {
+        "description": "Successfully return the gen3 access token",
+        "content": {"application/json": {"example": {"email": "", "access_token": ""}}},
+    },
+    404: {"content": {"application/json": {"example": {"detail": "Email xxx is not authorized"}}}}
+}
 
 
 program_responses = {
