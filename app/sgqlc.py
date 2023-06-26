@@ -10,14 +10,14 @@ from app.sgqlc_schema import Query
 class SimpleGraphQLClient:
     def add_count_field(self, item, query):
         # Add default count field to query
-        count_field = f"total: _{item.node}_count"
+        count_field = f"total: _{item.node}_count(project_id: {item.access}"
         if item.filter != {}:
             # Manually modify and add count field into graphql query
             filter_argument = re.sub(
                 '\'([_a-z]+)\'', r'\1', re.sub(r'\{([^{].*[^}])\}', r'\1', f'{item.filter}'))
-            count_field = re.sub(
-                '\'', '\"', f'total: _{item.node}_count({filter_argument}, project_id: {item.access})')
-        return query + count_field
+            count_field += f", {filter_argument}"
+        query_with_count = query + re.sub('\'', '\"', f"{count_field})")
+        return query_with_count
 
     def update_manifests_information(self, query):
         data = {
@@ -27,9 +27,9 @@ class SimpleGraphQLClient:
             'manifests4': ['thumbnails', 'file_type', '[".jpg", ".png"]']
         }
         for key in data.keys():
-            query = re.sub(
+            query_with_classification = re.sub(
                 key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]})', query)
-        return query
+        return query_with_classification
 
     def remove_node_suffix(self, node, query):
         suffix = ""
@@ -39,9 +39,9 @@ class SimpleGraphQLClient:
             suffix = "_query"
         elif "pagination" in node:
             suffix = "_pagination"
-        query = re.sub(suffix, '', query)
-        node = re.sub(suffix, '', node)
-        return query, node
+        query_without_suffix = re.sub(suffix, '', query)
+        node_without_suffix = re.sub(suffix, '', node)
+        return query_without_suffix, node_without_suffix
 
     def convert_query(self, item, query):
         # Convert camel case to snake case
