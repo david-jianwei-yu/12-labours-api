@@ -159,7 +159,7 @@ def update_name_list(data, name, path):
     return name_dict
 
 
-@ app.get("/token/{email}", tags=["Gen3"], summary="Get gen3 access token for user", responses=access_token_responses)
+@ app.get("/access/token/{email}", tags=["Gen3"], summary="Get gen3 access token for authorized user", responses=access_token_responses)
 async def get_gen3_access_token(email: str):
     result = {
         "email": email,
@@ -168,10 +168,12 @@ async def get_gen3_access_token(email: str):
     return result
 
 
-@ app.get("/access", tags=["Gen3"], summary="Get gen3 access scope", responses=access_responses)
+@ app.get("/access/scope", tags=["Gen3"], summary="Get gen3 access scope", responses=access_scope_responses)
 async def get_gen3_access_scope(access: dict = Depends(a.get_user_authority)):
     """
     Return all programs/projects information from the Gen3 Data Commons.
+
+    Use {"Authorization": "Bearer publicaccesstoken"} for accessing public program/project
     """
     try:
         program = SUBMISSION.get_programs()

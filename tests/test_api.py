@@ -12,7 +12,7 @@ def client():
 
 def test_get_gen3_access_token(client):
     fake_email = "faketestemail@gmail.com"
-    response = client.get(f"/token/{fake_email}")
+    response = client.get(f"/access/token/{fake_email}")
     result = response.json()
     assert response.status_code == 404
     assert result["detail"] == f"Email {fake_email} is not authorized"
@@ -20,14 +20,14 @@ def test_get_gen3_access_token(client):
 
 def test_get_gen3_project(client):
     response = client.get(
-        "/access", headers={"Authorization": "Bearer publicaccesstoken"})
+        "/access/scope", headers={"Authorization": "Bearer publicaccesstoken"})
     result = response.json()
     assert response.status_code == 200
     assert len(result) == 1
     assert result["access"][0] == "demo1-12L"
 
     response = client.get(
-        "/access", headers={"Authorization": "Bearer fakeaccesstoken"})
+        "/access/scope", headers={"Authorization": "Bearer fakeaccesstoken"})
     result = response.json()
     assert response.status_code == 401
     assert result["detail"] == "Invalid authentication credentials"

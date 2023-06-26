@@ -11,10 +11,10 @@ access_token_responses = {
 }
 
 
-access_responses = {
+access_scope_responses = {
     200: {
         "description": "Successfully return a list of Gen3 access scope",
-        "content": {"application/json": {"example": {"access": []}}}
+        "content": {"application/json": {"example": {"access": ["demo1-12L"]}}}
     },
     401: {"content": {"application/json": {"example": {"detail": "Invalid authentication credentials"}}}}
 }
