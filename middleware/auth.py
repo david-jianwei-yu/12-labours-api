@@ -38,12 +38,13 @@ class Authenticator:
         yaml_dict = yaml.load(yaml_string, Loader=SafeLoader)
         yaml_json = json.loads(json.dumps(yaml_dict))["users"]
         policy_list = self.match_user_policies(email, yaml_json)
+        self.authorized_email = email
+        self.public_access = False
         gen3_access = {
             "email": email,
             "policies": policy_list
         }
         self.access_token = self.fernet.encrypt(str(gen3_access).encode())
-        self.authorized_email = email
         return self.access_token
 
     def authenticate_token(self, token):
