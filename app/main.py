@@ -144,14 +144,22 @@ async def root():
 #########################
 
 
-def get_name_list(data, name, path):
+def split_access(access):
+    access_list = access.split("-")
+    return access_list[0], access_list[1]
+
+
+def update_name_list(data, name, path):
     name_dict = {name: []}
     for ele in data["links"]:
-        name_dict[name].append(ele.replace(path, ""))
+        ele = ele.replace(path, "")
+        if name == "access":
+            ele = re.sub('/', '-', ele)
+        name_dict[name].append(ele)
     return name_dict
 
 
-@ app.get("/token/{email}", tags=["Gen3"], summary="Get gen3 access token for user", responses=program_responses)
+@ app.get("/token/{email}", tags=["Gen3"], summary="Get gen3 access token for user", responses=access_token_responses)
 async def get_gen3_access_token(email: str):
     result = {
         "email": email,
@@ -160,36 +168,23 @@ async def get_gen3_access_token(email: str):
     return result
 
 
-@ app.get("/program", tags=["Gen3"], summary="Get gen3 program information", responses=program_responses)
-async def get_gen3_program(access: dict = Depends(a.get_user_authority)):
+@ app.get("/access", tags=["Gen3"], summary="Get gen3 access scope", responses=access_responses)
+async def get_gen3_access_scope(access: dict = Depends(a.get_user_authority)):
     """
-    Return all programs information from the Gen3 Data Commons.
+    Return all programs/projects information from the Gen3 Data Commons.
     """
     try:
         program = SUBMISSION.get_programs()
-        program_dict = get_name_list(program, "program", "/v0/submission/")
-        result = {
-            "program": list(set(access["policies"]).intersection(program_dict["program"]))
-        }
-        return result
+        program_dict = update_name_list(program, "program", "/v0/submission/")
+        restrict_program = list(
+            set(access["policies"]).intersection(program_dict["program"]))
+        project = {"links": []}
+        for prog in restrict_program:
+            project["links"] += SUBMISSION.get_projects(prog)["links"]
+        return update_name_list(project, "access", "/v0/submission/")
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
-
-@ app.get("/project/{program}", tags=["Gen3"], summary="Get gen3 project information", responses=project_responses)
-async def get_gen3_project(program: str):
-    """
-    Return all projects information from a gen3 program.
-
-    - **program**: Gen3 program name.
-    """
-    try:
-        project = SUBMISSION.get_projects(program)
-        return get_name_list(project, "project", f"/v0/submission/{program}/")
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Program {program} not found")
 
 
 @ app.post("/dictionary", tags=["Gen3"], summary="Get gen3 dictionary information", responses=dictionary_responses)
@@ -197,17 +192,17 @@ async def get_gen3_dictionary(item: Gen3Item):
     """
     Return all dictionary nodes from the Gen3 Data Commons
     """
-    if item.program == None or item.project == None:
+    if item.access == None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Missing one or more fields in the request body")
+                            detail="Missing field in the request body")
 
     try:
-        dictionary = SUBMISSION.get_project_dictionary(
-            item.program, item.project)
-        return get_name_list(dictionary, "dictionary", f"/v0/submission/{item.program}/{item.project}/_dictionary/")
+        program, project = split_access(item.access)
+        dictionary = SUBMISSION.get_project_dictionary(program, project)
+        return update_name_list(dictionary, "dictionary", f"/v0/submission/{program}/{project}/_dictionary/")
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Program {item.program} or project {item.project} not found")
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Program {program} or project {project} not found")
 
 
 @ app.post("/records/{node}", tags=["Gen3"], summary="Get gen3 node records information", responses=records_responses)
@@ -217,12 +212,12 @@ async def get_gen3_node_records(node: NodeParam, item: Gen3Item):
 
     - **node**: The dictionary node to export.
     """
-    if item.program == None or item.project == None:
+    if item.access == None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Missing one or more fields in the request body")
+                            detail="Missing field in the request body")
 
-    node_record = SUBMISSION.export_node(
-        item.program, item.project, node, "json")
+    program, project = split_access(item.access)
+    node_record = SUBMISSION.export_node(program, project, node, "json")
     if "message" in node_record:
         if "unauthorized" in node_record["message"]:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -243,12 +238,12 @@ async def get_gen3_record(uuid: str, item: Gen3Item):
 
     - **uuid**: uuid of the record.
     """
-    if item.program == None or item.project == None:
+    if item.access == None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Missing one or more fields in the request body")
+                            detail="Missing field in the request body")
 
-    record = SUBMISSION.export_record(
-        item.program, item.project, uuid, "json")
+    program, project = split_access(item.access)
+    record = SUBMISSION.export_record(program, project, uuid, "json")
     if "message" in record:
         if "unauthorized" in record["message"]:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,

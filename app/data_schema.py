@@ -4,39 +4,29 @@ from enum import Enum
 
 access_token_responses = {
     200: {
-        "description": "Successfully return the gen3 access token",
+        "description": "Successfully return a gen3 access token",
         "content": {"application/json": {"example": {"email": "", "access_token": ""}}},
     },
     404: {"content": {"application/json": {"example": {"detail": "Email xxx is not authorized"}}}}
 }
 
 
-program_responses = {
+access_responses = {
     200: {
-        "description": "Successfully return a list of Gen3 program name",
-        "content": {"application/json": {"example": {"program": []}}}
-    }
-}
-
-
-project_responses = {
-    200: {
-        "description": "Successfully return a list of Gen3 project name",
-        "content": {"application/json": {"example": {"project": []}}}
+        "description": "Successfully return a list of Gen3 access scope",
+        "content": {"application/json": {"example": {"access": []}}}
     },
-    404: {"content": {"application/json": {"example": {"detail": "Program xxx not found"}}}}
+    401: {"content": {"application/json": {"example": {"detail": "Invalid authentication credentials"}}}}
 }
 
 
 class Gen3Item(BaseModel):
-    program: Union[str, None] = None
-    project: Union[str, None] = None
+    access: Union[str, None] = None
 
     class Config:
         schema_extra = {
             "example": {
-                "program": "demo1",
-                "project": "12L",
+                "access": "demo1-12L",
             }
         }
 
@@ -85,7 +75,7 @@ class GraphQLQueryItem(BaseModel):
     node: Union[str, None] = None
     filter: Union[dict, None] = {}
     search: Union[str, None] = ""
-    access: Union[str, None] = ["demo1-12L"]
+    access: Union[list, None] = ["demo1-12L"]
 
     class Config:
         schema_extra = {
@@ -115,7 +105,7 @@ class GraphQLPaginationItem(BaseModel):
     filter: Union[dict, None] = {}
     search: Union[dict, None] = {}
     relation: Union[str, None] = "and"
-    access: Union[str, None] = ["demo1-12L"]
+    access: Union[list, None] = ["demo1-12L"]
 
     class Config:
         schema_extra = {

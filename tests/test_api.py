@@ -18,39 +18,24 @@ def test_get_gen3_access_token(client):
     assert result["detail"] == f"Email {fake_email} is not authorized"
 
 
-def test_get_gen3_program(client):
+def test_get_gen3_project(client):
     response = client.get(
-        "/program", headers={"Authorization": "Bearer publicaccesstoken"})
+        "/access", headers={"Authorization": "Bearer publicaccesstoken"})
     result = response.json()
     assert response.status_code == 200
     assert len(result) == 1
-    assert result["program"][0] == "demo1"
+    assert result["access"][0] == "demo1-12L"
 
     response = client.get(
-        "/program", headers={"Authorization": "Bearer fakeaccesstoken"})
+        "/access", headers={"Authorization": "Bearer fakeaccesstoken"})
     result = response.json()
     assert response.status_code == 401
     assert result["detail"] == "Invalid authentication credentials"
 
 
-def test_get_gen3_project(client):
-    response = client.get("/project/demo1")
-    result = response.json()
-    assert response.status_code == 200
-    assert len(result) == 1
-    assert result["project"][0] == "12L"
-
-    fake_program = "demo"
-    response = client.get(f"/project/{fake_program}")
-    result = response.json()
-    assert response.status_code == 404
-    assert result["detail"] == f"Program {fake_program} not found"
-
-
 def test_get_gen3_dictionary(client):
     pass_case = {
-        "program": "demo1",
-        "project": "12L",
+        "access": "demo1-12L",
     }
     response = client.post("/dictionary", json=pass_case)
     assert response.status_code == 200
@@ -59,11 +44,10 @@ def test_get_gen3_dictionary(client):
     response = client.post("/dictionary", json=missing_data)
     result = response.json()
     assert response.status_code == 400
-    assert result["detail"] == "Missing one or more fields in the request body"
+    assert result["detail"] == "Missing field in the request body"
 
     invalid_data = {
-        "program": "demo",
-        "project": "12L",
+        "access": "demo-12L",
     }
     response = client.post("/dictionary", json=invalid_data)
     result = response.json()
@@ -75,8 +59,7 @@ def test_get_gen3_node_records(client):
     NODE_TYPE = "experiment"
 
     pass_case = {
-        "program": "demo1",
-        "project": "12L",
+        "access": "demo1-12L",
     }
     response = client.post(f"/records/{NODE_TYPE}", json=pass_case)
     result = response.json()
@@ -87,11 +70,10 @@ def test_get_gen3_node_records(client):
     response = client.post(f"/records/{NODE_TYPE}", json=missing_data)
     result = response.json()
     assert response.status_code == 400
-    assert result["detail"] == "Missing one or more fields in the request body"
+    assert result["detail"] == "Missing field in the request body"
 
     invalid_program = {
-        "program": "demo",
-        "project": "12L",
+        "access": "demo-12L",
     }
     response = client.post(f"/records/{NODE_TYPE}", json=invalid_program)
     result = response.json()
@@ -99,8 +81,7 @@ def test_get_gen3_node_records(client):
     assert result["detail"] == "You don't have access to this resource: user is unauthorized"
 
     invalid_project = {
-        "program": "demo1",
-        "project": "12Labours",
+        "access": "demo1-12Labours",
     }
     response = client.post(f"/records/{NODE_TYPE}", json=invalid_project)
     result = response.json()
@@ -116,8 +97,7 @@ def test_get_gen3_record(client):
     UUID = "5b9ae1bd-e780-4869-a458-b3422084c480"
 
     pass_case = {
-        "program": "demo1",
-        "project": "12L",
+        "access": "demo1-12L",
     }
     response = client.post(f"/record/{UUID}", json=pass_case)
     result = response.json()
@@ -129,11 +109,10 @@ def test_get_gen3_record(client):
     response = client.post(f"/record/{UUID}", json=missing_data)
     result = response.json()
     assert response.status_code == 400
-    assert result["detail"] == "Missing one or more fields in the request body"
+    assert result["detail"] == "Missing field in the request body"
 
     invalid_program = {
-        "program": "demo",
-        "project": "12L",
+        "access": "demo-12L",
     }
     response = client.post(f"/record/{UUID}", json=invalid_program)
     result = response.json()
@@ -141,8 +120,7 @@ def test_get_gen3_record(client):
     assert result["detail"] == "You don't have access to this resource: user is unauthorized"
 
     invalid_project = {
-        "program": "demo1",
-        "project": "12Labours",
+        "access": "demo1-12Labours",
     }
     response = client.post(f"/record/{UUID}", json=invalid_project)
     result = response.json()

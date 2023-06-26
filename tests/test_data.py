@@ -16,8 +16,7 @@ def client():
 def test_experiment_node(client):
     UUID = "22c4459b-5f4f-4e62-abd2-2aa205fe838b"
     payload = {
-        "program": "demo1",
-        "project": "12L",
+        "access": "demo1-12L"
     }
     response = client.post(
         f"/record/{UUID}", json=payload)
@@ -59,8 +58,7 @@ def test_experiment_node(client):
 def test_dataset_description_node(client):
     UUID = "5b9ae1bd-e780-4869-a458-b3422084c480"
     payload = {
-        "program": "demo1",
-        "project": "12L",
+        "access": "demo1-12L"
     }
     response = client.post(
         f"/record/{UUID}", json=payload)
@@ -163,8 +161,7 @@ def test_dataset_description_node(client):
 def test_manifest_node(client):
     UUID = "fd65a93f-ff62-45e4-b7b6-96419ef4f749"
     payload = {
-        "program": "demo1",
-        "project": "12L",
+        "access": "demo1-12L"
     }
     response = client.post(
         f"/record/{UUID}", json=payload)
@@ -213,8 +210,7 @@ def test_manifest_node(client):
 def test_case_node(client):
     UUID = "c58ab983-6cf9-4174-a7a9-20cdf1d6bc33"
     payload = {
-        "program": "demo1",
-        "project": "12L",
+        "access": "demo1-12L"
     }
     response = client.post(
         f"/record/{UUID}", json=payload)
