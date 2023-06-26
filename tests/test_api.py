@@ -40,8 +40,11 @@ def test_get_gen3_project(client):
     assert len(result) == 1
     assert result["project"][0] == "12L"
 
-    response = client.get("/project/demo")
-    assert response.status_code == 422
+    fake_program = "demo"
+    response = client.get(f"/project/{fake_program}")
+    result = response.json()
+    assert response.status_code == 404
+    assert result["detail"] == f"Program {fake_program} not found"
 
 
 def test_get_gen3_dictionary(client):

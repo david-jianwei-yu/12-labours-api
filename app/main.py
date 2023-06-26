@@ -152,7 +152,7 @@ def get_name_list(data, name, path):
 
 
 @ app.get("/token/{email}", tags=["Gen3"], summary="Get gen3 access token for user", responses=program_responses)
-async def get_gen3_access_token(email):
+async def get_gen3_access_token(email: str):
     result = {
         "email": email,
         "access_token": a.generate_access_token(email, SESSION)
@@ -178,7 +178,7 @@ async def get_gen3_program(access: dict = Depends(a.get_user_authority)):
 
 
 @ app.get("/project/{program}", tags=["Gen3"], summary="Get gen3 project information", responses=project_responses)
-async def get_gen3_project(program: ProgramParam):
+async def get_gen3_project(program: str):
     """
     Return all projects information from a gen3 program.
 
@@ -187,9 +187,9 @@ async def get_gen3_project(program: ProgramParam):
     try:
         project = SUBMISSION.get_projects(program)
         return get_name_list(project, "project", f"/v0/submission/{program}/")
-    except Exception as e:
+    except Exception:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Program {program} not found")
 
 
 @ app.post("/dictionary", tags=["Gen3"], summary="Get gen3 dictionary information", responses=dictionary_responses)
@@ -344,7 +344,7 @@ async def ger_filter(sidebar: bool):
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
-async def download_gen3_metadata_file(program: ProgramParam, project: ProjectParam, uuid: str, format: FormatParam):
+async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: FormatParam):
     """
     Return a single metadata file for a given uuid.
 
