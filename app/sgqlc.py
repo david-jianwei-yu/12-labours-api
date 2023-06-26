@@ -20,6 +20,7 @@ class SimpleGraphQLClient:
         return query_with_count
 
     def update_manifests_information(self, query):
+        query_with_classification = query
         data = {
             'manifests1': ['scaffolds', 'additional_types', '["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"]'],
             'manifests2': ['scaffoldViews', 'additional_types', '["application/x.vnd.abi.scaffold.view+json"]'],
@@ -28,7 +29,7 @@ class SimpleGraphQLClient:
         }
         for key in data.keys():
             query_with_classification = re.sub(
-                key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]})', query)
+                key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]})', query_with_classification)
         return query_with_classification
 
     def remove_node_suffix(self, node, query):
