@@ -16,7 +16,7 @@ class SimpleGraphQLClient:
             filter_argument = re.sub(
                 '\'([_a-z]+)\'', r'\1', re.sub(r'\{([^{].*[^}])\}', r'\1', f'{item.filter}'))
             count_field = re.sub(
-                '\'', '\"', f'total: _{item.node}_count({filter_argument})')
+                '\'', '\"', f'total: _{item.node}_count({filter_argument}, project_id: {item.access})')
         return query + count_field
 
     def update_manifests_information(self, query):
@@ -110,6 +110,7 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     submitter_id=item.filter.get("submitter_id", None),
+                    project_id=item.access,
                 )
             )
         elif item.node == "dataset_description_query":
@@ -119,6 +120,7 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     quick_search=item.search,
+                    project_id=item.access,
                 )
             )
         elif item.node == "manifest_query":
@@ -128,6 +130,7 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     quick_search=item.search,
+                    project_id=item.access,
                 )
             )
         elif item.node == "case_query":
@@ -137,6 +140,7 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     quick_search=item.search,
+                    project_id=item.access,
                 )
             )
         # PAGINATION
@@ -149,6 +153,7 @@ class SimpleGraphQLClient:
                     first=item.limit,
                     offset=(item.page-1)*item.limit,
                     submitter_id=item.filter.get("submitter_id", None),
+                    project_id=item.access,
                 )
             )
         else:
@@ -164,4 +169,5 @@ class SimpleGraphQLClient:
         try:
             return SUBMISSION.query(query)["data"]
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

@@ -182,6 +182,7 @@ class Query(Type):
             "first": Int,
             "offset": Int,
             "submitter_id": list_of(String),
+            "project_id": list_of(String),
         }
     )
     datasetDescriptionQuery = Field(
@@ -190,6 +191,7 @@ class Query(Type):
             "first": Int,
             "offset": Int,
             "quick_search": String,
+            "project_id": list_of(String),
         }
     )
     manifestQuery = Field(
@@ -198,6 +200,7 @@ class Query(Type):
             "first": Int,
             "offset": Int,
             "quick_search": String,
+            "project_id": list_of(String),
         }
     )
     caseQuery = Field(
@@ -206,6 +209,7 @@ class Query(Type):
             "first": Int,
             "offset": Int,
             "quick_search": String,
+            "project_id": list_of(String),
         }
     )
     # PAGINATION
@@ -215,5 +219,6 @@ class Query(Type):
             "first": Int,
             "offset": Int,
             "submitter_id": list_of(String),
+            "project_id": list_of(String),
         }
     )

@@ -19,15 +19,12 @@ program_responses = {
 }
 
 
-class ProgramParam(str, Enum):
-    demo1 = "demo1"
-
-
 project_responses = {
     200: {
         "description": "Successfully return a list of Gen3 project name",
         "content": {"application/json": {"example": {"project": []}}}
-    }
+    },
+    404: {"content": {"application/json": {"example": {"detail": "Program xxx not found"}}}}
 }
 
 
@@ -88,6 +85,7 @@ class GraphQLQueryItem(BaseModel):
     node: Union[str, None] = None
     filter: Union[dict, None] = {}
     search: Union[str, None] = ""
+    access: Union[str, None] = ["demo1-12L"]
 
     class Config:
         schema_extra = {
@@ -95,6 +93,7 @@ class GraphQLQueryItem(BaseModel):
                 "node": "experiment_query",
                 "filter": {"submitter_id": ["dataset-102-version-4"]},
                 "search": "",
+                "access": ["demo1-12L"]
             }
         }
 
@@ -116,6 +115,7 @@ class GraphQLPaginationItem(BaseModel):
     filter: Union[dict, None] = {}
     search: Union[dict, None] = {}
     relation: Union[str, None] = "and"
+    access: Union[str, None] = ["demo1-12L"]
 
     class Config:
         schema_extra = {
@@ -123,7 +123,8 @@ class GraphQLPaginationItem(BaseModel):
                 "page": 1,
                 "limit": 50,
                 "filter": {},
-                "relation": "and"
+                "relation": "and",
+                "access": ["demo1-12L"]
             }
         }
 
@@ -147,10 +148,6 @@ filter_responses = {
         }}}
     }
 }
-
-
-class ProjectParam(str, Enum):
-    project = "12L"
 
 
 class FormatParam(str, Enum):
