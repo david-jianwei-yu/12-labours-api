@@ -30,17 +30,15 @@ class Authenticator:
         self.key = Fernet.generate_key()
         self.fernet = Fernet(self.key)
         self.public_access = False
-        self.authorized_email = []
-        self.authorized_user = []
+        self.authorized_user = {}
         self.current_user = None
 
     def create_user_authority(self, email, userinfo):
         if email in userinfo:
             self.public_access = False
-            if email not in self.authorized_email:
-                self.authorized_email.append(email)
+            if email not in self.authorized_user.keys():
                 user = User(email, userinfo[email]["policies"])
-                self.authorized_user.append(user)
+                self.authorized_user[email] = user
                 return user
             else:
                 raise HTTPException(
@@ -50,13 +48,11 @@ class Authenticator:
                 status_code=status.HTTP_404_NOT_FOUND, detail=f"Email {email} is not authorized")
 
     def revoke_user_authority(self, email):
-        if email in self.authorized_email:
-            index = self.authorized_email.index(email)
-            self.authorized_email.pop(index)
-            self.authorized_user.pop(index)
+        try:
+            del self.authorized_user[email]
             self.public_access = True
             return self.public_access
-        else:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail=f"Email {email} is not authorized")
 
@@ -81,11 +77,10 @@ class Authenticator:
                 self.public_access = True
                 return self.public_access
             else:
-                email = json.loads(
+                decrypt_email = json.loads(
                     re.sub("'", '"', self.fernet.decrypt(token).decode()))["email"]
-                if email in self.authorized_email:
-                    index = self.authorized_email.index(email)
-                    self.current_user = self.authorized_user[index]
+                if decrypt_email in self.authorized_user.keys():
+                    self.current_user = self.authorized_user[current_user]
                     return True
         except Exception:
             pass
