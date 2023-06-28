@@ -159,17 +159,32 @@ def update_name_list(data, name, path):
     return name_dict
 
 
-@ app.get("/access/token/{email}", tags=["Gen3"], summary="Get gen3 access token for authorized user", responses=access_token_responses)
-async def get_gen3_access_token(email: str):
+@ app.post("/access/token", tags=["Gen3"], summary="Create gen3 access token for authorized user", responses=access_token_responses)
+async def create_gen3_access(item: EmailItem):
+    if item.email == None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Missing field in the request body")
+
     result = {
-        "email": email,
-        "access_token": a.generate_access_token(email, SESSION)
+        "email": item.email,
+        "access_token": a.generate_access_token(item.email, SESSION)
     }
     return result
 
 
-@ app.get("/access/scope", tags=["Gen3"], summary="Get gen3 access scope", responses=access_scope_responses)
-async def get_gen3_access_scope(access: dict = Depends(a.get_user_authority)):
+@ app.post("/access/revoke", tags=["Gen3"], summary="Revoke gen3 access for authorized user", responses=access_revoke_responses)
+async def revoke_gen3_access(item: EmailItem):
+    if item.email == None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Missing field in the request body")
+
+    if a.revoke_user_authority(item.email):
+        raise HTTPException(status_code=status.HTTP_200_OK,
+                            detail="Revoke successfully")
+
+
+@ app.get("/access/authorize", tags=["Gen3"], summary="Get gen3 access authorize", responses=access_authorize_responses)
+async def get_gen3_access(access: dict = Depends(a.get_user_access_scope)):
     """
     Return all programs/projects information from the Gen3 Data Commons.
 
@@ -190,7 +205,7 @@ async def get_gen3_access_scope(access: dict = Depends(a.get_user_authority)):
 
 
 @ app.post("/dictionary", tags=["Gen3"], summary="Get gen3 dictionary information", responses=dictionary_responses)
-async def get_gen3_dictionary(item: Gen3Item):
+async def get_gen3_dictionary(item: AccessItem):
     """
     Return all dictionary nodes from the Gen3 Data Commons
     """
@@ -208,7 +223,7 @@ async def get_gen3_dictionary(item: Gen3Item):
 
 
 @ app.post("/records/{node}", tags=["Gen3"], summary="Get gen3 node records information", responses=records_responses)
-async def get_gen3_node_records(node: NodeParam, item: Gen3Item):
+async def get_gen3_node_records(node: NodeParam, item: AccessItem):
     """
     Return all records information in a dictionary node.
 
@@ -234,7 +249,7 @@ async def get_gen3_node_records(node: NodeParam, item: Gen3Item):
 
 
 @ app.post("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", responses=record_responses)
-async def get_gen3_record(uuid: str, item: Gen3Item):
+async def get_gen3_record(uuid: str, item: AccessItem):
     """
     Return record information in the Gen3 Data Commons.
 

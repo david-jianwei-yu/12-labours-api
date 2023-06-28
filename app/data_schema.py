@@ -2,16 +2,39 @@ from typing import Union
 from pydantic import BaseModel
 from enum import Enum
 
+
+class EmailItem(BaseModel):
+    email: Union[str, None] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "email": "fakeemail@gmail.com",
+            }
+        }
+
+
 access_token_responses = {
     200: {
-        "description": "Successfully return a gen3 access token",
+        "description": "Successfully return the gen3 access token",
         "content": {"application/json": {"example": {"email": "", "access_token": ""}}},
     },
+    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}},
     404: {"content": {"application/json": {"example": {"detail": "Email xxx is not authorized"}}}}
 }
 
 
-access_scope_responses = {
+access_revoke_responses = {
+    200: {
+        "description": "Successfully remove the gen3 access",
+        "content": {"application/json": {"example": {"detail": "Revoke successfully"}}},
+    },
+    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}},
+    404: {"content": {"application/json": {"example": {"detail": "Email xxx is not authorized"}}}}
+}
+
+
+access_authorize_responses = {
     200: {
         "description": "Successfully return a list of Gen3 access scope",
         "content": {"application/json": {"example": {"access": ["demo1-12L"]}}}
@@ -20,7 +43,7 @@ access_scope_responses = {
 }
 
 
-class Gen3Item(BaseModel):
+class AccessItem(BaseModel):
     access: Union[str, None] = None
 
     class Config:
@@ -35,7 +58,8 @@ dictionary_responses = {
     200: {
         "description": "Successfully return a list of Gen3 dictionary name",
         "content": {"application/json": {"example": {"dictionary": []}}}
-    }
+    },
+    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}},
 }
 
 
@@ -49,10 +73,9 @@ class NodeParam(str, Enum):
 records_responses = {
     200: {
         "description": "Successfully return a list of json object contains all records metadata within a node",
-        "content": {"application/json": {"example": {
-            "data": [{"project_id": "", "submitter_id": "", "id": "", "type": "experiment"}]
-        }}}
-    }
+        "content": {"application/json": {"example": {"data": [{"project_id": "", "submitter_id": "", "id": "", "type": "experiment"}]}}}
+    },
+    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}},
 }
 
 
@@ -67,6 +90,7 @@ record_responses = {
             "type_of_specimen": ""
         }]}}
     },
+    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}},
     404: {"content": {"application/json": {"example": {"detail": "Unable to find xxx and check if the correct project or uuid is used"}}}}
 }
 
@@ -92,7 +116,8 @@ query_responses = {
     200: {
         "description": "Successfully return a list of queried datasets",
         "content": {"application/json": {"example": [{
-            "cases": [], "dataset_descriptions": [],  "id": "", "plots": [], "scaffoldViews": [], "scaffolds": [], "submitter_id": "", "thumbnails": []
+            "cases": [], "dataset_descriptions": [],  "id": "", "plots": [],
+            "scaffoldViews": [], "scaffolds": [], "submitter_id": "", "thumbnails": []
         }]}}
     }
 }
@@ -123,7 +148,12 @@ pagination_responses = {
     200: {
         "description": "Successfully return a list of datasets information",
         "content": {"application/json": {"example": {
-            "items": [{"data_url": "", "source_url_prefix": "", "contributors": [], "keywords": [], "numberSamples": 0, "numberSubjects": 0, "name": "", "datasetId": "", "organs": [], "species": [], "plots": [], "scaffoldViews": [], "scaffolds": [], "thumbnails": [], "detailsReady": True}]
+            "items": [{
+                "data_url": "", "source_url_prefix": "", "contributors": [], "keywords": [],
+                "numberSamples": 0, "numberSubjects": 0, "name": "", "datasetId": "",
+                "organs": [], "species": [], "plots": [], "scaffoldViews": [],
+                "scaffolds": [], "thumbnails": [], "detailsReady": True
+            }]
         }}}
     }
 }
@@ -133,7 +163,10 @@ filter_responses = {
     200: {
         "description": "Successfully return filter information",
         "content": {"application/json": {"example": {
-            "normal": {"size": 0, "titles": [], "nodes": [], "fields": [], "elements": [], "ids": []},
+            "normal": {
+                "size": 0, "titles": [], "nodes": [], "fields": [],
+                "elements": [], "ids": []
+            },
             "sidebar": [{"key": "", "label": "", "children": [{"facetPropPath": "",  "label": ""}]}]
         }}}
     }
@@ -159,16 +192,10 @@ class CollectionItem(BaseModel):
 sub_responses = {
     200: {
         "description": "Successfully return all folders/files name and path under selected folder",
-        "content": {"application/json": {"example": {
-            "folders": [], "files": []
-        }}}
+        "content": {"application/json": {"example": {"folders": [], "files": []}}}
     },
-    400: {"content": {"application/json": {"example": {
-        "detail": "Invalid path format is used"
-    }}}},
-    404: {"content": {"application/json": {"example": {
-        "detail": "Data not found in the provided path"
-    }}}}
+    400: {"content": {"application/json": {"example": {"detail": "Invalid path format is used"}}}},
+    404: {"content": {"application/json": {"example": {"detail": "Data not found in the provided path"}}}}
 }
 
 
