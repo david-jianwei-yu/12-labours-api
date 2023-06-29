@@ -10,7 +10,7 @@ from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
 from irods.session import iRODSSession
 
-from app.config import Config, Gen3Config, iRODSConfig
+from app.config import *
 from app.data_schema import *
 from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter
@@ -145,7 +145,7 @@ async def root():
 
 
 def split_access(access):
-    access_list = access.split("-")
+    access_list = access[0].split("-")
     return access_list[0], access_list[1]
 
 

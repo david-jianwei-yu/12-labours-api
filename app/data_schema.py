@@ -2,6 +2,8 @@ from typing import Union
 from pydantic import BaseModel
 from enum import Enum
 
+from app.config import Gen3Config
+
 
 class EmailItem(BaseModel):
     email: Union[str, None] = None
@@ -37,19 +39,19 @@ access_revoke_responses = {
 access_authorize_responses = {
     200: {
         "description": "Successfully return a list of Gen3 access scope",
-        "content": {"application/json": {"example": {"access": ["demo1-12L"]}}}
+        "content": {"application/json": {"example": {"access": [Gen3Config.PUBLIC_ACCESS]}}}
     },
     401: {"content": {"application/json": {"example": {"detail": "Invalid authentication credentials"}}}}
 }
 
 
 class AccessItem(BaseModel):
-    access: Union[str, None] = None
+    access: Union[list, None] = None
 
     class Config:
         schema_extra = {
             "example": {
-                "access": "demo1-12L",
+                "access": [Gen3Config.PUBLIC_ACCESS],
             }
         }
 
@@ -99,7 +101,7 @@ class GraphQLQueryItem(BaseModel):
     node: Union[str, None] = None
     filter: Union[dict, None] = {}
     search: Union[str, None] = ""
-    access: Union[list, None] = ["demo1-12L"]
+    access: Union[list, None] = [Gen3Config.PUBLIC_ACCESS]
 
     class Config:
         schema_extra = {
@@ -107,7 +109,7 @@ class GraphQLQueryItem(BaseModel):
                 "node": "experiment_query",
                 "filter": {"submitter_id": ["dataset-102-version-4"]},
                 "search": "",
-                "access": ["demo1-12L"]
+                "access": [Gen3Config.PUBLIC_ACCESS]
             }
         }
 
@@ -130,7 +132,7 @@ class GraphQLPaginationItem(BaseModel):
     filter: Union[dict, None] = {}
     search: Union[dict, None] = {}
     relation: Union[str, None] = "and"
-    access: Union[list, None] = ["demo1-12L"]
+    access: Union[list, None] = [Gen3Config.PUBLIC_ACCESS]
 
     class Config:
         schema_extra = {
@@ -139,7 +141,7 @@ class GraphQLPaginationItem(BaseModel):
                 "limit": 50,
                 "filter": {},
                 "relation": "and",
-                "access": ["demo1-12L"]
+                "access": [Gen3Config.PUBLIC_ACCESS]
             }
         }
 

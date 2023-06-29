@@ -16,6 +16,8 @@ class Gen3Config(object):
     GEN3_API_KEY = os.environ.get("GEN3_API_KEY")
     GEN3_KEY_ID = os.environ.get("GEN3_KEY_ID")
 
+    PUBLIC_ACCESS = os.environ.get("PUBLIC_ACCESS")
+
 
 class iRODSConfig(object):
     IRODS_HOST = os.environ.get("IRODS_HOST")

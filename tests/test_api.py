@@ -1,7 +1,9 @@
 import pytest
 from app import app
-from app.filter_dictionary import FILTERS
 from fastapi.testclient import TestClient
+
+from app.config import Gen3Config
+from app.filter_dictionary import FILTERS
 
 
 @pytest.fixture
@@ -10,24 +12,48 @@ def client():
         return client
 
 
-def test_get_gen3_access_token(client):
-    fake_email = "faketestemail@gmail.com"
-    response = client.get(f"/access/token/{fake_email}")
+def test_create_gen3_access(client):
+    missing_data = {}
+    response = client.post("/access/token", json=missing_data)
+    result = response.json()
+    assert response.status_code == 400
+    assert result["detail"] == "Missing field in the request body"
+
+    invalid_data = {
+        "email": "faketestemail@gmail.com"
+    }
+    response = client.post("/access/token", json=invalid_data)
     result = response.json()
     assert response.status_code == 404
-    assert result["detail"] == f"Email {fake_email} is not authorized"
+    assert result["detail"] == f"Email {invalid_data['email']} is not authorized"
 
 
-def test_get_gen3_project(client):
+def test_revoke_gen3_access(client):
+    missing_data = {}
+    response = client.post("/access/revoke", json=missing_data)
+    result = response.json()
+    assert response.status_code == 400
+    assert result["detail"] == "Missing field in the request body"
+
+    invalid_data = {
+        "email": "faketestemail@gmail.com"
+    }
+    response = client.post("/access/revoke", json=invalid_data)
+    result = response.json()
+    assert response.status_code == 404
+    assert result["detail"] == f"Email {invalid_data['email']} does not have any extra access"
+
+
+def test_get_gen3_access(client):
     response = client.get(
-        "/access/scope", headers={"Authorization": "Bearer publicaccesstoken"})
+        "/access/authorize", headers={"Authorization": "Bearer publicaccesstoken"})
     result = response.json()
     assert response.status_code == 200
     assert len(result) == 1
-    assert result["access"][0] == "demo1-12L"
+    assert result["access"][0] == Gen3Config.PUBLIC_ACCESS
 
     response = client.get(
-        "/access/scope", headers={"Authorization": "Bearer fakeaccesstoken"})
+        "/access/authorize", headers={"Authorization": "Bearer fakeaccesstoken"})
     result = response.json()
     assert response.status_code == 401
     assert result["detail"] == "Invalid authentication credentials"
@@ -35,7 +61,7 @@ def test_get_gen3_project(client):
 
 def test_get_gen3_dictionary(client):
     pass_case = {
-        "access": "demo1-12L",
+        "access": [Gen3Config.PUBLIC_ACCESS],
     }
     response = client.post("/dictionary", json=pass_case)
     assert response.status_code == 200
@@ -47,19 +73,19 @@ def test_get_gen3_dictionary(client):
     assert result["detail"] == "Missing field in the request body"
 
     invalid_data = {
-        "access": "demo-12L",
+        "access": ["fakeprog-fakeproj"],
     }
     response = client.post("/dictionary", json=invalid_data)
     result = response.json()
     assert response.status_code == 404
-    assert result["detail"] == "Program demo or project 12L not found"
+    assert result["detail"] == "Program fakeprog or project fakeproj not found"
 
 
 def test_get_gen3_node_records(client):
     NODE_TYPE = "experiment"
 
     pass_case = {
-        "access": "demo1-12L",
+        "access": [Gen3Config.PUBLIC_ACCESS],
     }
     response = client.post(f"/records/{NODE_TYPE}", json=pass_case)
     result = response.json()
@@ -73,7 +99,7 @@ def test_get_gen3_node_records(client):
     assert result["detail"] == "Missing field in the request body"
 
     invalid_program = {
-        "access": "demo-12L",
+        "access": ["fakeprog-12L"],
     }
     response = client.post(f"/records/{NODE_TYPE}", json=invalid_program)
     result = response.json()
@@ -81,7 +107,7 @@ def test_get_gen3_node_records(client):
     assert result["detail"] == "You don't have access to this resource: user is unauthorized"
 
     invalid_project = {
-        "access": "demo1-12Labours",
+        "access": ["demo1-fakeproj"],
     }
     response = client.post(f"/records/{NODE_TYPE}", json=invalid_project)
     result = response.json()
@@ -97,7 +123,7 @@ def test_get_gen3_record(client):
     UUID = "5b9ae1bd-e780-4869-a458-b3422084c480"
 
     pass_case = {
-        "access": "demo1-12L",
+        "access": [Gen3Config.PUBLIC_ACCESS],
     }
     response = client.post(f"/record/{UUID}", json=pass_case)
     result = response.json()
@@ -112,7 +138,7 @@ def test_get_gen3_record(client):
     assert result["detail"] == "Missing field in the request body"
 
     invalid_program = {
-        "access": "demo-12L",
+        "access": ["fakeprog-12L"],
     }
     response = client.post(f"/record/{UUID}", json=invalid_program)
     result = response.json()
@@ -120,7 +146,7 @@ def test_get_gen3_record(client):
     assert result["detail"] == "You don't have access to this resource: user is unauthorized"
 
     invalid_project = {
-        "access": "demo1-12Labours",
+        "access": ["demo1-fakeproj"],
     }
     response = client.post(f"/record/{UUID}", json=invalid_project)
     result = response.json()
