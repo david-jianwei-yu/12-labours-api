@@ -73,7 +73,7 @@ class Authenticator:
                 return "public_access"
             else:
                 decrypt_email = json.loads(
-                    re.sub("'", '"', self.fernet.decrypt(token).decode()))["email"]
+                    re.sub("\'", '\"', self.fernet.decrypt(token).decode()))["email"]
                 if decrypt_email not in self.authorized_user.keys():
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,

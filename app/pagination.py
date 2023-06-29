@@ -108,7 +108,7 @@ class Pagination:
                 "path": []
             }
         }
-        data = json.loads(re.sub("'", '"', cite))
+        data = json.loads(re.sub("\'", '\"', cite))
         for ele in data:
             full_path_list = filename.split("/")
             full_path_list[-1] = ele.split("/")[-1]

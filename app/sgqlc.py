@@ -19,8 +19,9 @@ class SimpleGraphQLClient:
         query_with_count = query + re.sub('\'', '\"', f"{count_field})")
         return query_with_count
 
-    def update_manifests_information(self, query):
+    def update_manifests_information(self, item, query):
         query_with_classification = query
+        access_scope = re.sub('\'', '\"', f"{item.access}")
         data = {
             'manifests1': ['scaffolds', 'additional_types', '["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"]'],
             'manifests2': ['scaffoldViews', 'additional_types', '["application/x.vnd.abi.scaffold.view+json"]'],
@@ -29,7 +30,7 @@ class SimpleGraphQLClient:
         }
         for key in data.keys():
             query_with_classification = re.sub(
-                key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]})', query_with_classification)
+                key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]}, project_id: {access_scope})', query_with_classification)
         return query_with_classification
 
     def remove_node_suffix(self, node, query):
@@ -55,7 +56,7 @@ class SimpleGraphQLClient:
         # Either pagination or experiment node query
         if "experiment" in item.node:
             snake_case_query = self.update_manifests_information(
-                snake_case_query)
+                item, snake_case_query)
             # Only pagination will need count field
             if type(item.search) == dict:
                 snake_case_query = self.add_count_field(item, snake_case_query)
