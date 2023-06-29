@@ -29,13 +29,10 @@ class Authenticator:
     def __init__(self):
         self.key = Fernet.generate_key()
         self.fernet = Fernet(self.key)
-        self.public_access = False
         self.authorized_user = {}
-        self.current_user = None
 
     def create_user_authority(self, email, userinfo):
         if email in userinfo:
-            self.public_access = False
             if email not in self.authorized_user.keys():
                 user = User(email, userinfo[email]["policies"])
                 self.authorized_user[email] = user
@@ -50,11 +47,10 @@ class Authenticator:
     def revoke_user_authority(self, email):
         try:
             del self.authorized_user[email]
-            self.public_access = True
-            return self.public_access
+            return True
         except Exception:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"Email {email} is not authorized")
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Email {email} does not have any extra access")
 
     def generate_access_token(self, email, SESSION):
         obj = SESSION.data_objects.get(
@@ -74,29 +70,29 @@ class Authenticator:
     def authenticate_token(self, token):
         try:
             if token == "publicaccesstoken":
-                self.public_access = True
-                return self.public_access
+                return "public_access"
             else:
                 decrypt_email = json.loads(
                     re.sub("'", '"', self.fernet.decrypt(token).decode()))["email"]
-                if decrypt_email in self.authorized_user.keys():
-                    self.current_user = self.authorized_user[current_user]
-                    return True
+                if decrypt_email not in self.authorized_user.keys():
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid authentication credentials",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                return self.authorized_user[decrypt_email]
         except Exception:
-            pass
-
-    async def get_user_access_scope(self,  token: HTTPAuthorizationCredentials = Depends(security)):
-        if not self.authenticate_token(token.credentials):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
+    async def get_user_access_scope(self,  token: HTTPAuthorizationCredentials = Depends(security)):
         result = {
             "policies": ["demo1"],
         }
-        if not self.public_access:
-            result["policies"] = self.current_user.get_user_detail()[
-                "policies"]
+        verify_user = self.authenticate_token(token.credentials)
+        if verify_user != "public_access":
+            result["policies"] = verify_user.get_user_detail()["policies"]
         return result
