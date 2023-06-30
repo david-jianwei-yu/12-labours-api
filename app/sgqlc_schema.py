@@ -155,6 +155,7 @@ class Query(Type):
             "first": Int,
             "offset": Int,
             # "study_organ_system": list_of(String),
+            "project_id": list_of(String),
         }
     )
     manifestFilter = Field(
@@ -162,7 +163,8 @@ class Query(Type):
         args={
             "first": Int,
             "offset": Int,
-            "additional_types": list_of(String)
+            "additional_types": list_of(String),
+            "project_id": list_of(String),
         }
     )
     caseFilter = Field(
@@ -173,6 +175,7 @@ class Query(Type):
             "species": list_of(String),
             "sex": list_of(String),
             "age_category": list_of(String),
+            "project_id": list_of(String),
         }
     )
     # QUERY

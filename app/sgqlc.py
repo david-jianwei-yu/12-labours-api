@@ -28,7 +28,7 @@ class SimpleGraphQLClient:
             'manifests3': ['plots', 'additional_types', '["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"]'],
             'manifests4': ['thumbnails', 'file_type', '[".jpg", ".png"]']
         }
-        for key in data.keys():
+        for key in data:
             query_with_classification = re.sub(
                 key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]}, project_id: {access_scope})', query_with_classification)
         return query_with_classification
@@ -77,6 +77,7 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     # study_organ_system=item.filter.get("study_organ_system", None),
+                    project_id=item.access,
                 )
             )
         elif item.node == "manifest_filter":
@@ -86,6 +87,7 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     additional_types=item.filter.get("additional_types", None),
+                    project_id=item.access,
                 )
             )
         elif item.node == "case_filter":
@@ -97,6 +99,7 @@ class SimpleGraphQLClient:
                     species=item.filter.get("species", None),
                     sex=item.filter.get("sex", None),
                     age_category=item.filter.get("age_category", None),
+                    project_id=item.access,
                 )
             )
         # QUERY

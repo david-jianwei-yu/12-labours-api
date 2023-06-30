@@ -33,7 +33,7 @@ class Authenticator:
 
     def create_user_authority(self, email, userinfo):
         if email in userinfo:
-            if email not in self.authorized_user.keys():
+            if email not in self.authorized_user:
                 user = User(email, userinfo[email]["policies"])
                 self.authorized_user[email] = user
                 return user
@@ -74,7 +74,7 @@ class Authenticator:
             else:
                 decrypt_email = json.loads(
                     re.sub("\'", '\"', self.fernet.decrypt(token).decode()))["email"]
-                if decrypt_email not in self.authorized_user.keys():
+                if decrypt_email not in self.authorized_user:
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail="Invalid authentication credentials",

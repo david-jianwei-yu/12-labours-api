@@ -36,7 +36,13 @@ class Filter:
                     dataset_list.add(id)
         item.filter["submitter_id"] = list(dataset_list)
 
-    def generate_filter_information(self):
+    def set_filter_dict(self, element, extra):
+        if element in extra:
+            return extra
+        else:
+            return FILTERS
+
+    def generate_filter_information(self, extra):
         filter_information = {
             "size": len(FILTERS),
             "titles": [],
@@ -46,26 +52,29 @@ class Filter:
             "ids": []
         }
         for element in FILTERS:
-            filter_information["titles"].append(FILTERS[element]["title"])
-            filter_information["nodes"].append(FILTERS[element]["node"])
-            filter_information["fields"].append(FILTERS[element]["field"])
-            filter_information["elements"].append(FILTERS[element]["element"])
-            for ele in FILTERS[element]["element"]:
+            filter_dict = self.set_filter_dict(element, extra)
+            filter_information["titles"].append(filter_dict[element]["title"])
+            filter_information["nodes"].append(filter_dict[element]["node"])
+            filter_information["fields"].append(filter_dict[element]["field"])
+            filter_information["elements"].append(
+                filter_dict[element]["element"])
+            for ele in filter_dict[element]["element"]:
                 filter_information["ids"].append(ele)
         return filter_information
 
-    def generate_sidebar_filter_information(self):
+    def generate_sidebar_filter_information(self, extra):
         sidebar_filter_information = []
         for element in FILTERS:
+            filter_dict = self.set_filter_dict(element, extra)
             sidebar_filter_parent = {
                 "key": "",
                 "label": "",
                 "children": [],
             }
-            sidebar_filter_parent["key"] = FILTERS[element]["node"] + \
-                ">" + FILTERS[element]["field"]
-            sidebar_filter_parent["label"] = FILTERS[element]["title"]
-            for ele in FILTERS[element]["element"]:
+            sidebar_filter_parent["key"] = filter_dict[element]["node"] + \
+                ">" + filter_dict[element]["field"]
+            sidebar_filter_parent["label"] = filter_dict[element]["title"]
+            for ele in filter_dict[element]["element"]:
                 sidebar_filter_children = {
                     "facetPropPath": "",
                     "label": "",

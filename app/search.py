@@ -32,7 +32,7 @@ class Search:
                 if content_list != []:
                     dataset = re.sub(
                         f'{iRODSConfig.IRODS_ENDPOINT_URL}/', '', result[Collection.name])
-                    if dataset not in dataset_dict.keys():
+                    if dataset not in dataset_dict:
                         dataset_dict[dataset] = 1
                     else:
                         dataset_dict[dataset] += 1
