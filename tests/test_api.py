@@ -30,7 +30,7 @@ def test_create_gen3_access(client):
 
 def test_revoke_gen3_access(client):
     missing_data = {}
-    response = client.post("/access/revoke", json=missing_data)
+    response = client.delete("/access/revoke", json=missing_data)
     result = response.json()
     assert response.status_code == 400
     assert result["detail"] == "Missing field in the request body"
@@ -38,7 +38,7 @@ def test_revoke_gen3_access(client):
     invalid_data = {
         "email": "faketestemail@gmail.com"
     }
-    response = client.post("/access/revoke", json=invalid_data)
+    response = client.delete("/access/revoke", json=invalid_data)
     result = response.json()
     assert response.status_code == 404
     assert result["detail"] == f"Email {invalid_data['email']} does not have any extra access"
@@ -66,12 +66,6 @@ def test_get_gen3_dictionary(client):
     response = client.post("/dictionary", json=pass_case)
     assert response.status_code == 200
 
-    missing_data = {}
-    response = client.post("/dictionary", json=missing_data)
-    result = response.json()
-    assert response.status_code == 400
-    assert result["detail"] == "Missing field in the request body"
-
     invalid_data = {
         "access": ["fakeprog-fakeproj"],
     }
@@ -91,12 +85,6 @@ def test_get_gen3_node_records(client):
     result = response.json()
     assert response.status_code == 200
     assert "data" in result
-
-    missing_data = {}
-    response = client.post(f"/records/{NODE_TYPE}", json=missing_data)
-    result = response.json()
-    assert response.status_code == 400
-    assert result["detail"] == "Missing field in the request body"
 
     invalid_program = {
         "access": ["fakeprog-12L"],
@@ -130,12 +118,6 @@ def test_get_gen3_record(client):
     assert response.status_code == 200
     assert len(result) == 1
     assert result[0]["submitter_id"] == "dataset-217-version-2-dataset_description"
-
-    missing_data = {}
-    response = client.post(f"/record/{UUID}", json=missing_data)
-    result = response.json()
-    assert response.status_code == 400
-    assert result["detail"] == "Missing field in the request body"
 
     invalid_program = {
         "access": ["fakeprog-12L"],
@@ -290,7 +272,10 @@ def test_graphql_pagination(client):
 
 
 def test_get_filter(client):
-    response = client.get("/filter/?sidebar=true")
+    pass_case = {
+        "access": [Gen3Config.PUBLIC_ACCESS],
+    }
+    response = client.post("/filter/?sidebar=true", json=pass_case)
     assert response.status_code == 200
     assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["element"]) == True
     assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["element"]) == True
@@ -298,7 +283,7 @@ def test_get_filter(client):
     assert bool(FILTERS["MAPPED_MIME_TYPE"]["element"]) == True
     assert bool(FILTERS["MAPPED_SPECIES"]["element"]) == True
 
-    response = client.get("/filter/?sidebar=false")
+    response = client.post("/filter/?sidebar=false", json=pass_case)
     assert response.status_code == 200
     assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["element"]) == True
     assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["element"]) == True

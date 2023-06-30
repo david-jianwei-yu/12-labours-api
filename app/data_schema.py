@@ -46,7 +46,7 @@ access_authorize_responses = {
 
 
 class AccessItem(BaseModel):
-    access: Union[list, None] = None
+    access: Union[list, None] = [Gen3Config.PUBLIC_ACCESS]
 
     class Config:
         schema_extra = {
@@ -60,8 +60,7 @@ dictionary_responses = {
     200: {
         "description": "Successfully return a list of Gen3 dictionary name",
         "content": {"application/json": {"example": {"dictionary": []}}}
-    },
-    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}},
+    }
 }
 
 
@@ -76,8 +75,7 @@ records_responses = {
     200: {
         "description": "Successfully return a list of json object contains all records metadata within a node",
         "content": {"application/json": {"example": {"data": [{"project_id": "", "submitter_id": "", "id": "", "type": "experiment"}]}}}
-    },
-    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}},
+    }
 }
 
 
@@ -92,7 +90,6 @@ record_responses = {
             "type_of_specimen": ""
         }]}}
     },
-    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}},
     404: {"content": {"application/json": {"example": {"detail": "Unable to find xxx and check if the correct project or uuid is used"}}}}
 }
 

@@ -131,6 +131,8 @@ def periodic_execution():
     FILTER_GENERATED = False
     while not FILTER_GENERATED:
         FILTER_GENERATED = fg.generate_filter_dictionary(SUBMISSION)
+    if FILTER_GENERATED:
+        print("Public filter dictionary has been updated.")
 
 
 @ app.get("/", tags=["Root"], response_class=PlainTextResponse)
@@ -159,7 +161,7 @@ def update_name_list(data, name, path):
     return name_dict
 
 
-@ app.post("/access/token", tags=["Gen3"], summary="Create gen3 access token for authorized user", responses=access_token_responses)
+@ app.post("/access/token", tags=["Access"], summary="Create gen3 access token for authorized user", responses=access_token_responses)
 async def create_gen3_access(item: EmailItem):
     if item.email == None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -172,7 +174,7 @@ async def create_gen3_access(item: EmailItem):
     return result
 
 
-@ app.post("/access/revoke", tags=["Gen3"], summary="Revoke gen3 access for authorized user", responses=access_revoke_responses)
+@ app.delete("/access/revoke", tags=["Access"], summary="Revoke gen3 access for authorized user", responses=access_revoke_responses)
 async def revoke_gen3_access(item: EmailItem):
     if item.email == None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -183,7 +185,7 @@ async def revoke_gen3_access(item: EmailItem):
                             detail="Revoke successfully")
 
 
-@ app.get("/access/authorize", tags=["Gen3"], summary="Get gen3 access authorize", responses=access_authorize_responses)
+@ app.get("/access/authorize", tags=["Access"], summary="Get gen3 access authorize", responses=access_authorize_responses)
 async def get_gen3_access(access: dict = Depends(a.get_user_access_scope)):
     """
     Return all programs/projects information from the Gen3 Data Commons.
@@ -209,10 +211,6 @@ async def get_gen3_dictionary(item: AccessItem):
     """
     Return all dictionary nodes from the Gen3 Data Commons
     """
-    if item.access == None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Missing field in the request body")
-
     try:
         program, project = split_access(item.access)
         dictionary = SUBMISSION.get_project_dictionary(program, project)
@@ -229,10 +227,6 @@ async def get_gen3_node_records(node: NodeParam, item: AccessItem):
 
     - **node**: The dictionary node to export.
     """
-    if item.access == None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Missing field in the request body")
-
     program, project = split_access(item.access)
     node_record = SUBMISSION.export_node(program, project, node, "json")
     if "message" in node_record:
@@ -255,10 +249,6 @@ async def get_gen3_record(uuid: str, item: AccessItem):
 
     - **uuid**: uuid of the record.
     """
-    if item.access == None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Missing field in the request body")
-
     program, project = split_access(item.access)
     record = SUBMISSION.export_record(program, project, uuid, "json")
     if "message" in record:
@@ -330,8 +320,8 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     return result
 
 
-@ app.get("/filter/", tags=["Gen3"], summary="Get filter information", responses=filter_responses)
-async def ger_filter(sidebar: bool):
+@ app.post("/filter/", tags=["Gen3"], summary="Get filter information", responses=filter_responses)
+async def ger_filter(sidebar: bool, item: AccessItem):
     """
     /filter/?sidebar=<boolean>
 
@@ -347,9 +337,10 @@ async def ger_filter(sidebar: bool):
         retry += 1
         time.sleep(retry)
     if FILTER_GENERATED:
+        extra_filter = fg.generate_extra_filter(SUBMISSION, item.access)
         if sidebar == True:
-            return f.generate_sidebar_filter_information()
-        return f.generate_filter_information()
+            return f.generate_sidebar_filter_information(extra_filter)
+        return f.generate_filter_information(extra_filter)
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
