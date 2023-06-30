@@ -5,24 +5,31 @@ from app.data_schema import GraphQLQueryItem
 from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter, FIELDS
 from app.search import Search
-from app.filter_dictionary import FILTERS
+from app.filter_dictionary import FilterGenerator, FILTERS
 
-sgqlc = SimpleGraphQLClient()
+SUBMISSION = None
 f = Filter()
 s = Search()
+sgqlc = SimpleGraphQLClient()
+fg = FilterGenerator()
 
 
 class Pagination:
-    def update_filter_values(self, filter):
+    def update_filter_values(self, filter, access):
+        extra_filter = fg.generate_extra_filter(SUBMISSION, access)
         field = list(filter.keys())[0]
         value_list = []
         for ele_name in list(filter.values())[0]:
             for ele in FILTERS:
+                if ele in extra_filter:
+                    filter_dict = extra_filter
+                else:
+                    filter_dict = FILTERS
                 # Check if ele can match with a exist filter object
-                if FILTERS[ele]["field"] == field:
+                if filter_dict[ele]["field"] == field:
                     # Check if ele_name is a key under filter object element field
-                    if ele_name in list(FILTERS[ele]["element"].keys()):
-                        ele_value = FILTERS[ele]["element"][ele_name]
+                    if ele_name in filter_dict[ele]["element"]:
+                        ele_value = filter_dict[ele]["element"][ele_name]
                         if type(ele_value) == list:
                             value_list.extend(ele_value)
                         else:
@@ -31,20 +38,23 @@ class Pagination:
                         return filter
         return {field: value_list}
 
-    def update_pagination_item(self, item, input, SUBMISSION, SESSION):
+    def update_pagination_item(self, item, input, submission, SESSION):
+        global SUBMISSION
+        SUBMISSION = submission
         if item.filter != {}:
             filter_dict = {"submitter_id": []}
             temp_node_dict = {}
             for element in item.filter.values():
                 filter_node = element["node"]
-                filter_field = self.update_filter_values(element["filter"])
+                filter_field = self.update_filter_values(
+                    element["filter"], item.access)
                 query_item = GraphQLQueryItem(
-                    node=filter_node, filter=filter_field)
+                    node=filter_node, filter=filter_field, access=item.access)
                 filter_node = re.sub('_filter', '', filter_node)
                 filter_field = list(filter_field.keys())[0]
                 # Only do fetch when there is no related temp data stored in temp_node_dict
                 # or the node field type is "String"
-                if filter_node not in temp_node_dict.keys() or filter_field not in FIELDS:
+                if filter_node not in temp_node_dict or filter_field not in FIELDS:
                     query_result = sgqlc.get_queried_result(
                         query_item, SUBMISSION)
                     # The data will be stored when the field type is an "Array"
@@ -52,7 +62,7 @@ class Pagination:
                     # We need "OR", therefore entire node data will go through a self-written filter function
                     if filter_field in FIELDS:
                         temp_node_dict[filter_node] = query_result[filter_node]
-                elif filter_node in temp_node_dict.keys() and filter_field in FIELDS:
+                elif filter_node in temp_node_dict and filter_field in FIELDS:
                     query_result = temp_node_dict
                 filter_dict["submitter_id"].append(f.get_filtered_datasets(
                     query_item.filter, query_result[filter_node]))
