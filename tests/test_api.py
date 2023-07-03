@@ -25,23 +25,14 @@ def test_create_gen3_access(client):
     response = client.post("/access/token", json=invalid_data)
     result = response.json()
     assert response.status_code == 404
-    assert result["detail"] == f"Email {invalid_data['email']} is not authorized"
+    assert result["detail"] == f"{invalid_data['email']} does not have any extra access authority"
 
 
 def test_revoke_gen3_access(client):
-    missing_data = {}
-    response = client.delete("/access/revoke", json=missing_data)
+    response = client.delete("/access/revoke", headers={"Authorization": "Bearer publicaccesstoken"})
     result = response.json()
-    assert response.status_code == 400
-    assert result["detail"] == "Missing field in the request body"
-
-    invalid_data = {
-        "email": "faketestemail@gmail.com"
-    }
-    response = client.delete("/access/revoke", json=invalid_data)
-    result = response.json()
-    assert response.status_code == 404
-    assert result["detail"] == f"Email {invalid_data['email']} does not have any extra access"
+    assert response.status_code == 401
+    assert result["detail"] == "Unable to remove default access authority"
 
 
 def test_get_gen3_access(client):

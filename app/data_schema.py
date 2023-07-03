@@ -22,7 +22,8 @@ access_token_responses = {
         "content": {"application/json": {"example": {"email": "", "access_token": ""}}},
     },
     400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}},
-    404: {"content": {"application/json": {"example": {"detail": "Email xxx is not authorized"}}}}
+    404: {"content": {"application/json": {"example": {"detail": "xxx does not have any extra access authority"}}}},
+    409: {"content": {"application/json": {"example": {"detail": "xxx has already been authorized"}}}}
 }
 
 
@@ -31,8 +32,7 @@ access_revoke_responses = {
         "description": "Successfully remove the gen3 access",
         "content": {"application/json": {"example": {"detail": "Revoke successfully"}}},
     },
-    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}},
-    404: {"content": {"application/json": {"example": {"detail": "Email xxx is not authorized"}}}}
+    401: {"content": {"application/json": {"example": {"detail": "Unable to remove default access authority"}}}}
 }
 
 

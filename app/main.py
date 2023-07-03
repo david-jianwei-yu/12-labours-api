@@ -132,7 +132,7 @@ def periodic_execution():
     while not FILTER_GENERATED:
         FILTER_GENERATED = fg.generate_filter_dictionary(SUBMISSION)
     if FILTER_GENERATED:
-        print("Public filter dictionary has been updated.")
+        print("Default filter dictionary has been updated.")
 
 
 @ app.get("/", tags=["Root"], response_class=PlainTextResponse)
@@ -175,12 +175,8 @@ async def create_gen3_access(item: EmailItem):
 
 
 @ app.delete("/access/revoke", tags=["Access"], summary="Revoke gen3 access for authorized user", responses=access_revoke_responses)
-async def revoke_gen3_access(item: EmailItem):
-    if item.email == None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Missing field in the request body")
-
-    if a.revoke_user_authority(item.email):
+async def revoke_gen3_access(revoked: bool = Depends(a.revoke_user_authority)):
+    if revoked:
         raise HTTPException(status_code=status.HTTP_200_OK,
                             detail="Revoke successfully")
 
