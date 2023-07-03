@@ -10,6 +10,8 @@ class Config(object):
     DEPLOY_ENV = os.environ.get("DEPLOY_ENV", "development")
     LABOURS_APP_HOST = os.environ.get("LABOURS_APP_HOST")
 
+    JWT_SECURE_KEY = os.environ.get("JWT_SECURE_KEY")
+
 
 class Gen3Config(object):
     GEN3_ENDPOINT_URL = os.environ.get("GEN3_ENDPOINT_URL")
