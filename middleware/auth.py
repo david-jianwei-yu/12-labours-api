@@ -39,7 +39,7 @@ class Authenticator:
 
     def authenticate_token(self, token):
         try:
-            if token == "publicaccesstoken":
+            if token == "undefined":
                 return self.authorized_user["public"]
             else:
                 decrypt_email = jwt.decoding_tokens(token)["email"]
@@ -58,11 +58,12 @@ class Authenticator:
         }
         return result
 
-    def revoke_user_authority(self, token: HTTPAuthorizationCredentials = Depends(security)):
+    async def revoke_user_authority(self, token: HTTPAuthorizationCredentials = Depends(security)):
         verify_user = self.authenticate_token(token.credentials)
         if verify_user.get_user_email() == "public":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Unable to remove default access authority")
+        
         del self.authorized_user[verify_user.get_user_email()]
         return True
 
@@ -76,8 +77,7 @@ class Authenticator:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT, detail=f"{email} has already been authorized")
         else:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"{email} does not have any extra access authority")
+            return self.authorized_user["public"]
 
     def generate_access_token(self, email, SESSION):
         obj = SESSION.data_objects.get(
