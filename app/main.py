@@ -2,7 +2,7 @@ import re
 import time
 import mimetypes
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
 from fastapi_utils.tasks import repeat_every
@@ -88,12 +88,24 @@ app.add_middleware(
 
 SUBMISSION = None
 SESSION = None
+SESSION_CONNECTED = False
 FILTER_GENERATED = False
 sgqlc = SimpleGraphQLClient()
 f = Filter()
 p = Pagination()
 fg = FilterGenerator()
 
+
+def check_irods_session():
+    try:
+        global SESSION_CONNECTED
+        SESSION.collections.get(iRODSConfig.IRODS_ENDPOINT_URL)
+        print("Successfully connected to the iRODS session.")
+        SESSION_CONNECTED = True
+    except Exception:
+        print("Encounter an error while connecting to the iRODS session.")
+        SESSION_CONNECTED = False
+    
 
 @ app.on_event("startup")
 async def start_up():
@@ -118,6 +130,7 @@ async def start_up():
                                password=iRODSConfig.IRODS_PASSWORD,
                                zone=iRODSConfig.IRODS_ZONE)
         # SESSION.connection_timeout =
+        check_irods_session()
     except Exception:
         print("Encounter an error while creating the iRODS session.")
 
@@ -366,6 +379,14 @@ async def download_gen3_metadata_file(program: ProgramParam, project: ProjectPar
 ############################################
 
 
+def check_irods_status():
+    try:
+        SESSION.collections.get(iRODSConfig.IRODS_ENDPOINT_URL)
+        return True
+    except Exception:
+        return False
+
+
 def generate_collection_list(data):
     collection_list = []
     for ele in data:
@@ -377,21 +398,23 @@ def generate_collection_list(data):
 
 
 @ app.post("/collection", tags=["iRODS"], summary="Get folder information", responses=sub_responses)
-async def get_irods_collection(item: CollectionItem):
+async def get_irods_collection(item: CollectionItem, connect: bool = Depends(check_irods_status)):
     """
     Return all collections from the required folder.
 
     Root folder will be returned if no item or "/" is passed.
     """
-    folder_path = iRODSConfig.IRODS_ENDPOINT_URL
-    if re.match("(/(.)*)+", item.path):
-        folder_path += item.path
-    else:
+    if not SESSION_CONNECTED or not connect:
+        raise HTTPException(status_code=INTERNAL_SERVER_ERROR,
+                            detail="Please check the irods server status or environment variables")
+    
+    if not re.match("(/(.)*)+", item.path):
         raise HTTPException(status_code=BAD_REQUEST,
                             detail="Invalid path format is used")
 
     try:
-        collect = SESSION.collections.get(folder_path)
+        collect = SESSION.collections.get(
+            iRODSConfig.IRODS_ENDPOINT_URL + item.path)
         folder_list = generate_collection_list(collect.subcollections)
         file_list = generate_collection_list(collect.data_objects)
         result = {
@@ -405,7 +428,7 @@ async def get_irods_collection(item: CollectionItem):
 
 
 @ app.get("/data/{action}/{filepath:path}", tags=["iRODS"], summary="Download irods file", response_description="Successfully return a file with data")
-async def get_irods_data_file(action: ActionParam, filepath: str):
+async def get_irods_data_file(action: ActionParam, filepath: str, connect: bool = Depends(check_irods_status)):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
     OR
@@ -414,6 +437,10 @@ async def get_irods_data_file(action: ActionParam, filepath: str):
     - **action**: Action should be either preview or download.
     - **filepath**: Required iRODS file path.
     """
+    if not SESSION_CONNECTED or not connect:
+        raise HTTPException(status_code=INTERNAL_SERVER_ERROR,
+                            detail="Please check the irods server status or environment variables")
+    
     chunk_size = 1024*1024*1024
     try:
         file = SESSION.data_objects.get(
