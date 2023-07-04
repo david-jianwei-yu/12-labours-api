@@ -308,7 +308,7 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
         query_result[item.node] = sorted(
             query_result[item.node], key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
     result = {
-        "items": p.update_pagination_output(query_result[item.node]),
+        "items": p.update_pagination_output(item.access, query_result[item.node]),
         "numberPerPage": item.limit,
         "page": item.page,
         "total": query_result["total"]

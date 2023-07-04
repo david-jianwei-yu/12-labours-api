@@ -70,7 +70,17 @@ class SimpleGraphQLClient:
         # FILTER
         # if the node name contains "_filter",
         # the query generator will be used for /filter/ and /graphql/pagination API
-        if item.node == "dataset_description_filter":
+        if item.node == "experiment_filter":
+            return self.convert_query(
+                item,
+                query.experimentFilter(
+                    first=0,
+                    offset=0,
+                    submitter_id=item.filter.get("submitter_id", None),
+                    project_id=item.access,
+                )
+            )
+        elif item.node == "dataset_description_filter":
             return self.convert_query(
                 item,
                 query.datasetDescriptionFilter(

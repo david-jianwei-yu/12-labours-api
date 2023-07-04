@@ -5,23 +5,24 @@ from sgqlc.types import String, Int, Type, Field, list_of
 # FILTER USE ONLY
 # Minimize the query fields
 # Increase the generating speed
-class SubExperiment(Node):
+class ExperimentFilter(Node):
+    project_id = String
     submitter_id = String
 
 
 class DatasetDescriptionFilter(Node):
-    experiments = list_of(SubExperiment)
+    experiments = list_of(ExperimentFilter)
     keywords = list_of(String)
     study_organ_system = list_of(String)
 
 
 class ManifestFilter(Node):
-    experiments = list_of(SubExperiment)
+    experiments = list_of(ExperimentFilter)
     additional_types = list_of(String)
 
 
 class CaseFilter(Node):
-    experiments = list_of(SubExperiment)
+    experiments = list_of(ExperimentFilter)
     species = String
     sex = String
     age_category = String
@@ -29,6 +30,7 @@ class CaseFilter(Node):
 
 # QUERY USE ONLY
 class DatasetDescriptionQuery(Node):
+    project_id = String
     type = String
     title = String
     subtitle = String
@@ -58,6 +60,7 @@ class DatasetDescriptionQuery(Node):
 
 
 class ManifestQuery(Node):
+    project_id = String
     type = String
     timestamp = String
     submitter_id = String
@@ -73,6 +76,7 @@ class ManifestQuery(Node):
 
 
 class CaseQuery(Node):
+    project_id = String
     type = String
     submitter_id = String
     subject_id = String
@@ -104,6 +108,7 @@ class CaseQuery(Node):
 
 
 class ExperimentQuery(Node):
+    project_id = String
     submitter_id = String
     dataset_descriptions = list_of(DatasetDescriptionQuery)
     manifests1 = list_of(ManifestQuery)
@@ -138,6 +143,7 @@ class SubCase(Node):
 
 
 class ExperimentPagination(Node):
+    project_id = String
     submitter_id = String
     dataset_descriptions = list_of(SubDatasetDescription)
     manifests1 = list_of(SubManifest)
@@ -149,6 +155,15 @@ class ExperimentPagination(Node):
 
 class Query(Type):
     # FILTER
+    experimentFilter = Field(
+        ExperimentFilter,
+        args={
+            "first": Int,
+            "offset": Int,
+            "submitter_id": list_of(String),
+            "project_id": list_of(String),
+        }
+    )
     datasetDescriptionFilter = Field(
         DatasetDescriptionFilter,
         args={

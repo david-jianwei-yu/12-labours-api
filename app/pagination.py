@@ -195,27 +195,40 @@ class Pagination:
             result.append(item)
         return result
 
-    def update_pagination_output(self, data):
+    def update_belong_to(self, id, access):
+        query_item = GraphQLQueryItem(node="experiment_filter", filter={
+                                      "submitter_id": [id]}, access=access)
+        query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
         result = []
+        if query_result["experiment"] != []:
+            for ele in query_result["experiment"]:
+                result.append(ele["project_id"])
+        return result
+
+    def update_pagination_output(self, access, data):
+        dataset_dict = {}
         for ele in data:
             dataset_id = ele["submitter_id"]
-            image_url_middle = f"/data/preview/{dataset_id}/"
-            item = {
-                "data_url_suffix": f"/data/browser/dataset/{dataset_id}?datasetTab=abstract",
-                "source_url_middle": f"/data/download/{dataset_id}/",
-                "contributors": self.update_contributors(ele["dataset_descriptions"][0]["contributor_name"]),
-                "keywords": ele["dataset_descriptions"][0]["keywords"],
-                "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
-                "numberSubjects": int(ele["dataset_descriptions"][0]["number_of_subjects"][0]),
-                "name": ele["dataset_descriptions"][0]["title"][0],
-                "datasetId": dataset_id,
-                "organs": ele["dataset_descriptions"][0]["study_organ_system"],
-                "species": self.update_species(ele["cases"]),
-                "plots": self.update_manifests_based(ele["id"], image_url_middle, ele["plots"]),
-                "scaffoldViews": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffoldViews"], True),
-                "scaffolds": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffolds"]),
-                "thumbnails": self.update_manifests_based(ele["id"], image_url_middle, self.update_thumbnails(ele["thumbnails"]), True),
-                "detailsReady": True,
-            }
-            result.append(item)
+            if dataset_id not in dataset_dict:
+                image_url_middle = f"/data/preview/{dataset_id}/"
+                dataset_item = {
+                    "belong_to": self.update_belong_to(dataset_id, access),
+                    "data_url_suffix": f"/data/browser/dataset/{dataset_id}?datasetTab=abstract",
+                    "source_url_middle": f"/data/download/{dataset_id}/",
+                    "contributors": self.update_contributors(ele["dataset_descriptions"][0]["contributor_name"]),
+                    "keywords": ele["dataset_descriptions"][0]["keywords"],
+                    "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
+                    "numberSubjects": int(ele["dataset_descriptions"][0]["number_of_subjects"][0]),
+                    "name": ele["dataset_descriptions"][0]["title"][0],
+                    "datasetId": dataset_id,
+                    "organs": ele["dataset_descriptions"][0]["study_organ_system"],
+                    "species": self.update_species(ele["cases"]),
+                    "plots": self.update_manifests_based(ele["id"], image_url_middle, ele["plots"]),
+                    "scaffoldViews": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffoldViews"], True),
+                    "scaffolds": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffolds"]),
+                    "thumbnails": self.update_manifests_based(ele["id"], image_url_middle, self.update_thumbnails(ele["thumbnails"]), True),
+                    "detailsReady": True,
+                }
+                dataset_dict[dataset_id] = dataset_item
+        result = list(dataset_dict.values())
         return result
