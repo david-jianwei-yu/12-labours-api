@@ -379,7 +379,7 @@ async def download_gen3_metadata_file(program: ProgramParam, project: ProjectPar
 ############################################
 
 
-def check_irods_server():
+def check_irods_status():
     try:
         SESSION.collections.get(iRODSConfig.IRODS_ENDPOINT_URL)
         return True
@@ -398,7 +398,7 @@ def generate_collection_list(data):
 
 
 @ app.post("/collection", tags=["iRODS"], summary="Get folder information", responses=sub_responses)
-async def get_irods_collection(item: CollectionItem, connect: bool = Depends(check_irods_server)):
+async def get_irods_collection(item: CollectionItem, connect: bool = Depends(check_irods_status)):
     """
     Return all collections from the required folder.
 
@@ -428,7 +428,7 @@ async def get_irods_collection(item: CollectionItem, connect: bool = Depends(che
 
 
 @ app.get("/data/{action}/{filepath:path}", tags=["iRODS"], summary="Download irods file", response_description="Successfully return a file with data")
-async def get_irods_data_file(action: ActionParam, filepath: str, connect: bool = Depends(check_irods_server)):
+async def get_irods_data_file(action: ActionParam, filepath: str, connect: bool = Depends(check_irods_status)):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
     OR
