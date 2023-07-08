@@ -317,8 +317,8 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     """
     p.update_pagination_item(item, search, SUBMISSION, SESSION)
     results = p.get_pagination_data(item)
-    query_result = p.merge_pagination_data(results["public"], results["private"])
-    query_count = p.get_pagination_count(results["count"])
+    query_count, query_restrict = p.get_pagination_count(results["count_display"], results["count_restrict"])
+    query_result = p.update_pagination_data(item, query_count, query_restrict, results["display"])
     if item.search != {}:
         # Sort only if search is not empty, since search results are sorted by word relevance
         query_result = sorted(query_result, key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))

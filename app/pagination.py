@@ -19,14 +19,6 @@ fg = FilterGenerator()
 
 
 class Pagination:
-    def get_pagination_count(self, data):
-        id_list = []
-        for ele in data:
-            id = ele["submitter_id"]
-            if id not in id_list:
-                id_list.append(id)
-        return len(id_list)
-
     def generate_dataset_dictionary(self, data):
         dataset_dict = {}
         for ele in data:
@@ -35,35 +27,70 @@ class Pagination:
                 dataset_dict[dataset_id] = ele
         return dataset_dict
 
-    def merge_pagination_data(self, public, private):
-        result = self.generate_dataset_dictionary(public)
-        private_data = self.generate_dataset_dictionary(private)
-        for key in private_data.keys():
-            if key in result:
-                result[key] = private_data[key]
-        return list(result.values())
+    def get_pagination_count(self, display, restrict):
+        count_display_result = self.generate_dataset_dictionary(display)
+        count_restrict_result = self.generate_dataset_dictionary(restrict)
+        id_list = list(count_display_result.keys())
+        restrict_list = []
+        for id in count_restrict_result.keys():
+            if id not in count_display_result:
+                id_list.append(id)
+                restrict_list.append(id)
+        return len(id_list), restrict_list
 
-    def handle_item(self, item):
-        public_access = Gen3Config.PUBLIC_ACCESS
-        public_item = GraphQLPaginationItem(
-            limit=item.limit, page=item.page, filter=item.filter, access=[public_access])
-        private_access = copy.deepcopy(item.access)
-        if public_access in item.access:
-            private_access.remove(public_access)
-        private_item = GraphQLPaginationItem(
-            limit=0, page=1, filter=item.filter, access=private_access)
-        count_item = GraphQLPaginationItem(
-            node="experiment_pagination_count", filter=item.filter, access=item.access)
-        return public_item, private_item, count_item
+    def update_pagination_data(self, item, total, restrict, display):
+        print(item)
+        item.access.remove(Gen3Config.PUBLIC_ACCESS)
+        display_result = self.generate_dataset_dictionary(display)
+
+        items = []
+        for id in display_result.keys():
+            query_item = GraphQLQueryItem(node="experiment_query", filter={
+                                          "submitter_id": [id]}, access=item.access)
+            items.append((query_item, SUBMISSION, id))
+        if total < item.page*item.limit:
+            for ele in restrict:
+                query_item = GraphQLQueryItem(node="experiment_query", filter={
+                    "submitter_id": [ele]}, access=item.access)
+            items.append((query_item, SUBMISSION, id))
+
+        result_queue = queue.Queue()
+        threads = []
+        for args in items:
+            t = threading.Thread(target=sgqlc.get_queried_result,
+                                 args=(*args, result_queue))
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+        restrict_result = {}
+        while not result_queue.empty():
+            data = result_queue.get()
+            restrict_result.update(data)
+
+        for id in restrict_result.keys():
+            if id in display_result.keys():
+                display_result[id] = restrict_result[id][0]
+        return list(display_result.values())
 
     def get_pagination_data(self, item):
-        public_item, private_item, count_item = self.handle_item(item)
-        result_queue = queue.Queue()
+        public_access = Gen3Config.PUBLIC_ACCESS
+        display_item = GraphQLPaginationItem(
+            limit=item.limit, page=item.page, filter=item.filter, access=[public_access])
+        count_display_item = GraphQLPaginationItem(
+            node="experiment_pagination_count", filter=item.filter, access=[public_access])
+        private_access = copy.deepcopy(item.access)
+        private_access.remove(public_access)
+        count_restrict_item = GraphQLPaginationItem(
+            node="experiment_pagination_count", filter=item.filter, access=private_access)
+
         items = [
-            (public_item, SUBMISSION, "public"),
-            (private_item, SUBMISSION, "private"),
-            (count_item, SUBMISSION, "count")
+            (display_item, SUBMISSION, "display"),
+            (count_display_item, SUBMISSION, "count_display"),
+            (count_restrict_item, SUBMISSION, "count_restrict")
         ]
+
+        result_queue = queue.Queue()
         threads = []
         for args in items:
             t = threading.Thread(target=sgqlc.get_queried_result,
@@ -76,6 +103,7 @@ class Pagination:
         while not result_queue.empty():
             data = result_queue.get()
             result.update(data)
+
         return result
 
     def update_filter_values(self, filter, access):
