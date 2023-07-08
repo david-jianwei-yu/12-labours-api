@@ -1,7 +1,11 @@
 import re
 import json
+import copy
+import queue
+import threading
 
-from app.data_schema import GraphQLQueryItem
+from app.config import Gen3Config
+from app.data_schema import GraphQLQueryItem, GraphQLPaginationItem
 from app.sgqlc import SimpleGraphQLClient
 from app.filter import Filter, FIELDS
 from app.search import Search
@@ -15,6 +19,65 @@ fg = FilterGenerator()
 
 
 class Pagination:
+    def get_pagination_count(self, data):
+        id_list = []
+        for ele in data:
+            id = ele["submitter_id"]
+            if id not in id_list:
+                id_list.append(id)
+        return len(id_list)
+
+    def generate_dataset_dictionary(self, data):
+        dataset_dict = {}
+        for ele in data:
+            dataset_id = ele["submitter_id"]
+            if dataset_id not in dataset_dict:
+                dataset_dict[dataset_id] = ele
+        return dataset_dict
+
+    def merge_pagination_data(self, public, private):
+        result = self.generate_dataset_dictionary(public)
+        private_data = self.generate_dataset_dictionary(private)
+        for key in private_data.keys():
+            if key in result:
+                result[key] = private_data[key]
+        return list(result.values())
+
+    def handle_item(self, item):
+        public_access = Gen3Config.PUBLIC_ACCESS
+        public_item = GraphQLPaginationItem(
+            limit=item.limit, page=item.page, filter=item.filter, access=[public_access])
+        private_access = copy.deepcopy(item.access)
+        if public_access in item.access:
+            private_access.remove(public_access)
+        private_item = GraphQLPaginationItem(
+            limit=0, page=1, filter=item.filter, access=private_access)
+        count_item = GraphQLPaginationItem(
+            node="experiment_pagination_count", filter=item.filter, access=item.access)
+        return public_item, private_item, count_item
+
+    def get_pagination_data(self, item):
+        public_item, private_item, count_item = self.handle_item(item)
+        result_queue = queue.Queue()
+        items = [
+            (public_item, SUBMISSION, "public"),
+            (private_item, SUBMISSION, "private"),
+            (count_item, SUBMISSION, "count")
+        ]
+        threads = []
+        for args in items:
+            t = threading.Thread(target=sgqlc.get_queried_result,
+                                 args=(*args, result_queue))
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+        result = {}
+        while not result_queue.empty():
+            data = result_queue.get()
+            result.update(data)
+        return result
+
     def update_filter_values(self, filter, access):
         extra_filter = fg.generate_extra_filter(SUBMISSION, access)
         field = list(filter.keys())[0]
@@ -75,6 +138,9 @@ class Pagination:
                 input, SESSION)
             if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
                 s.search_filter_relation(item)
+
+        if item.access == []:
+            item.access.append(Gen3Config.PUBLIC_ACCESS)
 
     def update_contributors(self, data):
         result = []
@@ -195,40 +261,28 @@ class Pagination:
             result.append(item)
         return result
 
-    def update_belong_to(self, id, access):
-        query_item = GraphQLQueryItem(node="experiment_filter", filter={
-                                      "submitter_id": [id]}, access=access)
-        query_result = sgqlc.get_queried_result(query_item, SUBMISSION)
+    def reconstruct_data_structure(self, data):
         result = []
-        if query_result["experiment"] != []:
-            for ele in query_result["experiment"]:
-                result.append(ele["project_id"])
-        return result
-
-    def update_pagination_output(self, access, data):
-        dataset_dict = {}
         for ele in data:
             dataset_id = ele["submitter_id"]
-            if dataset_id not in dataset_dict:
-                image_url_middle = f"/data/preview/{dataset_id}/"
-                dataset_item = {
-                    "belong_to": self.update_belong_to(dataset_id, access),
-                    "data_url_suffix": f"/data/browser/dataset/{dataset_id}?datasetTab=abstract",
-                    "source_url_middle": f"/data/download/{dataset_id}/",
-                    "contributors": self.update_contributors(ele["dataset_descriptions"][0]["contributor_name"]),
-                    "keywords": ele["dataset_descriptions"][0]["keywords"],
-                    "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
-                    "numberSubjects": int(ele["dataset_descriptions"][0]["number_of_subjects"][0]),
-                    "name": ele["dataset_descriptions"][0]["title"][0],
-                    "datasetId": dataset_id,
-                    "organs": ele["dataset_descriptions"][0]["study_organ_system"],
-                    "species": self.update_species(ele["cases"]),
-                    "plots": self.update_manifests_based(ele["id"], image_url_middle, ele["plots"]),
-                    "scaffoldViews": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffoldViews"], True),
-                    "scaffolds": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffolds"]),
-                    "thumbnails": self.update_manifests_based(ele["id"], image_url_middle, self.update_thumbnails(ele["thumbnails"]), True),
-                    "detailsReady": True,
-                }
-                dataset_dict[dataset_id] = dataset_item
-        result = list(dataset_dict.values())
+            image_url_middle = f"/data/preview/{dataset_id}/"
+            dataset_item = {
+                "belong_to": ele["project_id"],
+                "data_url_suffix": f"/data/browser/dataset/{dataset_id}?datasetTab=abstract",
+                "source_url_middle": f"/data/download/{dataset_id}/",
+                "contributors": self.update_contributors(ele["dataset_descriptions"][0]["contributor_name"]),
+                "keywords": ele["dataset_descriptions"][0]["keywords"],
+                "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
+                "numberSubjects": int(ele["dataset_descriptions"][0]["number_of_subjects"][0]),
+                "name": ele["dataset_descriptions"][0]["title"][0],
+                "datasetId": dataset_id,
+                "organs": ele["dataset_descriptions"][0]["study_organ_system"],
+                "species": self.update_species(ele["cases"]),
+                "plots": self.update_manifests_based(ele["id"], image_url_middle, ele["plots"]),
+                "scaffoldViews": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffoldViews"], True),
+                "scaffolds": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffolds"]),
+                "thumbnails": self.update_manifests_based(ele["id"], image_url_middle, self.update_thumbnails(ele["thumbnails"]), True),
+                "detailsReady": True,
+            }
+            result.append(dataset_item)
         return result

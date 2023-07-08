@@ -2,6 +2,7 @@ import re
 import time
 import mimetypes
 
+
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
@@ -107,7 +108,7 @@ def check_irods_session():
     except Exception:
         print("Encounter an error while connecting to the iRODS session.")
         SESSION_CONNECTED = False
-    
+
 
 @ app.on_event("startup")
 async def start_up():
@@ -315,16 +316,17 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     - string content
     """
     p.update_pagination_item(item, search, SUBMISSION, SESSION)
-    query_result = sgqlc.get_queried_result(item, SUBMISSION)
+    results = p.get_pagination_data(item)
+    query_result = p.merge_pagination_data(results["public"], results["private"])
+    query_count = p.get_pagination_count(results["count"])
     if item.search != {}:
         # Sort only if search is not empty, since search results are sorted by word relevance
-        query_result[item.node] = sorted(
-            query_result[item.node], key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
+        query_result = sorted(query_result, key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
     result = {
-        "items": p.update_pagination_output(item.access, query_result[item.node]),
+        "items": p.reconstruct_data_structure(query_result),
         "numberPerPage": item.limit,
         "page": item.page,
-        "total": query_result["total"]
+        "total": query_count
     }
     return result
 
@@ -424,7 +426,7 @@ async def get_irods_collection(item: CollectionItem, connect: bool = Depends(che
     if not SESSION_CONNECTED or not connect:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the irods server status or environment variables")
-    
+
     if not re.match("(/(.)*)+", item.path):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid path format is used")
@@ -457,7 +459,7 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connect: bool 
     if not SESSION_CONNECTED or not connect:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the irods server status or environment variables")
-    
+
     chunk_size = 1024*1024*1024
     try:
         file = SESSION.data_objects.get(
