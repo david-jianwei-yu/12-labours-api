@@ -31,28 +31,30 @@ class Pagination:
         count_display_result = self.generate_dataset_dictionary(display)
         count_restrict_result = self.generate_dataset_dictionary(restrict)
         id_list = list(count_display_result.keys())
+        match_list = []
         restrict_list = []
         for id in count_restrict_result.keys():
             if id not in count_display_result:
                 id_list.append(id)
                 restrict_list.append(id)
-        return len(id_list), restrict_list
+            else:
+                match_list.append(id)
+        return len(id_list), match_list, restrict_list
 
-    def update_pagination_data(self, item, total, restrict, display):
-        print(item)
+    def update_pagination_data(self, item, total, match, restrict, display):
         item.access.remove(Gen3Config.PUBLIC_ACCESS)
         display_result = self.generate_dataset_dictionary(display)
 
         items = []
-        for id in display_result.keys():
+        for ele in match:
             query_item = GraphQLQueryItem(node="experiment_query", filter={
-                                          "submitter_id": [id]}, access=item.access)
-            items.append((query_item, SUBMISSION, id))
+                                          "submitter_id": [ele]}, access=item.access)
+            items.append((query_item, SUBMISSION, ele))
         if total < item.page*item.limit:
             for ele in restrict:
                 query_item = GraphQLQueryItem(node="experiment_query", filter={
                     "submitter_id": [ele]}, access=item.access)
-            items.append((query_item, SUBMISSION, id))
+            items.append((query_item, SUBMISSION, ele))
 
         result_queue = queue.Queue()
         threads = []
