@@ -28,7 +28,11 @@ class Filter(object):
             data = self.generate_filtered_datasets(filter, field, data)
         dataset_list = set()
         for record in data:
-            dataset_list.add(record["experiments"][0]["submitter_id"])
+            if "experiments" in record:
+                dataset_list.add(record["experiments"][0]["submitter_id"])
+            else:
+                # Implement filter in experiment node
+                dataset_list.add(record["submitter_id"])
         return list(dataset_list)
 
     def filter_relation(self, item):

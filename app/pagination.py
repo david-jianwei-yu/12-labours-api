@@ -138,7 +138,11 @@ class Pagination(object):
                 filter_field = self.update_filter_values(
                     element["filter"], item.access)
                 query_item = GraphQLQueryItem(
-                    node=filter_node, filter=filter_field, access=item.access)
+                    node=filter_node, filter=filter_field)
+                if filter_node == "experiment_filter":
+                    query_item.access = filter_field["project_id"]
+                else:
+                    query_item.access = item.access
                 filter_node = re.sub('_filter', '', filter_node)
                 filter_field = list(filter_field.keys())[0]
                 # Only do fetch when there is no related temp data stored in temp_node_dict

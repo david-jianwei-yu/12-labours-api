@@ -54,6 +54,12 @@ FILTERS = {
             "Pig": "Sus scrofa",
             "Rat": "Rattus norvegicus",
         }
+    },
+    "MAPPED_ACCESS_SCOPE": {
+        "title": "Access Scope",
+        "node": "experiment_filter",
+        "field": "project_id",
+        "element": {}
     }
 }
 
