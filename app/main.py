@@ -13,10 +13,11 @@ from irods.session import iRODSSession
 
 from app.config import *
 from app.data_schema import *
-from app.sgqlc import SimpleGraphQLClient
+from app.filter_dictionary import FilterGenerator
 from app.filter import Filter
 from app.pagination import Pagination
-from app.filter_dictionary import FilterGenerator
+from app.search import Search
+from app.sgqlc import SimpleGraphQLClient
 from middleware.auth import Authenticator
 
 description = """
@@ -95,7 +96,8 @@ FILTER_GENERATED = False
 a = Authenticator()
 sgqlc = SimpleGraphQLClient()
 f = Filter()
-p = Pagination()
+s = None
+p = None
 fg = FilterGenerator()
 
 
@@ -136,6 +138,10 @@ async def start_up():
         check_irods_session()
     except Exception:
         print("Encounter an error while creating the iRODS session.")
+
+    global s, p
+    s = Search(SESSION)
+    p = Pagination(fg, f, s, sgqlc)
 
 
 @ app.on_event("startup")
@@ -315,7 +321,7 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     **search(parameter)**: 
     - string content
     """
-    p.update_pagination_item(item, search, SUBMISSION, SESSION)
+    p.update_pagination_item(item, search, SUBMISSION)
     results = p.get_pagination_data(item)
     query_count_total, query_match_pair, query_private_only = p.get_pagination_count(results["count_public"], results["count_private"])
     query_result = p.update_pagination_data(item, query_count_total, query_match_pair, query_private_only, results["public"])

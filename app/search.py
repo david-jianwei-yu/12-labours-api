@@ -7,7 +7,6 @@ from irods.models import Collection, DataObjectMeta
 from app.data_schema import *
 from app.config import iRODSConfig
 
-SESSION = None
 SEARCHFIELD = [
     "TITLE",
     "SUBTITLE",
@@ -16,10 +15,13 @@ SEARCHFIELD = [
 
 
 class Search:
+    def __init__(self, session):
+        self.SESSION = session
+
     def generate_dataset_dictionary(self, keyword_list):
         dataset_dict = {}
         for keyword in keyword_list:
-            query = SESSION.query(Collection.name, DataObjectMeta.value).filter(
+            query = self.SESSION.query(Collection.name, DataObjectMeta.value).filter(
                 In(DataObjectMeta.name, SEARCHFIELD)).filter(
                 Like(DataObjectMeta.value, f"%{keyword}%"))
             # Any keyword that does not match with the database content will cause a search no result
@@ -39,9 +41,7 @@ class Search:
         return dataset_dict
 
     # The dataset list order is based on how the dataset content is relevant to the input string.
-    def get_searched_datasets(self, input, session):
-        global SESSION
-        SESSION = session
+    def get_searched_datasets(self, input):
         try:
             keyword_list = re.findall('[a-zA-Z0-9]+', input.lower())
             dataset_dict = self.generate_dataset_dictionary(keyword_list)
