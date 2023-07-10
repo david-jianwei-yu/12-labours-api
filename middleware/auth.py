@@ -7,28 +7,10 @@ from yaml import SafeLoader
 
 from app.config import Gen3Config, iRODSConfig
 from middleware.jwt import JWT
+from middleware.user import User
 
 security = HTTPBearer()
 jwt = JWT()
-
-
-class User(object):
-    def __init__(self, email, policies):
-        self.email = email
-        self.policies = policies
-
-    def get_user_email(self):
-        return self.email
-
-    def get_user_policies(self):
-        return self.policies
-
-    def get_user_detail(self):
-        user = {
-            "email": self.email,
-            "policies": self.policies
-        }
-        return user
 
 
 class Authenticator(object):
@@ -63,7 +45,7 @@ class Authenticator(object):
         if verify_user.get_user_email() == "public":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Unable to remove default access authority")
-        
+
         del self.authorized_user[verify_user.get_user_email()]
         return True
 
