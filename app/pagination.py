@@ -64,20 +64,24 @@ class Pagination:
     def update_pagination_data(self, item, total, match, private, public):
         item.access.remove(Gen3Config.PUBLIC_ACCESS)
         result = self.generate_dataset_dictionary(public)
-
         items = []
-        for ele in match:
-            if ele in result:
-                query_item = GraphQLQueryItem(node="experiment_query", filter={
-                    "submitter_id": [ele]}, access=item.access)
-                items.append((query_item, SUBMISSION, ele))
+        
+        if match != []:
+            for ele in match:
+                if ele in result:
+                    query_item = GraphQLQueryItem(node="experiment_query", filter={
+                        "submitter_id": [ele]}, access=item.access)
+                    items.append((query_item, SUBMISSION, ele))
+
         # Add private only datasets when datasets can be displayed in one page
         # Or when the last page be displayed when there are multiple pages
-        if total <= item.limit or item.limit < total <= item.page*item.limit:
-            for ele in private:
-                query_item = GraphQLQueryItem(node="experiment_query", filter={
-                    "submitter_id": [ele]}, access=item.access)
-            items.append((query_item, SUBMISSION, ele))
+        if private != []:
+            if total <= item.limit or item.limit < total <= item.page*item.limit:
+                for ele in private:
+                    query_item = GraphQLQueryItem(node="experiment_query", filter={
+                        "submitter_id": [ele]}, access=item.access)
+                items.append((query_item, SUBMISSION, ele))
+
         # Query displayed datasets with private access
         private_result = self.threading_fetch(items)
         # Replace the dataset if it has a private version
@@ -96,7 +100,7 @@ class Pagination:
         private_access.remove(public_access)
         count_private_item = GraphQLPaginationItem(
             node="experiment_pagination_count", filter=item.filter, access=private_access)
-
+        
         items = [
             (public_item, SUBMISSION, "public"),
             (count_public_item, SUBMISSION, "count_public"),
