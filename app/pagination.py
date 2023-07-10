@@ -6,11 +6,9 @@ import threading
 
 from app.config import Gen3Config
 from app.data_schema import GraphQLQueryItem, GraphQLPaginationItem
-from app.filter import FIELDS
-from app.filter_dictionary import FILTERS
 
 
-class Pagination:
+class Pagination(object):
     def __init__(self, fg, f, s, sgqlc):
         self.FG = fg
         self.F = f
@@ -107,6 +105,7 @@ class Pagination:
         return self.threading_fetch(items)
 
     def update_filter_values(self, filter, access):
+        FILTERS = self.FG.get_filters()
         extra_filter = self.FG.generate_extra_filter(access)
         field = list(filter.keys())[0]
         value_list = []
@@ -130,6 +129,7 @@ class Pagination:
         return {field: value_list}
 
     def update_pagination_item(self, item, input):
+        FIELDS = self.F.get_fields()
         if item.filter != {}:
             filter_dict = {"submitter_id": []}
             temp_node_dict = {}
@@ -178,6 +178,7 @@ class Pagination:
         return result
 
     def update_species(self, data):
+        FILTERS = self.FG.get_filters()
         result = []
         if data == []:
             return result

@@ -4,8 +4,8 @@ from fastapi import HTTPException, status
 from irods.column import Like, In
 from irods.models import Collection, DataObjectMeta
 
-from app.data_schema import *
 from app.config import iRODSConfig
+from app.data_schema import *
 
 SEARCHFIELD = [
     "TITLE",
@@ -14,7 +14,7 @@ SEARCHFIELD = [
 ]
 
 
-class Search:
+class Search(object):
     def __init__(self, session):
         self.SESSION = session
 

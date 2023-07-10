@@ -3,13 +3,13 @@ import time
 import mimetypes
 
 
+from fastapi_utils.tasks import repeat_every
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
-from fastapi_utils.tasks import repeat_every
 from gen3.auth import Gen3Auth
-from gen3.submission import Gen3Submission
 from irods.session import iRODSSession
+from gen3.submission import Gen3Submission
 
 from app.config import *
 from app.data_schema import *
@@ -94,7 +94,7 @@ SESSION = None
 SESSION_CONNECTED = False
 FILTER_GENERATED = False
 fg = None
-f = Filter()
+f = None
 p = None
 s = None
 sgqlc = None
@@ -139,10 +139,11 @@ async def start_up():
     except Exception:
         print("Encounter an error while creating the iRODS session.")
 
-    global s, sgqlc, fg, p
+    global s, sgqlc, fg, f, p
     s = Search(SESSION)
     sgqlc = SimpleGraphQLClient(SUBMISSION)
     fg = FilterGenerator(sgqlc)
+    f = Filter(fg)
     p = Pagination(fg, f, s, sgqlc)
 
 

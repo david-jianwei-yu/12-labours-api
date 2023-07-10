@@ -1,5 +1,4 @@
 from app.data_schema import *
-from app.filter_dictionary import FILTERS
 
 # This list contains all the "Array" type fields that used as a filter
 FIELDS = [
@@ -7,7 +6,14 @@ FIELDS = [
 ]
 
 
-class Filter:
+class Filter(object):
+    def __init__(self, fg):
+        self.FG = fg
+        self.FIELDS = FIELDS
+    
+    def get_fields(self):
+        return self.FIELDS
+
     def generate_filtered_datasets(self, filter, field, data):
         result = []
         for dataset in data:
@@ -37,12 +43,14 @@ class Filter:
         item.filter["submitter_id"] = list(dataset_list)
 
     def set_filter_dict(self, element, extra):
+        FILTERS = self.FG.get_filters()
         if element in extra:
             return extra
         else:
             return FILTERS
 
     def generate_filter_information(self, extra):
+        FILTERS = self.FG.get_filters()
         filter_information = {
             "size": len(FILTERS),
             "titles": [],
@@ -63,6 +71,7 @@ class Filter:
         return filter_information
 
     def generate_sidebar_filter_information(self, extra):
+        FILTERS = self.FG.get_filters()
         sidebar_filter_information = []
         for element in FILTERS:
             filter_dict = self.set_filter_dict(element, extra)

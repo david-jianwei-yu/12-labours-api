@@ -7,7 +7,7 @@ from app.data_schema import *
 from app.sgqlc_schema import Query
 
 
-class SimpleGraphQLClient:
+class SimpleGraphQLClient(object):
     def __init__(self, submission):
         self.SUBMISSION = submission
 

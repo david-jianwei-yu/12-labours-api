@@ -63,9 +63,13 @@ FIXED_FILTERS = [
 ]
 
 
-class FilterGenerator:
+class FilterGenerator(object):
     def __init__(self, sgqlc):
         self.SGQLC = sgqlc
+        self.FILTERS = FILTERS
+    
+    def get_filters(self):
+        return self.FILTERS
 
     def generate_extra_filter(self, access):
         access_scope = []

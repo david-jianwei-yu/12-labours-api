@@ -12,7 +12,7 @@ security = HTTPBearer()
 jwt = JWT()
 
 
-class User:
+class User(object):
     def __init__(self, email, policies):
         self.email = email
         self.policies = policies
@@ -31,7 +31,7 @@ class User:
         return user
 
 
-class Authenticator:
+class Authenticator(object):
     def __init__(self):
         self.authorized_user = {
             "public": User("public", [Gen3Config.PUBLIC_ACCESS.split("-")[0]])

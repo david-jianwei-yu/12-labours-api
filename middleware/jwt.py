@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from app.config import Config
 
 
-class JWT:
+class JWT(object):
     def __init__(self):
         self.expire_time = 12
         self.algorithm = "HS256"
