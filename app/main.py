@@ -13,8 +13,9 @@ from gen3.submission import Gen3Submission
 
 from app.config import *
 from app.data_schema import *
-from app.filter_dictionary import FilterGenerator
+from app.filter_generator import FilterGenerator
 from app.filter import Filter
+from app.pagination_format import PaginationFormat
 from app.pagination import Pagination
 from app.search import Search
 from app.sgqlc import SimpleGraphQLClient
@@ -95,6 +96,7 @@ SESSION_CONNECTED = False
 FILTER_GENERATED = False
 fg = None
 f = None
+pf = None
 p = None
 s = None
 sgqlc = None
@@ -139,10 +141,11 @@ async def start_up():
     except Exception:
         print("Encounter an error while creating the iRODS session.")
 
-    global s, sgqlc, fg, f, p
+    global s, sgqlc, fg, pf, f, p
     s = Search(SESSION)
     sgqlc = SimpleGraphQLClient(SUBMISSION)
     fg = FilterGenerator(sgqlc)
+    pf = PaginationFormat(fg)
     f = Filter(fg)
     p = Pagination(fg, f, s, sgqlc)
 
@@ -332,7 +335,7 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
         # Sort only if search is not empty, since search results are sorted by word relevance
         query_result = sorted(query_result, key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
     result = {
-        "items": p.reconstruct_data_structure(query_result),
+        "items": pf.reconstruct_data_structure(query_result),
         "numberPerPage": item.limit,
         "page": item.page,
         "total": query_count_total
