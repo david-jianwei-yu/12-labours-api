@@ -1,5 +1,4 @@
 import re
-import json
 import copy
 import queue
 import threading
@@ -15,7 +14,7 @@ class Pagination(object):
         self.S = s
         self.SGQLC = sgqlc
 
-    def generate_dataset_dictionary(self, data):
+    def generate_dictionary(self, data):
         dataset_dict = {}
         for ele in data:
             dataset_id = ele["submitter_id"]
@@ -24,8 +23,8 @@ class Pagination(object):
         return dataset_dict
 
     def get_pagination_count(self, public, private):
-        public_result = self.generate_dataset_dictionary(public)
-        private_result = self.generate_dataset_dictionary(private)
+        public_result = self.generate_dictionary(public)
+        private_result = self.generate_dictionary(private)
         # Default datasets exist in public repository only,
         # Will contain all available datasets after updating
         displayed = list(public_result.keys())
@@ -59,7 +58,7 @@ class Pagination(object):
 
     def update_pagination_data(self, item, total, match, private, public):
         item.access.remove(Gen3Config.PUBLIC_ACCESS)
-        result = self.generate_dataset_dictionary(public)
+        result = self.generate_dictionary(public)
         items = []
 
         if match != []:
@@ -70,7 +69,7 @@ class Pagination(object):
                     items.append((query_item, ele))
 
         # Add private only datasets when datasets can be displayed in one page
-        # Or when the last page be displayed when there are multiple pages
+        # or when the last page be displayed when there are multiple pages
         if private != []:
             if total <= item.limit or item.limit < total <= item.page*item.limit:
                 for ele in private:
@@ -81,7 +80,7 @@ class Pagination(object):
         # Query displayed datasets with private access
         private_result = self.threading_fetch(items)
         # Replace the dataset if it has a private version
-        # Or add the dataset if it is only in private repository
+        # or add the dataset if it is only in private repository
         for id in private_result.keys():
             result[id] = private_result[id][0]
         return list(result.values())
@@ -135,6 +134,7 @@ class Pagination(object):
             temp_node_dict = {}
             for element in item.filter.values():
                 filter_node = element["node"]
+                # Update filter based on authority
                 filter_field = self.update_filter_values(
                     element["filter"], item.access)
                 query_item = GraphQLQueryItem(

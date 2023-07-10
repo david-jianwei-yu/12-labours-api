@@ -10,7 +10,7 @@ class Filter(object):
     def __init__(self, fg):
         self.FG = fg
         self.FIELDS = FIELDS
-    
+
     def get_fields(self):
         return self.FIELDS
 
@@ -49,27 +49,6 @@ class Filter(object):
         else:
             return FILTERS
 
-    def generate_filter_information(self, extra):
-        FILTERS = self.FG.get_filters()
-        filter_information = {
-            "size": len(FILTERS),
-            "titles": [],
-            "nodes": [],
-            "fields": [],
-            "elements": [],
-            "ids": []
-        }
-        for element in FILTERS:
-            filter_dict = self.set_filter_dict(element, extra)
-            filter_information["titles"].append(filter_dict[element]["title"])
-            filter_information["nodes"].append(filter_dict[element]["node"])
-            filter_information["fields"].append(filter_dict[element]["field"])
-            filter_information["elements"].append(
-                filter_dict[element]["element"])
-            for ele in filter_dict[element]["element"]:
-                filter_information["ids"].append(ele)
-        return filter_information
-
     def generate_sidebar_filter_information(self, extra):
         FILTERS = self.FG.get_filters()
         sidebar_filter_information = []
@@ -94,3 +73,24 @@ class Filter(object):
                     sidebar_filter_children)
             sidebar_filter_information.append(sidebar_filter_parent)
         return sidebar_filter_information
+
+    def generate_filter_information(self, extra):
+        FILTERS = self.FG.get_filters()
+        filter_information = {
+            "size": len(FILTERS),
+            "titles": [],
+            "nodes": [],
+            "fields": [],
+            "elements": [],
+            "ids": []
+        }
+        for element in FILTERS:
+            filter_dict = self.set_filter_dict(element, extra)
+            filter_information["titles"].append(filter_dict[element]["title"])
+            filter_information["nodes"].append(filter_dict[element]["node"])
+            filter_information["fields"].append(filter_dict[element]["field"])
+            filter_information["elements"].append(
+                filter_dict[element]["element"])
+            for ele in filter_dict[element]["element"]:
+                filter_information["ids"].append(ele)
+        return filter_information

@@ -18,7 +18,7 @@ class Search(object):
     def __init__(self, session):
         self.SESSION = session
 
-    def generate_dataset_dictionary(self, keyword_list):
+    def generate_searched_datasets(self, keyword_list):
         dataset_dict = {}
         for keyword in keyword_list:
             query = self.SESSION.query(Collection.name, DataObjectMeta.value).filter(
@@ -44,7 +44,7 @@ class Search(object):
     def get_searched_datasets(self, input):
         try:
             keyword_list = re.findall('[a-zA-Z0-9]+', input.lower())
-            dataset_dict = self.generate_dataset_dictionary(keyword_list)
+            dataset_dict = self.generate_searched_datasets(keyword_list)
             dataset_list = sorted(
                 dataset_dict, key=dataset_dict.get, reverse=True)
         except Exception as e:

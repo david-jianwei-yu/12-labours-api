@@ -11,20 +11,6 @@ class SimpleGraphQLClient(object):
     def __init__(self, submission):
         self.SUBMISSION = submission
 
-    def update_manifests_information(self, item, query):
-        query_with_classification = query
-        access_scope = re.sub('\'', '\"', f"{item.access}")
-        data = {
-            'manifests1': ['scaffolds', 'additional_types', '["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"]'],
-            'manifests2': ['scaffoldViews', 'additional_types', '["application/x.vnd.abi.scaffold.view+json"]'],
-            'manifests3': ['plots', 'additional_types', '["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"]'],
-            'manifests4': ['thumbnails', 'file_type', '[".jpg", ".png"]']
-        }
-        for key in data:
-            query_with_classification = re.sub(
-                key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]}, project_id: {access_scope})', query_with_classification)
-        return query_with_classification
-
     def remove_node_suffix(self, node, query):
         suffix = ""
         if "filter" in node:
@@ -39,6 +25,20 @@ class SimpleGraphQLClient(object):
         query_without_suffix = re.sub(suffix, '', query)
         node_without_suffix = re.sub(suffix, '', node)
         return query_without_suffix, node_without_suffix
+
+    def update_manifests_information(self, item, query):
+        query_with_classification = query
+        access_scope = re.sub('\'', '\"', f"{item.access}")
+        data = {
+            'manifests1': ['scaffolds', 'additional_types', '["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"]'],
+            'manifests2': ['scaffoldViews', 'additional_types', '["application/x.vnd.abi.scaffold.view+json"]'],
+            'manifests3': ['plots', 'additional_types', '["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"]'],
+            'manifests4': ['thumbnails', 'file_type', '[".jpg", ".png"]']
+        }
+        for key in data:
+            query_with_classification = re.sub(
+                key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]}, project_id: {access_scope})', query_with_classification)
+        return query_with_classification
 
     def convert_query(self, item, query):
         # Convert camel case to snake case

@@ -67,7 +67,7 @@ class FilterGenerator(object):
     def __init__(self, sgqlc):
         self.SGQLC = sgqlc
         self.FILTERS = FILTERS
-    
+
     def get_filters(self):
         return self.FILTERS
 

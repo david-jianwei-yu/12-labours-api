@@ -1,32 +1,10 @@
+import re
+import json
+
+
 class PaginationFormat(object):
     def __init__(self, fg):
         self.FG = fg
-
-    def update_contributors(self, data):
-        result = []
-        if data == []:
-            return result
-        for ele in data:
-            contributor = {
-                "name": ele
-            }
-            result.append(contributor)
-        return result
-
-    def update_species(self, data):
-        FILTERS = self.FG.get_filters()
-        result = []
-        if data == []:
-            return result
-        for ele in data:
-            subspecies = ele.get("species")
-            if subspecies != "NA":
-                species_dict = FILTERS["MAPPED_SPECIES"]["element"]
-                species = list(species_dict.keys())[list(
-                    species_dict.values()).index(subspecies)]
-                if species not in result:
-                    result.append(species)
-        return result
 
     def update_thumbnails(self, data):
         result = []
@@ -74,6 +52,11 @@ class PaginationFormat(object):
         result["relative"]["path"].append(cite.split("/")[-1])
         return result
 
+    def handle_empty_value(self, data):
+        if data == None or data == "NA":
+            return ""
+        return data
+
     def handle_image_url(self, middle, filename, source_of, has_image):
         full_url = middle
         if has_image:
@@ -87,11 +70,6 @@ class PaginationFormat(object):
         else:
             return ""
         return full_url
-
-    def handle_empty_value(self, data):
-        if data == None or data == "NA":
-            return ""
-        return data
 
     def update_manifests_based(self, uuid, middle, data, image=False):
         result = []
@@ -120,6 +98,32 @@ class PaginationFormat(object):
                 "name": ele["filename"].split("/")[-1],
             }
             result.append(item)
+        return result
+
+    def update_species(self, data):
+        FILTERS = self.FG.get_filters()
+        result = []
+        if data == []:
+            return result
+        for ele in data:
+            subspecies = ele.get("species")
+            if subspecies != "NA":
+                species_dict = FILTERS["MAPPED_SPECIES"]["element"]
+                species = list(species_dict.keys())[list(
+                    species_dict.values()).index(subspecies)]
+                if species not in result:
+                    result.append(species)
+        return result
+
+    def update_contributors(self, data):
+        result = []
+        if data == []:
+            return result
+        for ele in data:
+            contributor = {
+                "name": ele
+            }
+            result.append(contributor)
         return result
 
     def reconstruct_data_structure(self, data):
