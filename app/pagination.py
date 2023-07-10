@@ -6,19 +6,19 @@ import threading
 
 from app.config import Gen3Config
 from app.data_schema import GraphQLQueryItem, GraphQLPaginationItem
-from app.sgqlc import SimpleGraphQLClient
-from app.filter import Filter, FIELDS
-from app.search import Search
-from app.filter_dictionary import FilterGenerator, FILTERS
+from app.filter import FIELDS
+from app.filter_dictionary import FILTERS
 
 SUBMISSION = None
-f = Filter()
-s = Search()
-sgqlc = SimpleGraphQLClient()
-fg = FilterGenerator()
 
 
 class Pagination:
+    def __init__(self, fg, f, s, sgqlc):
+        self.FG = fg
+        self.F = f
+        self.S = s
+        self.SGQLC = sgqlc
+
     def generate_dataset_dictionary(self, data):
         dataset_dict = {}
         for ele in data:
@@ -49,7 +49,7 @@ class Pagination:
         result_queue = queue.Queue()
         threads = []
         for args in items:
-            t = threading.Thread(target=sgqlc.get_queried_result,
+            t = threading.Thread(target=self.SGQLC.get_queried_result,
                                  args=(*args, result_queue))
             threads.append(t)
             t.start()
@@ -65,7 +65,7 @@ class Pagination:
         item.access.remove(Gen3Config.PUBLIC_ACCESS)
         result = self.generate_dataset_dictionary(public)
         items = []
-        
+
         if match != []:
             for ele in match:
                 if ele in result:
@@ -100,7 +100,7 @@ class Pagination:
         private_access.remove(public_access)
         count_private_item = GraphQLPaginationItem(
             node="experiment_pagination_count", filter=item.filter, access=private_access)
-        
+
         items = [
             (public_item, SUBMISSION, "public"),
             (count_public_item, SUBMISSION, "count_public"),
@@ -109,7 +109,7 @@ class Pagination:
         return self.threading_fetch(items)
 
     def update_filter_values(self, filter, access):
-        extra_filter = fg.generate_extra_filter(SUBMISSION, access)
+        extra_filter = self.FG.generate_extra_filter(SUBMISSION, access)
         field = list(filter.keys())[0]
         value_list = []
         for ele_name in list(filter.values())[0]:
@@ -131,7 +131,7 @@ class Pagination:
                         return filter
         return {field: value_list}
 
-    def update_pagination_item(self, item, input, submission, SESSION):
+    def update_pagination_item(self, item, input, submission):
         global SUBMISSION
         SUBMISSION = submission
         if item.filter != {}:
@@ -148,7 +148,7 @@ class Pagination:
                 # Only do fetch when there is no related temp data stored in temp_node_dict
                 # or the node field type is "String"
                 if filter_node not in temp_node_dict or filter_field not in FIELDS:
-                    query_result = sgqlc.get_queried_result(
+                    query_result = self.SGQLC.get_queried_result(
                         query_item, SUBMISSION)
                     # The data will be stored when the field type is an "Array"
                     # The default filter relation of the Gen3 "Array" type field is "AND"
@@ -157,17 +157,16 @@ class Pagination:
                         temp_node_dict[filter_node] = query_result[filter_node]
                 elif filter_node in temp_node_dict and filter_field in FIELDS:
                     query_result = temp_node_dict
-                filter_dict["submitter_id"].append(f.get_filtered_datasets(
+                filter_dict["submitter_id"].append(self.F.get_filtered_datasets(
                     query_item.filter, query_result[filter_node]))
             item.filter = filter_dict
-            f.filter_relation(item)
+            self.F.filter_relation(item)
 
         if input != "":
             # If input does not match any content in the database, item.search will be empty dictionary
-            item.search["submitter_id"] = s.get_searched_datasets(
-                input, SESSION)
+            item.search["submitter_id"] = self.S.get_searched_datasets(input)
             if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
-                s.search_filter_relation(item)
+                self.S.search_filter_relation(item)
 
         if item.access == []:
             item.access.append(Gen3Config.PUBLIC_ACCESS)
