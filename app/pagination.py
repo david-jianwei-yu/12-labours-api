@@ -9,8 +9,6 @@ from app.data_schema import GraphQLQueryItem, GraphQLPaginationItem
 from app.filter import FIELDS
 from app.filter_dictionary import FILTERS
 
-SUBMISSION = None
-
 
 class Pagination:
     def __init__(self, fg, f, s, sgqlc):
@@ -71,7 +69,7 @@ class Pagination:
                 if ele in result:
                     query_item = GraphQLQueryItem(node="experiment_query", filter={
                         "submitter_id": [ele]}, access=item.access)
-                    items.append((query_item, SUBMISSION, ele))
+                    items.append((query_item, ele))
 
         # Add private only datasets when datasets can be displayed in one page
         # Or when the last page be displayed when there are multiple pages
@@ -80,7 +78,7 @@ class Pagination:
                 for ele in private:
                     query_item = GraphQLQueryItem(node="experiment_query", filter={
                         "submitter_id": [ele]}, access=item.access)
-                items.append((query_item, SUBMISSION, ele))
+                items.append((query_item, ele))
 
         # Query displayed datasets with private access
         private_result = self.threading_fetch(items)
@@ -102,14 +100,14 @@ class Pagination:
             node="experiment_pagination_count", filter=item.filter, access=private_access)
 
         items = [
-            (public_item, SUBMISSION, "public"),
-            (count_public_item, SUBMISSION, "count_public"),
-            (count_private_item, SUBMISSION, "count_private")
+            (public_item, "public"),
+            (count_public_item, "count_public"),
+            (count_private_item, "count_private")
         ]
         return self.threading_fetch(items)
 
     def update_filter_values(self, filter, access):
-        extra_filter = self.FG.generate_extra_filter(SUBMISSION, access)
+        extra_filter = self.FG.generate_extra_filter(access)
         field = list(filter.keys())[0]
         value_list = []
         for ele_name in list(filter.values())[0]:
@@ -131,9 +129,7 @@ class Pagination:
                         return filter
         return {field: value_list}
 
-    def update_pagination_item(self, item, input, submission):
-        global SUBMISSION
-        SUBMISSION = submission
+    def update_pagination_item(self, item, input):
         if item.filter != {}:
             filter_dict = {"submitter_id": []}
             temp_node_dict = {}
@@ -148,8 +144,7 @@ class Pagination:
                 # Only do fetch when there is no related temp data stored in temp_node_dict
                 # or the node field type is "String"
                 if filter_node not in temp_node_dict or filter_field not in FIELDS:
-                    query_result = self.SGQLC.get_queried_result(
-                        query_item, SUBMISSION)
+                    query_result = self.SGQLC.get_queried_result(query_item)
                     # The data will be stored when the field type is an "Array"
                     # The default filter relation of the Gen3 "Array" type field is "AND"
                     # We need "OR", therefore entire node data will go through a self-written filter function

@@ -93,12 +93,12 @@ SUBMISSION = None
 SESSION = None
 SESSION_CONNECTED = False
 FILTER_GENERATED = False
-a = Authenticator()
-sgqlc = SimpleGraphQLClient()
+fg = None
 f = Filter()
-s = None
 p = None
-fg = FilterGenerator()
+s = None
+sgqlc = None
+a = Authenticator()
 
 
 def check_irods_session():
@@ -139,8 +139,10 @@ async def start_up():
     except Exception:
         print("Encounter an error while creating the iRODS session.")
 
-    global s, p
+    global s, sgqlc, fg, p
     s = Search(SESSION)
+    sgqlc = SimpleGraphQLClient(SUBMISSION)
+    fg = FilterGenerator(sgqlc)
     p = Pagination(fg, f, s, sgqlc)
 
 
@@ -150,7 +152,7 @@ def periodic_execution():
     global FILTER_GENERATED
     FILTER_GENERATED = False
     while not FILTER_GENERATED:
-        FILTER_GENERATED = fg.generate_filter_dictionary(SUBMISSION)
+        FILTER_GENERATED = fg.generate_filter_dictionary()
     if FILTER_GENERATED:
         print("Default filter dictionary has been updated.")
 
@@ -295,7 +297,7 @@ async def graphql_query(item: GraphQLQueryItem):
     - string content,
     - only available in dataset_description/manifest/case nodes
     """
-    query_result = sgqlc.get_queried_result(item, SUBMISSION)
+    query_result = sgqlc.get_queried_result(item)
     return query_result[item.node]
 
 
@@ -321,7 +323,7 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     **search(parameter)**: 
     - string content
     """
-    p.update_pagination_item(item, search, SUBMISSION)
+    p.update_pagination_item(item, search)
     results = p.get_pagination_data(item)
     query_count_total, query_match_pair, query_private_only = p.get_pagination_count(results["count_public"], results["count_private"])
     query_result = p.update_pagination_data(item, query_count_total, query_match_pair, query_private_only, results["public"])
@@ -354,7 +356,7 @@ async def ger_filter(sidebar: bool, item: AccessItem):
         retry += 1
         time.sleep(retry)
     if FILTER_GENERATED:
-        extra_filter = fg.generate_extra_filter(SUBMISSION, item.access)
+        extra_filter = fg.generate_extra_filter(item.access)
         if sidebar == True:
             return f.generate_sidebar_filter_information(extra_filter)
         return f.generate_filter_information(extra_filter)
