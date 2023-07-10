@@ -27,71 +27,25 @@ class Pagination:
                 dataset_dict[dataset_id] = ele
         return dataset_dict
 
-    def get_pagination_count(self, display, restrict):
-        count_display_result = self.generate_dataset_dictionary(display)
-        count_restrict_result = self.generate_dataset_dictionary(restrict)
-        id_list = list(count_display_result.keys())
-        match_list = []
-        restrict_list = []
-        for id in count_restrict_result.keys():
-            if id not in count_display_result:
-                id_list.append(id)
-                restrict_list.append(id)
+    def get_pagination_count(self, public, private):
+        public_result = self.generate_dataset_dictionary(public)
+        private_result = self.generate_dataset_dictionary(private)
+        # Default datasets exist in public repository only,
+        # Will contain all available datasets after updating
+        displayed = list(public_result.keys())
+        # Exist in both public and private repository
+        match_pair = []
+        # Exist in private repository only
+        private_only = []
+        for id in private_result.keys():
+            if id not in public_result:
+                displayed.append(id)
+                private_only.append(id)
             else:
-                match_list.append(id)
-        return len(id_list), match_list, restrict_list
+                match_pair.append(id)
+        return len(displayed), match_pair, private_only
 
-    def update_pagination_data(self, item, total, match, restrict, display):
-        item.access.remove(Gen3Config.PUBLIC_ACCESS)
-        display_result = self.generate_dataset_dictionary(display)
-
-        items = []
-        for ele in match:
-            query_item = GraphQLQueryItem(node="experiment_query", filter={
-                                          "submitter_id": [ele]}, access=item.access)
-            items.append((query_item, SUBMISSION, ele))
-        if total < item.page*item.limit:
-            for ele in restrict:
-                query_item = GraphQLQueryItem(node="experiment_query", filter={
-                    "submitter_id": [ele]}, access=item.access)
-            items.append((query_item, SUBMISSION, ele))
-
-        result_queue = queue.Queue()
-        threads = []
-        for args in items:
-            t = threading.Thread(target=sgqlc.get_queried_result,
-                                 args=(*args, result_queue))
-            threads.append(t)
-            t.start()
-        for t in threads:
-            t.join()
-        restrict_result = {}
-        while not result_queue.empty():
-            data = result_queue.get()
-            restrict_result.update(data)
-
-        for id in restrict_result.keys():
-            if id in display_result.keys():
-                display_result[id] = restrict_result[id][0]
-        return list(display_result.values())
-
-    def get_pagination_data(self, item):
-        public_access = Gen3Config.PUBLIC_ACCESS
-        display_item = GraphQLPaginationItem(
-            limit=item.limit, page=item.page, filter=item.filter, access=[public_access])
-        count_display_item = GraphQLPaginationItem(
-            node="experiment_pagination_count", filter=item.filter, access=[public_access])
-        private_access = copy.deepcopy(item.access)
-        private_access.remove(public_access)
-        count_restrict_item = GraphQLPaginationItem(
-            node="experiment_pagination_count", filter=item.filter, access=private_access)
-
-        items = [
-            (display_item, SUBMISSION, "display"),
-            (count_display_item, SUBMISSION, "count_display"),
-            (count_restrict_item, SUBMISSION, "count_restrict")
-        ]
-
+    def threading_fetch(self, items):
         result_queue = queue.Queue()
         threads = []
         for args in items:
@@ -105,8 +59,50 @@ class Pagination:
         while not result_queue.empty():
             data = result_queue.get()
             result.update(data)
-
         return result
+
+    def update_pagination_data(self, item, total, match, private, public):
+        item.access.remove(Gen3Config.PUBLIC_ACCESS)
+        result = self.generate_dataset_dictionary(public)
+
+        items = []
+        for ele in match:
+            if ele in result:
+                query_item = GraphQLQueryItem(node="experiment_query", filter={
+                    "submitter_id": [ele]}, access=item.access)
+                items.append((query_item, SUBMISSION, ele))
+        # Add private only datasets when datasets can be displayed in one page
+        # Or when the last page be displayed when there are multiple pages
+        if total <= item.limit or item.limit < total <= item.page*item.limit:
+            for ele in private:
+                query_item = GraphQLQueryItem(node="experiment_query", filter={
+                    "submitter_id": [ele]}, access=item.access)
+            items.append((query_item, SUBMISSION, ele))
+        # Query displayed datasets with private access
+        private_result = self.threading_fetch(items)
+        # Replace the dataset if it has a private version
+        # Or add the dataset if it is only in private repository
+        for id in private_result.keys():
+            result[id] = private_result[id][0]
+        return list(result.values())
+
+    def get_pagination_data(self, item):
+        public_access = Gen3Config.PUBLIC_ACCESS
+        public_item = GraphQLPaginationItem(
+            limit=item.limit, page=item.page, filter=item.filter, access=[public_access])
+        count_public_item = GraphQLPaginationItem(
+            node="experiment_pagination_count", filter=item.filter, access=[public_access])
+        private_access = copy.deepcopy(item.access)
+        private_access.remove(public_access)
+        count_private_item = GraphQLPaginationItem(
+            node="experiment_pagination_count", filter=item.filter, access=private_access)
+
+        items = [
+            (public_item, SUBMISSION, "public"),
+            (count_public_item, SUBMISSION, "count_public"),
+            (count_private_item, SUBMISSION, "count_private")
+        ]
+        return self.threading_fetch(items)
 
     def update_filter_values(self, filter, access):
         extra_filter = fg.generate_extra_filter(SUBMISSION, access)
