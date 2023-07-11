@@ -56,14 +56,14 @@ class Pagination(object):
             result.update(data)
         return result
 
-    def update_pagination_data(self, item, total, match, private, public):
+    def update_pagination_data(self, item, total, match, private, public, select_public_access_filter):
+        display = self.generate_dictionary(public)
         item.access.remove(Gen3Config.PUBLIC_ACCESS)
-        result = self.generate_dictionary(public)
         items = []
 
         if match != []:
             for ele in match:
-                if ele in result:
+                if ele in display:
                     query_item = GraphQLQueryItem(node="experiment_query", filter={
                         "submitter_id": [ele]}, access=item.access)
                     items.append((query_item, ele))
@@ -81,9 +81,10 @@ class Pagination(object):
         private_result = self.threading_fetch(items)
         # Replace the dataset if it has a private version
         # or add the dataset if it is only in private repository
-        for id in private_result.keys():
-            result[id] = private_result[id][0]
-        return list(result.values())
+        if not select_public_access_filter:
+            for id in private_result.keys():
+                display[id] = private_result[id][0]
+        return list(display.values())
 
     def get_pagination_data(self, item):
         public_access = Gen3Config.PUBLIC_ACCESS
@@ -131,6 +132,7 @@ class Pagination(object):
 
     def update_pagination_item(self, item, input):
         FIELDS = self.F.get_fields()
+        select_public_access_filter = False
         if item.filter != {}:
             filter_dict = {"submitter_id": []}
             temp_node_dict = {}
@@ -143,6 +145,8 @@ class Pagination(object):
                     node=filter_node, filter=filter_field)
                 if filter_node == "experiment_filter":
                     query_item.access = filter_field["project_id"]
+                    if Gen3Config.PUBLIC_ACCESS in query_item.access:
+                        select_public_access_filter = True
                 else:
                     query_item.access = item.access
                 filter_node = re.sub('_filter', '', filter_node)
@@ -169,5 +173,6 @@ class Pagination(object):
             if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
                 self.S.search_filter_relation(item)
 
-        if item.access == []:
+        if Gen3Config.PUBLIC_ACCESS not in item.access:
             item.access.append(Gen3Config.PUBLIC_ACCESS)
+        return select_public_access_filter

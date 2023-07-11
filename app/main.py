@@ -327,12 +327,12 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     **search(parameter)**: 
     - string content
     """
-    p.update_pagination_item(item, search)
+    select_public_access_filter = p.update_pagination_item(item, search)
     results = p.get_pagination_data(item)
     query_count_total, query_match_pair, query_private_only = p.get_pagination_count(
         results["count_public"], results["count_private"])
     query_result = p.update_pagination_data(
-        item, query_count_total, query_match_pair, query_private_only, results["public"])
+        item, query_count_total, query_match_pair, query_private_only, results["public"], select_public_access_filter)
     if item.search != {}:
         # Sort only if search is not empty, since search results are sorted by word relevance
         query_result = sorted(
