@@ -2,20 +2,23 @@ import re
 import time
 import mimetypes
 
+
+from fastapi_utils.tasks import repeat_every
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
-from fastapi_utils.tasks import repeat_every
 from gen3.auth import Gen3Auth
-from gen3.submission import Gen3Submission
 from irods.session import iRODSSession
+from gen3.submission import Gen3Submission
 
 from app.config import *
 from app.data_schema import *
-from app.sgqlc import SimpleGraphQLClient
+from app.filter_generator import FilterGenerator
 from app.filter import Filter
+from app.pagination_format import PaginationFormat
 from app.pagination import Pagination
-from app.filter_dictionary import FilterGenerator
+from app.search import Search
+from app.sgqlc import SimpleGraphQLClient
 from middleware.auth import Authenticator
 
 description = """
@@ -91,11 +94,13 @@ SUBMISSION = None
 SESSION = None
 SESSION_CONNECTED = False
 FILTER_GENERATED = False
+fg = None
+f = None
+pf = None
+p = None
+s = None
+sgqlc = None
 a = Authenticator()
-sgqlc = SimpleGraphQLClient()
-f = Filter()
-p = Pagination()
-fg = FilterGenerator()
 
 
 def check_irods_session():
@@ -107,7 +112,7 @@ def check_irods_session():
     except Exception:
         print("Encounter an error while connecting to the iRODS session.")
         SESSION_CONNECTED = False
-    
+
 
 @ app.on_event("startup")
 async def start_up():
@@ -136,6 +141,14 @@ async def start_up():
     except Exception:
         print("Encounter an error while creating the iRODS session.")
 
+    global s, sgqlc, fg, pf, f, p
+    s = Search(SESSION)
+    sgqlc = SimpleGraphQLClient(SUBMISSION)
+    fg = FilterGenerator(sgqlc)
+    pf = PaginationFormat(fg)
+    f = Filter(fg)
+    p = Pagination(fg, f, s, sgqlc)
+
 
 @ app.on_event("startup")
 @repeat_every(seconds=60*60*24)
@@ -143,7 +156,7 @@ def periodic_execution():
     global FILTER_GENERATED
     FILTER_GENERATED = False
     while not FILTER_GENERATED:
-        FILTER_GENERATED = fg.generate_filter_dictionary(SUBMISSION)
+        FILTER_GENERATED = fg.generate_filter_dictionary()
     if FILTER_GENERATED:
         print("Default filter dictionary has been updated.")
 
@@ -288,7 +301,7 @@ async def graphql_query(item: GraphQLQueryItem):
     - string content,
     - only available in dataset_description/manifest/case nodes
     """
-    query_result = sgqlc.get_queried_result(item, SUBMISSION)
+    query_result = sgqlc.get_queried_result(item)
     return query_result[item.node]
 
 
@@ -314,17 +327,21 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     **search(parameter)**: 
     - string content
     """
-    p.update_pagination_item(item, search, SUBMISSION, SESSION)
-    query_result = sgqlc.get_queried_result(item, SUBMISSION)
+    p.update_pagination_item(item, search)
+    results = p.get_pagination_data(item)
+    query_count_total, query_match_pair, query_private_only = p.get_pagination_count(
+        results["count_public"], results["count_private"])
+    query_result = p.update_pagination_data(
+        item, query_count_total, query_match_pair, query_private_only, results["public"])
     if item.search != {}:
         # Sort only if search is not empty, since search results are sorted by word relevance
-        query_result[item.node] = sorted(
-            query_result[item.node], key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
+        query_result = sorted(
+            query_result, key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
     result = {
-        "items": p.update_pagination_output(item.access, query_result[item.node]),
+        "items": pf.reconstruct_data_structure(query_result),
         "numberPerPage": item.limit,
         "page": item.page,
-        "total": query_result["total"]
+        "total": query_count_total
     }
     return result
 
@@ -346,7 +363,7 @@ async def ger_filter(sidebar: bool, item: AccessItem):
         retry += 1
         time.sleep(retry)
     if FILTER_GENERATED:
-        extra_filter = fg.generate_extra_filter(SUBMISSION, item.access)
+        extra_filter = fg.generate_extra_filter(item.access)
         if sidebar == True:
             return f.generate_sidebar_filter_information(extra_filter)
         return f.generate_filter_information(extra_filter)
@@ -424,7 +441,7 @@ async def get_irods_collection(item: CollectionItem, connect: bool = Depends(che
     if not SESSION_CONNECTED or not connect:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the irods server status or environment variables")
-    
+
     if not re.match("(/(.)*)+", item.path):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid path format is used")
@@ -457,7 +474,7 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connect: bool 
     if not SESSION_CONNECTED or not connect:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the irods server status or environment variables")
-    
+
     chunk_size = 1024*1024*1024
     try:
         file = SESSION.data_objects.get(

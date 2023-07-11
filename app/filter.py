@@ -1,5 +1,4 @@
 from app.data_schema import *
-from app.filter_dictionary import FILTERS
 
 # This list contains all the "Array" type fields that used as a filter
 FIELDS = [
@@ -7,7 +6,14 @@ FIELDS = [
 ]
 
 
-class Filter:
+class Filter(object):
+    def __init__(self, fg):
+        self.FG = fg
+        self.FIELDS = FIELDS
+
+    def get_fields(self):
+        return self.FIELDS
+
     def generate_filtered_datasets(self, filter, field, data):
         result = []
         for dataset in data:
@@ -20,10 +26,14 @@ class Filter:
         field = list(filter.keys())[0]
         if field in FIELDS:
             data = self.generate_filtered_datasets(filter, field, data)
-        dataset_list = set()
+        dataset_list = []
         for record in data:
-            dataset_list.add(record["experiments"][0]["submitter_id"])
-        return list(dataset_list)
+            if "experiments" in record:
+                dataset_list.append(record["experiments"][0]["submitter_id"])
+            else:
+                # Implement filter in experiment node
+                dataset_list.append(record["submitter_id"])
+        return dataset_list
 
     def filter_relation(self, item):
         nested_list = item.filter["submitter_id"]
@@ -37,32 +47,14 @@ class Filter:
         item.filter["submitter_id"] = list(dataset_list)
 
     def set_filter_dict(self, element, extra):
+        FILTERS = self.FG.get_filters()
         if element in extra:
             return extra
         else:
             return FILTERS
 
-    def generate_filter_information(self, extra):
-        filter_information = {
-            "size": len(FILTERS),
-            "titles": [],
-            "nodes": [],
-            "fields": [],
-            "elements": [],
-            "ids": []
-        }
-        for element in FILTERS:
-            filter_dict = self.set_filter_dict(element, extra)
-            filter_information["titles"].append(filter_dict[element]["title"])
-            filter_information["nodes"].append(filter_dict[element]["node"])
-            filter_information["fields"].append(filter_dict[element]["field"])
-            filter_information["elements"].append(
-                filter_dict[element]["element"])
-            for ele in filter_dict[element]["element"]:
-                filter_information["ids"].append(ele)
-        return filter_information
-
     def generate_sidebar_filter_information(self, extra):
+        FILTERS = self.FG.get_filters()
         sidebar_filter_information = []
         for element in FILTERS:
             filter_dict = self.set_filter_dict(element, extra)
@@ -85,3 +77,24 @@ class Filter:
                     sidebar_filter_children)
             sidebar_filter_information.append(sidebar_filter_parent)
         return sidebar_filter_information
+
+    def generate_filter_information(self, extra):
+        FILTERS = self.FG.get_filters()
+        filter_information = {
+            "size": len(FILTERS),
+            "titles": [],
+            "nodes": [],
+            "fields": [],
+            "elements": [],
+            "ids": []
+        }
+        for element in FILTERS:
+            filter_dict = self.set_filter_dict(element, extra)
+            filter_information["titles"].append(filter_dict[element]["title"])
+            filter_information["nodes"].append(filter_dict[element]["node"])
+            filter_information["fields"].append(filter_dict[element]["field"])
+            filter_information["elements"].append(
+                filter_dict[element]["element"])
+            for ele in filter_dict[element]["element"]:
+                filter_information["ids"].append(ele)
+        return filter_information

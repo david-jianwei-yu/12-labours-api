@@ -3,7 +3,7 @@ from app import app
 from fastapi.testclient import TestClient
 
 from app.config import Gen3Config
-from app.filter_dictionary import FILTERS
+from app.filter_generator import FILTERS
 
 
 @pytest.fixture
@@ -19,25 +19,36 @@ def test_create_gen3_access(client):
     assert response.status_code == 400
     assert result["detail"] == "Missing field in the request body"
 
-    invalid_data = {
-        "email": "faketestemail@gmail.com"
+    dummy_data = {
+        "email": "dummyemail@gmail.com"
     }
-    response = client.post("/access/token", json=invalid_data)
+    response = client.post("/access/token", json=dummy_data)
     result = response.json()
-    assert response.status_code == 404
-    assert result["detail"] == f"{invalid_data['email']} does not have any extra access authority"
+    assert response.status_code == 200
+    assert result["email"] == dummy_data["email"]
 
 
 def test_revoke_gen3_access(client):
-    response = client.delete("/access/revoke", headers={"Authorization": "Bearer publicaccesstoken"})
+    dummy_data = {
+        "email": "dummyemail@gmail.com"
+    }
+    response = client.post("/access/token", json=dummy_data)
+    dummy_token = response.json()
+    response = client.delete(
+        "/access/revoke", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
     assert response.status_code == 401
     assert result["detail"] == "Unable to remove default access authority"
 
 
 def test_get_gen3_access(client):
+    dummy_data = {
+        "email": "dummyemail@gmail.com"
+    }
+    response = client.post("/access/token", json=dummy_data)
+    dummy_token = response.json()
     response = client.get(
-        "/access/authorize", headers={"Authorization": "Bearer publicaccesstoken"})
+        "/access/authorize", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
     assert response.status_code == 200
     assert len(result) == 1

@@ -2,7 +2,6 @@ import re
 
 from app.config import Gen3Config
 from app.data_schema import *
-from app.sgqlc import SimpleGraphQLClient
 
 FILTERS = {
     "MAPPED_AGE_CATEGORY": {
@@ -55,6 +54,12 @@ FILTERS = {
             "Pig": "Sus scrofa",
             "Rat": "Rattus norvegicus",
         }
+    },
+    "MAPPED_ACCESS_SCOPE": {
+        "title": "Access Scope",
+        "node": "experiment_filter",
+        "field": "project_id",
+        "element": {}
     }
 }
 
@@ -62,11 +67,17 @@ FIXED_FILTERS = [
     "MAPPED_MIME_TYPE",
     "MAPPED_SPECIES"
 ]
-sgqlc = SimpleGraphQLClient()
 
 
-class FilterGenerator:
-    def generate_extra_filter(self, SUBMISSION, access):
+class FilterGenerator(object):
+    def __init__(self, sgqlc):
+        self.SGQLC = sgqlc
+        self.FILTERS = FILTERS
+
+    def get_filters(self):
+        return self.FILTERS
+
+    def generate_extra_filter(self, access):
         access_scope = []
         for ele in access:
             if ele != Gen3Config.PUBLIC_ACCESS:
@@ -80,8 +91,8 @@ class FilterGenerator:
                 query_item = GraphQLQueryItem(
                     node=filter_node, access=access)
                 if filter_node not in temp_node_dict:
-                    temp_node_dict[filter_node] = sgqlc.get_queried_result(
-                        query_item, SUBMISSION)
+                    temp_node_dict[filter_node] = self.SGQLC.get_queried_result(
+                        query_item)
                 ele_node = re.sub('_filter', '', filter_node)
                 for ele in temp_node_dict[filter_node][ele_node]:
                     value = ele[FILTERS[element]["field"]]
@@ -107,7 +118,7 @@ class FilterGenerator:
                         sorted(updated_element.items()))
         return extra_filter_dict
 
-    def generate_filter_dictionary(self, SUBMISSION):
+    def generate_filter_dictionary(self):
         temp_node_dict = {}
         for element in FILTERS:
             if FILTERS[element]["element"] == {}:
@@ -115,8 +126,8 @@ class FilterGenerator:
                 filter_node = FILTERS[element]["node"]
                 query_item = GraphQLQueryItem(node=filter_node)
                 if filter_node not in temp_node_dict:
-                    temp_node_dict[filter_node] = sgqlc.get_queried_result(
-                        query_item, SUBMISSION)
+                    temp_node_dict[filter_node] = self.SGQLC.get_queried_result(
+                        query_item)
                 ele_node = re.sub('_filter', '', filter_node)
                 # Add data to filter_element
                 for ele in temp_node_dict[filter_node][ele_node]:

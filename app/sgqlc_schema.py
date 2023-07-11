@@ -153,6 +153,11 @@ class ExperimentPagination(Node):
     cases = list_of(SubCase)
 
 
+class ExperimentPaginationCount(Node):
+    project_id = String
+    submitter_id = String
+
+
 class Query(Type):
     # FILTER
     experimentFilter = Field(
@@ -233,6 +238,15 @@ class Query(Type):
     # PAGINATION
     experimentPagination = Field(
         ExperimentPagination,
+        args={
+            "first": Int,
+            "offset": Int,
+            "submitter_id": list_of(String),
+            "project_id": list_of(String),
+        }
+    )
+    experimentPaginationCount = Field(
+        ExperimentPaginationCount,
         args={
             "first": Int,
             "offset": Int,
