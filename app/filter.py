@@ -26,14 +26,14 @@ class Filter(object):
         field = list(filter.keys())[0]
         if field in FIELDS:
             data = self.generate_filtered_datasets(filter, field, data)
-        dataset_list = set()
+        dataset_list = []
         for record in data:
             if "experiments" in record:
-                dataset_list.add(record["experiments"][0]["submitter_id"])
+                dataset_list.append(record["experiments"][0]["submitter_id"])
             else:
                 # Implement filter in experiment node
-                dataset_list.add(record["submitter_id"])
-        return list(dataset_list)
+                dataset_list.append(record["submitter_id"])
+        return dataset_list
 
     def filter_relation(self, item):
         nested_list = item.filter["submitter_id"]

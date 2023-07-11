@@ -108,7 +108,9 @@ class Pagination(object):
         extra_filter = self.FG.generate_extra_filter(access)
         field = list(filter.keys())[0]
         value_list = []
-        for ele_name in list(filter.values())[0]:
+        for ele_name in filter[field]:
+            # Use .title() to make it non-case sensitive
+            name = ele_name.title()
             for ele in FILTERS:
                 if ele in extra_filter:
                     filter_dict = extra_filter
@@ -117,8 +119,8 @@ class Pagination(object):
                 # Check if ele can match with a exist filter object
                 if filter_dict[ele]["field"] == field:
                     # Check if ele_name is a key under filter object element field
-                    if ele_name in filter_dict[ele]["element"]:
-                        ele_value = filter_dict[ele]["element"][ele_name]
+                    if name in filter_dict[ele]["element"]:
+                        ele_value = filter_dict[ele]["element"][name]
                         if type(ele_value) == list:
                             value_list.extend(ele_value)
                         else:
