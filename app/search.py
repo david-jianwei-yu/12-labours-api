@@ -50,12 +50,11 @@ class Search(object):
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
+        
         if dataset_list == []:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no matched content in the database")
-        else:
-            return dataset_list
+        return dataset_list
 
     def search_filter_relation(self, item):
         # Since only search result has order, we need to update item.filter value based on search result

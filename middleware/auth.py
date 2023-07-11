@@ -51,13 +51,13 @@ class Authenticator(object):
 
     def create_user_authority(self, email, userinfo):
         if email in userinfo:
-            if email not in self.authorized_user:
-                user = User(email, userinfo[email]["policies"])
-                self.authorized_user[email] = user
-                return user
-            else:
+            if email in self.authorized_user:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT, detail=f"{email} has already been authorized")
+            
+            user = User(email, userinfo[email]["policies"])
+            self.authorized_user[email] = user
+            return user
         else:
             return self.authorized_user["public"]
 

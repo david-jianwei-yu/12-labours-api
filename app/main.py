@@ -201,10 +201,10 @@ async def create_gen3_access(item: EmailItem):
 
 
 @ app.delete("/access/revoke", tags=["Access"], summary="Revoke gen3 access for authorized user", responses=access_revoke_responses)
-async def revoke_gen3_access(revoked: bool = Depends(a.revoke_user_authority)):
-    if revoked:
+async def revoke_gen3_access(is_revoked: bool = Depends(a.revoke_user_authority)):
+    if is_revoked:
         raise HTTPException(status_code=status.HTTP_200_OK,
-                            detail="Revoke successfully")
+                            detail="Revoke access successfully")
 
 
 @ app.get("/access/authorize", tags=["Access"], summary="Get gen3 access authorize", responses=access_authorize_responses)
@@ -260,8 +260,7 @@ async def get_gen3_node_records(node: NodeParam, item: AccessItem):
     elif node_record["data"] == []:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"No data found with node type {node} and check if the correct project or node type is used")
-    else:
-        return node_record
+    return node_record
 
 
 @ app.post("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", responses=record_responses)
@@ -279,8 +278,7 @@ async def get_gen3_record(uuid: str, item: AccessItem):
                                 detail=record["message"])
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
-    else:
-        return record
+    return record
 
 
 @ app.post("/graphql/query", tags=["Gen3"], summary="GraphQL query gen3 information", responses=query_responses)
@@ -327,12 +325,11 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     **search(parameter)**: 
     - string content
     """
-    select_public_access_filter = p.update_pagination_item(item, search)
-    results = p.get_pagination_data(item)
-    query_count_total, query_match_pair, query_private_only = p.get_pagination_count(
-        results["count_public"], results["count_private"])
+    filter_public_access = p.update_pagination_item(item, search)
+    fetched_data = p.get_pagination_data(item)
+    data_count, data_relation = p.get_pagination_count(fetched_data)
     query_result = p.update_pagination_data(
-        item, query_count_total, query_match_pair, query_private_only, results["public"], select_public_access_filter)
+        item, data_count, data_relation, fetched_data, filter_public_access)
     if item.search != {}:
         # Sort only if search is not empty, since search results are sorted by word relevance
         query_result = sorted(
@@ -341,7 +338,7 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
         "items": pf.reconstruct_data_structure(query_result),
         "numberPerPage": item.limit,
         "page": item.page,
-        "total": query_count_total
+        "total": data_count
     }
     return result
 
@@ -362,14 +359,14 @@ async def ger_filter(sidebar: bool, item: AccessItem):
     while retry < 12 and not FILTER_GENERATED:
         retry += 1
         time.sleep(retry)
-    if FILTER_GENERATED:
-        extra_filter = fg.generate_extra_filter(item.access)
-        if sidebar == True:
-            return f.generate_sidebar_filter_information(extra_filter)
-        return f.generate_filter_information(extra_filter)
-    else:
+    if not FILTER_GENERATED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
+    
+    extra_filter = fg.generate_extra_filter(item.access)
+    if sidebar == True:
+        return f.generate_sidebar_filter_information(extra_filter)
+    return f.generate_filter_information(extra_filter)
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
@@ -394,17 +391,17 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
                                 detail=metadata["message"])
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=metadata["message"]+" and check if the correct project or uuid is used")
-    else:
-        if format == "json":
-            return JSONResponse(content=metadata[0],
-                                media_type="application/json",
-                                headers={"Content-Disposition":
-                                         f"attachment;filename={uuid}.json"})
-        elif format == "tsv":
-            return Response(content=metadata,
-                            media_type="text/csv",
+    
+    if format == "json":
+        return JSONResponse(content=metadata[0],
+                            media_type="application/json",
                             headers={"Content-Disposition":
-                                     f"attachment;filename={uuid}.csv"})
+                                        f"attachment;filename={uuid}.json"})
+    elif format == "tsv":
+        return Response(content=metadata,
+                        media_type="text/csv",
+                        headers={"Content-Disposition":
+                                    f"attachment;filename={uuid}.csv"})
 
 
 ############################################
@@ -441,7 +438,6 @@ async def get_irods_collection(item: CollectionItem, connect: bool = Depends(che
     if not SESSION_CONNECTED or not connect:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the irods server status or environment variables")
-
     if not re.match("(/(.)*)+", item.path):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid path format is used")

@@ -22,23 +22,27 @@ class Pagination(object):
                 dataset_dict[dataset_id] = ele
         return dataset_dict
 
-    def get_pagination_count(self, public, private):
-        public_result = self.generate_dictionary(public)
-        private_result = self.generate_dictionary(private)
+    def get_pagination_count(self, data):
+        public_result = self.generate_dictionary(data["count_public"])
+        private_result = self.generate_dictionary(data["count_private"])
         # Default datasets exist in public repository only,
         # Will contain all available datasets after updating
-        displayed = list(public_result.keys())
+        display_data = list(public_result.keys())
         # Exist in both public and private repository
         match_pair = []
         # Exist in private repository only
         private_only = []
         for id in private_result.keys():
             if id not in public_result:
-                displayed.append(id)
+                display_data.append(id)
                 private_only.append(id)
             else:
                 match_pair.append(id)
-        return len(displayed), match_pair, private_only
+        data_relation = {
+            "match_pair": match_pair,
+            "private_only": private_only
+        }
+        return len(display_data), data_relation
 
     def threading_fetch(self, items):
         result_queue = queue.Queue()
@@ -50,19 +54,21 @@ class Pagination(object):
             t.start()
         for t in threads:
             t.join()
+
         result = {}
         while not result_queue.empty():
             data = result_queue.get()
             result.update(data)
         return result
 
-    def update_pagination_data(self, item, total, match, private, public, select_public_access_filter):
-        display = self.generate_dictionary(public)
+    def update_pagination_data(self, item, count, relation, data, filter_public_access):
+        match_pair = relation["match_pair"]
+        private_only = relation["private_only"]
+        display = self.generate_dictionary(data["display_public"])
         item.access.remove(Gen3Config.PUBLIC_ACCESS)
         items = []
-
-        if match != []:
-            for ele in match:
+        if match_pair != []:
+            for ele in match_pair:
                 if ele in display:
                     query_item = GraphQLQueryItem(node="experiment_query", filter={
                         "submitter_id": [ele]}, access=item.access)
@@ -70,35 +76,37 @@ class Pagination(object):
 
         # Add private only datasets when datasets can be displayed in one page
         # or when the last page be displayed when there are multiple pages
-        if private != []:
-            if total <= item.limit or item.limit < total <= item.page*item.limit:
-                for ele in private:
+        if private_only != []:
+            if count <= item.limit or item.limit < count <= item.page*item.limit:
+                for ele in private_only:
                     query_item = GraphQLQueryItem(node="experiment_query", filter={
                         "submitter_id": [ele]}, access=item.access)
                 items.append((query_item, ele))
 
         # Query displayed datasets with private access
-        private_result = self.threading_fetch(items)
+        private_replace_set = self.threading_fetch(items)
         # Replace the dataset if it has a private version
         # or add the dataset if it is only in private repository
-        if not select_public_access_filter:
-            for id in private_result.keys():
-                display[id] = private_result[id][0]
+        if not filter_public_access:
+            for id in private_replace_set.keys():
+                display[id] = private_replace_set[id][0]
         return list(display.values())
 
     def get_pagination_data(self, item):
         public_access = Gen3Config.PUBLIC_ACCESS
-        public_item = GraphQLPaginationItem(
+        display_public_item = GraphQLPaginationItem(
             limit=item.limit, page=item.page, filter=item.filter, access=[public_access])
+
         count_public_item = GraphQLPaginationItem(
             node="experiment_pagination_count", filter=item.filter, access=[public_access])
+
         private_access = copy.deepcopy(item.access)
         private_access.remove(public_access)
         count_private_item = GraphQLPaginationItem(
             node="experiment_pagination_count", filter=item.filter, access=private_access)
 
         items = [
-            (public_item, "public"),
+            (display_public_item, "display_public"),
             (count_public_item, "count_public"),
             (count_private_item, "count_private")
         ]
@@ -131,11 +139,11 @@ class Pagination(object):
         return {field: value_list}
 
     def update_pagination_item(self, item, input):
+        filter_public_access = False
         FIELDS = self.F.get_fields()
-        select_public_access_filter = False
         if item.filter != {}:
-            filter_dict = {"submitter_id": []}
             temp_node_dict = {}
+            filter_dict = {"submitter_id": []}
             for element in item.filter.values():
                 filter_node = element["node"]
                 # Update filter based on authority
@@ -146,7 +154,7 @@ class Pagination(object):
                 if filter_node == "experiment_filter":
                     query_item.access = filter_field["project_id"]
                     if Gen3Config.PUBLIC_ACCESS in query_item.access:
-                        select_public_access_filter = True
+                        filter_public_access = True
                 else:
                     query_item.access = item.access
                 filter_node = re.sub('_filter', '', filter_node)
@@ -175,4 +183,4 @@ class Pagination(object):
 
         if Gen3Config.PUBLIC_ACCESS not in item.access:
             item.access.append(Gen3Config.PUBLIC_ACCESS)
-        return select_public_access_filter
+        return filter_public_access

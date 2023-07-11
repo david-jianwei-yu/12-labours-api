@@ -30,7 +30,7 @@ access_token_responses = {
 access_revoke_responses = {
     200: {
         "description": "Successfully remove the gen3 access",
-        "content": {"application/json": {"example": {"detail": "Revoke successfully"}}},
+        "content": {"application/json": {"example": {"detail": "Revoke access successfully"}}},
     },
     401: {"content": {"application/json": {"example": {"detail": "Unable to remove default access authority"}}}}
 }
