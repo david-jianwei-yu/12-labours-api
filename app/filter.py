@@ -36,7 +36,7 @@ class Filter(object):
                 # Implement filter in experiment node
                 dataset_list.append(record["submitter_id"])
         return dataset_list
-    
+
     def update_filter_values(self, field, facets, extra_filter):
         FILTERS = self.FG.get_filters()
         value_list = []
