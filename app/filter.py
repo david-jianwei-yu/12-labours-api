@@ -56,23 +56,23 @@ class Filter(object):
     def generate_sidebar_filter_information(self, extra):
         FILTERS = self.FG.get_filters()
         sidebar_filter_information = []
-        for element in FILTERS:
-            filter_dict = self.set_filter_dict(element, extra)
+        for ele in FILTERS:
+            filter_dict = self.set_filter_dict(ele, extra)
             sidebar_filter_parent = {
                 "key": "",
                 "label": "",
                 "children": [],
             }
-            sidebar_filter_parent["key"] = filter_dict[element]["node"] + \
-                ">" + filter_dict[element]["field"]
-            sidebar_filter_parent["label"] = filter_dict[element]["title"]
-            for ele in filter_dict[element]["element"]:
+            sidebar_filter_parent["key"] = filter_dict[ele]["node"] + \
+                ">" + filter_dict[ele]["field"]
+            sidebar_filter_parent["label"] = filter_dict[ele]["title"]
+            for facet_name in filter_dict[ele]["facets"]:
                 sidebar_filter_children = {
                     "facetPropPath": "",
                     "label": "",
                 }
                 sidebar_filter_children["facetPropPath"] = sidebar_filter_parent["key"]
-                sidebar_filter_children["label"] = ele
+                sidebar_filter_children["label"] = facet_name
                 sidebar_filter_parent["children"].append(
                     sidebar_filter_children)
             sidebar_filter_information.append(sidebar_filter_parent)
@@ -83,18 +83,16 @@ class Filter(object):
         filter_information = {
             "size": len(FILTERS),
             "titles": [],
-            "nodes": [],
-            "fields": [],
+            "nodes>fields": [],
             "elements": [],
             "ids": []
         }
-        for element in FILTERS:
-            filter_dict = self.set_filter_dict(element, extra)
-            filter_information["titles"].append(filter_dict[element]["title"])
-            filter_information["nodes"].append(filter_dict[element]["node"])
-            filter_information["fields"].append(filter_dict[element]["field"])
-            filter_information["elements"].append(
-                filter_dict[element]["element"])
-            for ele in filter_dict[element]["element"]:
-                filter_information["ids"].append(ele)
+        for ele in FILTERS:
+            filter_dict = self.set_filter_dict(ele, extra)
+            filter_information["titles"].append(filter_dict[ele]["title"])
+            filter_information["nodes>fields"].append(
+                filter_dict[ele]["node"] + ">" + filter_dict[ele]["field"])
+            filter_information["elements"].append(filter_dict[ele]["facets"])
+            for facet_name in filter_dict[ele]["facets"]:
+                filter_information["ids"].append(facet_name)
         return filter_information

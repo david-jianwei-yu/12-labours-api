@@ -279,19 +279,19 @@ def test_get_filter(client):
     }
     response = client.post("/filter/?sidebar=true", json=pass_case)
     assert response.status_code == 200
-    assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["element"]) == True
-    assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["element"]) == True
-    assert bool(FILTERS["MAPPED_SEX"]["element"]) == True
-    assert bool(FILTERS["MAPPED_MIME_TYPE"]["element"]) == True
-    assert bool(FILTERS["MAPPED_SPECIES"]["element"]) == True
+    assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_SEX"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_MIME_TYPE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_SPECIES"]["facets"]) == True
 
     response = client.post("/filter/?sidebar=false", json=pass_case)
     assert response.status_code == 200
-    assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["element"]) == True
-    assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["element"]) == True
-    assert bool(FILTERS["MAPPED_SEX"]["element"]) == True
-    assert bool(FILTERS["MAPPED_MIME_TYPE"]["element"]) == True
-    assert bool(FILTERS["MAPPED_SPECIES"]["element"]) == True
+    assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_SEX"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_MIME_TYPE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_SPECIES"]["facets"]) == True
 
 
 def test_download_gen3_metadata_file(client):
