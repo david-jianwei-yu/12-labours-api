@@ -1,3 +1,5 @@
+from fastapi import HTTPException, status
+
 from app.data_schema import *
 
 # This list contains all the "Array" type fields that used as a filter
@@ -34,6 +36,31 @@ class Filter(object):
                 # Implement filter in experiment node
                 dataset_list.append(record["submitter_id"])
         return dataset_list
+    
+    def update_filter_values(self, field, facets, extra_filter):
+        FILTERS = self.FG.get_filters()
+        value_list = []
+        for facet in facets:
+            # Use .title() to make it non-case sensitive
+            facet_name = facet.title()
+            for ele in FILTERS:
+                if ele in extra_filter:
+                    filter_dict = extra_filter
+                else:
+                    filter_dict = FILTERS
+                # Check if title can match with a exist filter object
+                if filter_dict[ele]["field"] == field:
+                    # Check if ele_name is a key under filter object element field
+                    if facet_name not in filter_dict[ele]["facets"]:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or unauthorized facet passed in")
+
+                    facet_value = filter_dict[ele]["facets"][facet_name]
+                    if type(facet_value) == list:
+                        value_list.extend(facet_value)
+                    else:
+                        value_list.append(facet_value)
+        return {field: value_list}
 
     def filter_relation(self, item):
         nested_list = item.filter["submitter_id"]
