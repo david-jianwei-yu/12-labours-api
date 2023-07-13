@@ -101,7 +101,7 @@ class FilterGenerator(object):
             elif type(field_value) == str and field_value != "NA":
                 self.add_facets(filter_facets, exist_facets, field_value)
         return filter_facets
-    
+
     def update_temp_node_dict(self, temp_dict, element, access=None):
         filter_node = FILTERS[element]["node"]
         query_item = GraphQLQueryItem(node=filter_node)
@@ -116,12 +116,13 @@ class FilterGenerator(object):
             if ele != Gen3Config.PUBLIC_ACCESS:
                 access_scope.append(ele)
 
+        extra_filter_dict = {}
         if access_scope != []:
             temp_node_dict = {}
-            extra_filter_dict = {}
             for mapped_element in FILTERS:
                 if mapped_element in DYNAMIC_FILTERS:
-                    self.update_temp_node_dict(temp_node_dict, mapped_element, access_scope)
+                    self.update_temp_node_dict(
+                        temp_node_dict, mapped_element, access_scope)
 
                     filter_facets = self.update_filter_facets(
                         temp_node_dict, mapped_element, True)
@@ -135,7 +136,7 @@ class FilterGenerator(object):
                         }
                         extra_filter_dict[mapped_element]["facets"] = dict(
                             sorted(updated_element.items()))
-            return extra_filter_dict
+        return extra_filter_dict
 
     def generate_filter_dictionary(self):
         is_generated = False

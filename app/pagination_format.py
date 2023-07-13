@@ -108,7 +108,7 @@ class PaginationFormat(object):
         for ele in data:
             subspecies = ele.get("species")
             if subspecies != "NA":
-                species_dict = FILTERS["MAPPED_SPECIES"]["element"]
+                species_dict = FILTERS["MAPPED_SPECIES"]["facets"]
                 species = list(species_dict.keys())[list(
                     species_dict.values()).index(subspecies)]
                 if species not in result:

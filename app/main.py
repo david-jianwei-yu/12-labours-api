@@ -325,11 +325,11 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     **search(parameter)**: 
     - string content
     """
-    filter_public_access = p.update_pagination_item(item, search)
+    is_public_access_filtered = p.update_pagination_item(item, search)
     fetched_data = p.get_pagination_data(item)
     data_count, data_relation = p.get_pagination_count(fetched_data)
     query_result = p.update_pagination_data(
-        item, data_count, data_relation, fetched_data, filter_public_access)
+        item, data_count, data_relation, fetched_data, is_public_access_filtered)
     if item.search != {}:
         # Sort only if search is not empty, since search results are sorted by word relevance
         query_result = sorted(
@@ -362,7 +362,7 @@ async def ger_filter(sidebar: bool, item: AccessItem):
     if not FILTER_GENERATED:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
-    
+
     extra_filter = fg.generate_extra_filter(item.access)
     if sidebar == True:
         return f.generate_sidebar_filter_information(extra_filter)
@@ -391,17 +391,17 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
                                 detail=metadata["message"])
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=metadata["message"]+" and check if the correct project or uuid is used")
-    
+
     if format == "json":
         return JSONResponse(content=metadata[0],
                             media_type="application/json",
                             headers={"Content-Disposition":
-                                        f"attachment;filename={uuid}.json"})
+                                     f"attachment;filename={uuid}.json"})
     elif format == "tsv":
         return Response(content=metadata,
                         media_type="text/csv",
                         headers={"Content-Disposition":
-                                    f"attachment;filename={uuid}.csv"})
+                                 f"attachment;filename={uuid}.csv"})
 
 
 ############################################
