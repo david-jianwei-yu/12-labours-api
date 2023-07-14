@@ -157,8 +157,8 @@ def periodic_execution():
     FILTER_GENERATED = False
     while not FILTER_GENERATED:
         FILTER_GENERATED = fg.generate_filter_dictionary()
-    if FILTER_GENERATED:
-        print("Default filter dictionary has been updated.")
+        if FILTER_GENERATED:
+            print("Default filter dictionary has been updated.")
 
 
 @ app.get("/", tags=["Root"], response_class=PlainTextResponse)
