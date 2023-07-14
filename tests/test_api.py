@@ -2,7 +2,6 @@ import pytest
 from app import app
 from fastapi.testclient import TestClient
 
-from app.main import FILTER_GENERATED
 from app.config import Gen3Config
 from app.filter_generator import FILTERS
 
@@ -261,6 +260,7 @@ def test_get_filter(client):
     assert bool(FILTERS["MAPPED_SEX"]["facets"]) == True
     assert bool(FILTERS["MAPPED_MIME_TYPE"]["facets"]) == True
     assert bool(FILTERS["MAPPED_SPECIES"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_ACCESS_SCOPE"]["facets"]) == True
 
     response = client.post("/filter/?sidebar=false", json=pass_case)
     assert response.status_code == 200
@@ -269,6 +269,7 @@ def test_get_filter(client):
     assert bool(FILTERS["MAPPED_SEX"]["facets"]) == True
     assert bool(FILTERS["MAPPED_MIME_TYPE"]["facets"]) == True
     assert bool(FILTERS["MAPPED_SPECIES"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_ACCESS_SCOPE"]["facets"]) == True
 
 
 def test_download_gen3_metadata_file(client):

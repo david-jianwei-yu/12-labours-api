@@ -84,12 +84,12 @@ class FilterGenerator(object):
         if name not in exist:
             facets[name] = value
 
-    def update_filter_facets(self, temp_data, element, extra=False):
+    def update_filter_facets(self, temp_data, element, is_extra=False):
         filter_facets = {}
-        if not extra:
-            exist_facets = filter_facets
-        else:
+        if is_extra:
             exist_facets = FILTERS[element]["facets"]
+        else:
+            exist_facets = filter_facets
         filter_node = FILTERS[element]["node"]
         node_name = re.sub('_filter', '', filter_node)
         field = FILTERS[element]["field"]
@@ -111,6 +111,7 @@ class FilterGenerator(object):
             temp_dict[filter_node] = self.SGQLC.get_queried_result(query_item)
 
     def generate_extra_filter(self, access):
+        is_extra = True
         access_scope = []
         for ele in access:
             if ele != Gen3Config.PUBLIC_ACCESS:
@@ -125,7 +126,7 @@ class FilterGenerator(object):
                         temp_node_dict, mapped_element, access_scope)
 
                     filter_facets = self.update_filter_facets(
-                        temp_node_dict, mapped_element, True)
+                        temp_node_dict, mapped_element, is_extra)
                     if filter_facets != {}:
                         updated_element = FILTERS[mapped_element]["facets"] | filter_facets
                         extra_filter_dict[mapped_element] = {
@@ -139,7 +140,7 @@ class FilterGenerator(object):
         return extra_filter_dict
 
     def generate_filter_dictionary(self):
-        is_generated = False
+        is_generated = True
         temp_node_dict = {}
         for mapped_element in FILTERS:
             if FILTERS[mapped_element]["facets"] == {}:
@@ -148,8 +149,9 @@ class FilterGenerator(object):
 
                 filter_facets = self.update_filter_facets(
                     temp_node_dict, mapped_element)
-                if filter_facets != {}:
-                    FILTERS[mapped_element]["facets"] = dict(
-                        sorted(filter_facets.items()))
-                    is_generated = True
+                if filter_facets == {}:
+                    return not is_generated
+                
+                FILTERS[mapped_element]["facets"] = dict(
+                    sorted(filter_facets.items()))
         return is_generated

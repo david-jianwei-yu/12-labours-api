@@ -83,17 +83,17 @@ class Filter(object):
     def generate_sidebar_filter_information(self, extra):
         FILTERS = self.FG.get_filters()
         sidebar_filter_information = []
-        for ele in FILTERS:
-            filter_dict = self.set_filter_dict(ele, extra)
+        for mapped_element in FILTERS:
+            filter_dict = self.set_filter_dict(mapped_element, extra)
             sidebar_filter_parent = {
                 "key": "",
                 "label": "",
                 "children": [],
             }
-            sidebar_filter_parent["key"] = filter_dict[ele]["node"] + \
-                ">" + filter_dict[ele]["field"]
-            sidebar_filter_parent["label"] = filter_dict[ele]["title"]
-            for facet_name in filter_dict[ele]["facets"]:
+            sidebar_filter_parent["key"] = filter_dict[mapped_element]["node"] + \
+                ">" + filter_dict[mapped_element]["field"]
+            sidebar_filter_parent["label"] = filter_dict[mapped_element]["title"]
+            for facet_name in filter_dict[mapped_element]["facets"]:
                 sidebar_filter_children = {
                     "facetPropPath": "",
                     "label": "",
@@ -114,12 +114,12 @@ class Filter(object):
             "elements": [],
             "ids": []
         }
-        for ele in FILTERS:
-            filter_dict = self.set_filter_dict(ele, extra)
-            filter_information["titles"].append(filter_dict[ele]["title"])
+        for mapped_element in FILTERS:
+            filter_dict = self.set_filter_dict(mapped_element, extra)
+            filter_information["titles"].append(filter_dict[mapped_element]["title"])
             filter_information["nodes>fields"].append(
-                filter_dict[ele]["node"] + ">" + filter_dict[ele]["field"])
-            filter_information["elements"].append(filter_dict[ele]["facets"])
-            for facet_name in filter_dict[ele]["facets"]:
+                filter_dict[mapped_element]["node"] + ">" + filter_dict[mapped_element]["field"])
+            filter_information["elements"].append(filter_dict[mapped_element]["facets"])
+            for facet_name in filter_dict[mapped_element]["facets"]:
                 filter_information["ids"].append(facet_name)
         return filter_information
