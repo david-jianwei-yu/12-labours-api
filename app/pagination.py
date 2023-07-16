@@ -61,7 +61,7 @@ class Pagination(object):
             result.update(data)
         return result
 
-    def update_pagination_data(self, item, count, relation, data, filter_public_access):
+    def update_pagination_data(self, item, count, relation, data, is_public_access_filtered):
         match_pair = relation["match_pair"]
         private_only = relation["private_only"]
         display = self.generate_dictionary(data["display_public"])
@@ -87,7 +87,7 @@ class Pagination(object):
         private_replace_set = self.threading_fetch(items)
         # Replace the dataset if it has a private version
         # or add the dataset if it is only in private repository
-        if not filter_public_access:
+        if not is_public_access_filtered:
             for id in private_replace_set.keys():
                 display[id] = private_replace_set[id][0]
         return list(display.values())
@@ -112,66 +112,42 @@ class Pagination(object):
         ]
         return self.threading_fetch(items)
 
-    def update_filter_values(self, filter, access):
-        FILTERS = self.FG.get_filters()
-        extra_filter = self.FG.generate_extra_filter(access)
-        field = list(filter.keys())[0]
-        value_list = []
-        for ele_name in filter[field]:
-            # Use .title() to make it non-case sensitive
-            name = ele_name.title()
-            for ele in FILTERS:
-                if ele in extra_filter:
-                    filter_dict = extra_filter
-                else:
-                    filter_dict = FILTERS
-                # Check if ele can match with a exist filter object
-                if filter_dict[ele]["field"] == field:
-                    # Check if ele_name is a key under filter object element field
-                    if name in filter_dict[ele]["element"]:
-                        ele_value = filter_dict[ele]["element"][name]
-                        if type(ele_value) == list:
-                            value_list.extend(ele_value)
-                        else:
-                            value_list.append(ele_value)
-                    else:
-                        return filter
-        return {field: value_list}
-
     def update_pagination_item(self, item, input):
-        filter_public_access = False
-        FIELDS = self.F.get_fields()
+        is_public_access_filtered = False
         if item.filter != {}:
+            FIELDS = self.F.get_fields()
+            extra_filter = self.FG.generate_extra_filter(item.access)
             temp_node_dict = {}
             filter_dict = {"submitter_id": []}
-            for element in item.filter.values():
-                filter_node = element["node"]
+            for node_filed, facet_name in item.filter.items():
+                filter_node = node_filed.split(">")[0]
+                filter_field = node_filed.split(">")[1]
                 # Update filter based on authority
-                filter_field = self.update_filter_values(
-                    element["filter"], item.access)
+                valid_filter = self.F.update_filter_values(
+                    filter_field, facet_name, extra_filter)
                 query_item = GraphQLQueryItem(
-                    node=filter_node, filter=filter_field)
+                    node=filter_node, filter=valid_filter)
                 if filter_node == "experiment_filter":
-                    query_item.access = filter_field["project_id"]
+                    query_item.access = valid_filter["project_id"]
                     if Gen3Config.PUBLIC_ACCESS in query_item.access:
-                        filter_public_access = True
+                        is_public_access_filtered = True
                 else:
                     query_item.access = item.access
-                filter_node = re.sub('_filter', '', filter_node)
-                filter_field = list(filter_field.keys())[0]
+
+                node_name = re.sub('_filter', '', filter_node)
                 # Only do fetch when there is no related temp data stored in temp_node_dict
                 # or the node field type is "String"
-                if filter_node not in temp_node_dict or filter_field not in FIELDS:
+                if node_name not in temp_node_dict or filter_field not in FIELDS:
                     query_result = self.SGQLC.get_queried_result(query_item)
                     # The data will be stored when the field type is an "Array"
                     # The default filter relation of the Gen3 "Array" type field is "AND"
                     # We need "OR", therefore entire node data will go through a self-written filter function
                     if filter_field in FIELDS:
-                        temp_node_dict[filter_node] = query_result[filter_node]
-                elif filter_node in temp_node_dict and filter_field in FIELDS:
+                        temp_node_dict[node_name] = query_result[node_name]
+                elif node_name in temp_node_dict and filter_field in FIELDS:
                     query_result = temp_node_dict
                 filter_dict["submitter_id"].append(self.F.get_filtered_datasets(
-                    query_item.filter, query_result[filter_node]))
+                    query_item.filter, query_result[node_name]))
             item.filter = filter_dict
             self.F.filter_relation(item)
 
@@ -183,4 +159,4 @@ class Pagination(object):
 
         if Gen3Config.PUBLIC_ACCESS not in item.access:
             item.access.append(Gen3Config.PUBLIC_ACCESS)
-        return filter_public_access
+        return is_public_access_filtered

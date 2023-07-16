@@ -1,3 +1,5 @@
+from fastapi import HTTPException, status
+
 from app.data_schema import *
 
 # This list contains all the "Array" type fields that used as a filter
@@ -35,6 +37,31 @@ class Filter(object):
                 dataset_list.append(record["submitter_id"])
         return dataset_list
 
+    def update_filter_values(self, field, facets, extra_filter):
+        FILTERS = self.FG.get_filters()
+        value_list = []
+        for facet in facets:
+            # Use .title() to make it non-case sensitive
+            facet_name = facet.title()
+            for ele in FILTERS:
+                if ele in extra_filter:
+                    filter_dict = extra_filter
+                else:
+                    filter_dict = FILTERS
+                # Check if title can match with a exist filter object
+                if filter_dict[ele]["field"] == field:
+                    # Check if ele_name is a key under filter object element field
+                    if facet_name not in filter_dict[ele]["facets"]:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or unauthorized facet passed in")
+
+                    facet_value = filter_dict[ele]["facets"][facet_name]
+                    if type(facet_value) == list:
+                        value_list.extend(facet_value)
+                    else:
+                        value_list.append(facet_value)
+        return {field: value_list}
+
     def filter_relation(self, item):
         nested_list = item.filter["submitter_id"]
         if item.relation == "and":  # AND relationship
@@ -56,23 +83,23 @@ class Filter(object):
     def generate_sidebar_filter_information(self, extra):
         FILTERS = self.FG.get_filters()
         sidebar_filter_information = []
-        for element in FILTERS:
-            filter_dict = self.set_filter_dict(element, extra)
+        for mapped_element in FILTERS:
+            filter_dict = self.set_filter_dict(mapped_element, extra)
             sidebar_filter_parent = {
                 "key": "",
                 "label": "",
                 "children": [],
             }
-            sidebar_filter_parent["key"] = filter_dict[element]["node"] + \
-                ">" + filter_dict[element]["field"]
-            sidebar_filter_parent["label"] = filter_dict[element]["title"]
-            for ele in filter_dict[element]["element"]:
+            sidebar_filter_parent["key"] = filter_dict[mapped_element]["node"] + \
+                ">" + filter_dict[mapped_element]["field"]
+            sidebar_filter_parent["label"] = filter_dict[mapped_element]["title"]
+            for facet_name in filter_dict[mapped_element]["facets"]:
                 sidebar_filter_children = {
                     "facetPropPath": "",
                     "label": "",
                 }
                 sidebar_filter_children["facetPropPath"] = sidebar_filter_parent["key"]
-                sidebar_filter_children["label"] = ele
+                sidebar_filter_children["label"] = facet_name
                 sidebar_filter_parent["children"].append(
                     sidebar_filter_children)
             sidebar_filter_information.append(sidebar_filter_parent)
@@ -83,18 +110,16 @@ class Filter(object):
         filter_information = {
             "size": len(FILTERS),
             "titles": [],
-            "nodes": [],
-            "fields": [],
+            "nodes>fields": [],
             "elements": [],
             "ids": []
         }
-        for element in FILTERS:
-            filter_dict = self.set_filter_dict(element, extra)
-            filter_information["titles"].append(filter_dict[element]["title"])
-            filter_information["nodes"].append(filter_dict[element]["node"])
-            filter_information["fields"].append(filter_dict[element]["field"])
-            filter_information["elements"].append(
-                filter_dict[element]["element"])
-            for ele in filter_dict[element]["element"]:
-                filter_information["ids"].append(ele)
+        for mapped_element in FILTERS:
+            filter_dict = self.set_filter_dict(mapped_element, extra)
+            filter_information["titles"].append(filter_dict[mapped_element]["title"])
+            filter_information["nodes>fields"].append(
+                filter_dict[mapped_element]["node"] + ">" + filter_dict[mapped_element]["field"])
+            filter_information["elements"].append(filter_dict[mapped_element]["facets"])
+            for facet_name in filter_dict[mapped_element]["facets"]:
+                filter_information["ids"].append(facet_name)
         return filter_information
