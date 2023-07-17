@@ -20,14 +20,20 @@ class Search(object):
 
     def generate_searched_datasets(self, keyword_list):
         dataset_dict = {}
+        self.SESSION.cleanup()
         for keyword in keyword_list:
-            query = self.SESSION.query(Collection.name, DataObjectMeta.value).filter(
-                In(DataObjectMeta.name, SEARCHFIELD)).filter(
-                Like(DataObjectMeta.value, f"%{keyword}%"))
+            try:
+                query = self.SESSION.query(Collection.name, DataObjectMeta.value).filter(
+                    In(DataObjectMeta.name, SEARCHFIELD)).filter(
+                    Like(DataObjectMeta.value, f"%{keyword}%"))
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
             # Any keyword that does not match with the database content will cause a search no result
             if len(query.all()) == 0:
-                dataset_dict = {}
-                return dataset_dict
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                    detail="There is no matched content in the database")
+
             for result in query:
                 content_list = re.findall(
                     fr'(\s{keyword}|{keyword}\s)', result[DataObjectMeta.value])
@@ -42,18 +48,10 @@ class Search(object):
 
     # The dataset list order is based on how the dataset content is relevant to the input string.
     def get_searched_datasets(self, input):
-        try:
-            keyword_list = re.findall('[a-zA-Z0-9]+', input.lower())
-            dataset_dict = self.generate_searched_datasets(keyword_list)
-            dataset_list = sorted(
-                dataset_dict, key=dataset_dict.get, reverse=True)
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-        
-        if dataset_list == []:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="There is no matched content in the database")
+        keyword_list = re.findall('[a-zA-Z0-9]+', input.lower())
+        dataset_dict = self.generate_searched_datasets(keyword_list)
+        dataset_list = sorted(
+            dataset_dict, key=dataset_dict.get, reverse=True)
         return dataset_list
 
     def search_filter_relation(self, item):

@@ -54,7 +54,7 @@ class Authenticator(object):
             if email in self.authorized_user:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT, detail=f"{email} has already been authorized")
-            
+
             user = User(email, userinfo[email]["policies"])
             self.authorized_user[email] = user
             return user
@@ -62,15 +62,20 @@ class Authenticator(object):
             return self.authorized_user["public"]
 
     def generate_access_token(self, email, SESSION):
-        obj = SESSION.data_objects.get(
-            f"{iRODSConfig.IRODS_ENDPOINT_URL}/user.yaml")
-        yaml_string = ""
-        with obj.open("r") as f:
-            for line in f:
-                yaml_string += str(line, encoding='utf-8')
-        yaml_dict = yaml.load(yaml_string, Loader=SafeLoader)
-        yaml_json = json.loads(json.dumps(yaml_dict))["users"]
+        try:
+            SESSION.cleanup()
+            user_obj = SESSION.data_objects.get(
+                f"{iRODSConfig.IRODS_ENDPOINT_URL}/user.yaml")
+            yaml_string = ""
+            with user_obj.open("r") as f:
+                for line in f:
+                    yaml_string += str(line, encoding='utf-8')
+            yaml_dict = yaml.load(yaml_string, Loader=SafeLoader)
+            yaml_json = json.loads(json.dumps(yaml_dict))["users"]
 
-        user = self.create_user_authority(email, yaml_json)
-        access_token = jwt.encoding_tokens(user)
-        return access_token
+            user = self.create_user_authority(email, yaml_json)
+            access_token = jwt.encoding_tokens(user)
+            return access_token
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="User data not found in the provided path")
