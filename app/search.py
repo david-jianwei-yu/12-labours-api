@@ -20,7 +20,6 @@ class Search(object):
 
     def generate_searched_datasets(self, keyword_list):
         dataset_dict = {}
-        self.SESSION.cleanup()
         for keyword in keyword_list:
             try:
                 query = self.SESSION.query(Collection.name, DataObjectMeta.value).filter(

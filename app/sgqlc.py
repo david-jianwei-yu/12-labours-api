@@ -185,7 +185,7 @@ class SimpleGraphQLClient(object):
         query = self.generate_query(item)
         try:
             result = self.SUBMISSION.query(query)["data"]
-            if queue != None:
+            if key != None and queue != None:
                 queue.put({key: result[item.node]})
             return result
         except Exception as e:

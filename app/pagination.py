@@ -3,6 +3,8 @@ import copy
 import queue
 import threading
 
+from fastapi import HTTPException, status
+
 from app.config import Gen3Config
 from app.data_schema import GraphQLQueryItem, GraphQLPaginationItem
 
@@ -112,6 +114,31 @@ class Pagination(object):
         ]
         return self.threading_fetch(items)
 
+    def handle_item_filter(self, field, facets, extra_filter):
+        FILTERS = self.FG.get_filters()
+        value_list = []
+        for facet in facets:
+            # Use .title() to make it non-case sensitive
+            facet_name = facet.title()
+            for ele in FILTERS:
+                if ele in extra_filter:
+                    filter_dict = extra_filter
+                else:
+                    filter_dict = FILTERS
+                # Check if title can match with a exist filter object
+                if filter_dict[ele]["field"] == field:
+                    # Check if ele_name is a key under filter object element field
+                    if facet_name not in filter_dict[ele]["facets"]:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or unauthorized facet passed in")
+
+                    facet_value = filter_dict[ele]["facets"][facet_name]
+                    if type(facet_value) == list:
+                        value_list.extend(facet_value)
+                    else:
+                        value_list.append(facet_value)
+        return {field: value_list}
+
     def update_pagination_item(self, item, input):
         is_public_access_filtered = False
         if item.filter != {}:
@@ -123,7 +150,7 @@ class Pagination(object):
                 filter_node = node_filed.split(">")[0]
                 filter_field = node_filed.split(">")[1]
                 # Update filter based on authority
-                valid_filter = self.F.update_filter_values(
+                valid_filter = self.handle_item_filter(
                     filter_field, facet_name, extra_filter)
                 query_item = GraphQLQueryItem(
                     node=filter_node, filter=valid_filter)

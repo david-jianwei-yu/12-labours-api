@@ -104,7 +104,6 @@ a = Authenticator()
 
 def check_irods_status():
     try:
-        SESSION.cleanup()
         SESSION.collections.get(iRODSConfig.IRODS_ENDPOINT_URL)
         return True
     except Exception:
@@ -436,7 +435,6 @@ async def get_irods_collection(item: CollectionItem, connected: bool = Depends(c
                             detail="Please check the irods server status or environment variables")
 
     try:
-        SESSION.cleanup()
         collect = SESSION.collections.get(
             iRODSConfig.IRODS_ENDPOINT_URL + item.path)
         folder_list = generate_collection_list(collect.subcollections)
@@ -467,7 +465,6 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
 
     chunk_size = 1024*1024*1024
     try:
-        SESSION.cleanup()
         file = SESSION.data_objects.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{filepath}")
     except Exception:

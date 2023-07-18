@@ -63,7 +63,6 @@ class Authenticator(object):
 
     def generate_access_token(self, email, SESSION):
         try:
-            SESSION.cleanup()
             user_obj = SESSION.data_objects.get(
                 f"{iRODSConfig.IRODS_ENDPOINT_URL}/user.yaml")
             yaml_string = ""
