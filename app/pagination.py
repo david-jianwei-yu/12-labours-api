@@ -114,7 +114,7 @@ class Pagination(object):
         ]
         return self.threading_fetch(items)
 
-    def handle_item_filter(self, field, facets, extra_filter):
+    def handle_pagination_item_filter(self, field, facets, extra_filter):
         FILTERS = self.FG.get_filters()
         value_list = []
         for facet in facets:
@@ -150,7 +150,7 @@ class Pagination(object):
                 filter_node = node_filed.split(">")[0]
                 filter_field = node_filed.split(">")[1]
                 # Update filter based on authority
-                valid_filter = self.handle_item_filter(
+                valid_filter = self.handle_pagination_item_filter(
                     filter_field, facet_name, extra_filter)
                 query_item = GraphQLQueryItem(
                     node=filter_node, filter=valid_filter)
