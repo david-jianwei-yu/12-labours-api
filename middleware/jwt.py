@@ -7,7 +7,7 @@ from app.config import Config
 
 class JWT(object):
     def __init__(self):
-        self.expire_time = 12
+        self.expire_time = 2
         self.algorithm = "HS256"
         self.secure = Config.JWT_SECURE_KEY
 
