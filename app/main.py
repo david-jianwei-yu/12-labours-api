@@ -185,8 +185,8 @@ def update_name_list(data, name, path):
 
 
 @ app.post("/access/token", tags=["Access"], summary="Create gen3 access token for authorized user", responses=access_token_responses)
-async def create_gen3_access(item: EmailItem, connected: bool = Depends(check_irods_status)):
-    if item.email == None:
+async def create_gen3_access(item: IdentityItem, connected: bool = Depends(check_irods_status)):
+    if item.identity == None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Missing field in the request body")
     if not connected:
@@ -194,8 +194,8 @@ async def create_gen3_access(item: EmailItem, connected: bool = Depends(check_ir
                             detail="Please check the irods server status or environment variables")
 
     result = {
-        "email": item.email,
-        "access_token": a.generate_access_token(item.email, SESSION)
+        "identity": item.identity,
+        "access_token": a.generate_access_token(item.identity, SESSION)
     }
     return result
 

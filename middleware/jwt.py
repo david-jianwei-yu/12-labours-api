@@ -15,7 +15,7 @@ class JWT(object):
         payload = {
             "exp": datetime.utcnow() + timedelta(hours=self.expire_time),
             "nbf": datetime.utcnow(),
-            "email": user.get_user_email(),
+            "identity": user.get_user_identity(),
             "policies": user.get_user_policies(),
         }
         encoded = jwt.encode(payload, self.secure, self.algorithm)

@@ -5,13 +5,13 @@ from pydantic import BaseModel
 from app.config import Gen3Config
 
 
-class EmailItem(BaseModel):
-    email: Union[str, None] = None
+class IdentityItem(BaseModel):
+    identity: Union[str, None] = None
 
     class Config:
         schema_extra = {
             "example": {
-                "email": "fakeemail@gmail.com",
+                "identity": "browsername>fakeemail@gmail.com",
             }
         }
 
@@ -19,10 +19,9 @@ class EmailItem(BaseModel):
 access_token_responses = {
     200: {
         "description": "Successfully return the gen3 access token",
-        "content": {"application/json": {"example": {"email": "", "access_token": ""}}},
+        "content": {"application/json": {"example": {"identity": "", "access_token": ""}}},
     },
-    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}},
-    404: {"content": {"application/json": {"example": {"detail": "xxx does not have any extra access authority"}}}}
+    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}}
 }
 
 
