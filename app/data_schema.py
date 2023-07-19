@@ -22,8 +22,7 @@ access_token_responses = {
         "content": {"application/json": {"example": {"email": "", "access_token": ""}}},
     },
     400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}},
-    404: {"content": {"application/json": {"example": {"detail": "xxx does not have any extra access authority"}}}},
-    409: {"content": {"application/json": {"example": {"detail": "xxx has already been authorized"}}}}
+    404: {"content": {"application/json": {"example": {"detail": "xxx does not have any extra access authority"}}}}
 }
 
 
