@@ -243,6 +243,8 @@ class Query(Type):
             "offset": Int,
             "submitter_id": list_of(String),
             "project_id": list_of(String),
+            "order_by_asc": String,
+            "order_by_desc": String,
         }
     )
     experimentPaginationCount = Field(

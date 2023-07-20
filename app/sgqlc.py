@@ -37,7 +37,7 @@ class SimpleGraphQLClient(object):
         }
         for key in data:
             query_with_classification = re.sub(
-                key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]}, project_id: {access_scope})', query_with_classification)
+                key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]}, project_id: {access_scope}, order_by_asc:"submitter_id")', query_with_classification)
         return query_with_classification
 
     def convert_query(self, item, query):
@@ -161,6 +161,8 @@ class SimpleGraphQLClient(object):
                     offset=(item.page-1)*item.limit,
                     submitter_id=item.filter.get("submitter_id", None),
                     project_id=item.access,
+                    order_by_asc=item.asc,
+                    order_by_desc=item.desc
                 )
             )
         elif item.node == "experiment_pagination_count":

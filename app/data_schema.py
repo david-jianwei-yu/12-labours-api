@@ -128,6 +128,8 @@ class GraphQLPaginationItem(BaseModel):
     search: Union[dict, None] = {}
     relation: Union[str, None] = "and"
     access: Union[list, None] = [Gen3Config.PUBLIC_ACCESS]
+    asc: Union[str, None] = None
+    desc: Union[str, None] = "created_datetime"
 
     class Config:
         schema_extra = {
@@ -135,7 +137,6 @@ class GraphQLPaginationItem(BaseModel):
                 "page": 1,
                 "limit": 50,
                 "filter": {},
-                "relation": "and",
                 "access": [Gen3Config.PUBLIC_ACCESS]
             }
         }

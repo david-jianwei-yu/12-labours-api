@@ -97,7 +97,7 @@ class Pagination(object):
     def get_pagination_data(self, item):
         public_access = Gen3Config.PUBLIC_ACCESS
         display_public_item = GraphQLPaginationItem(
-            limit=item.limit, page=item.page, filter=item.filter, access=[public_access])
+            limit=item.limit, page=item.page, filter=item.filter, access=[public_access], asc=item.asc, desc=item.desc)
 
         count_public_item = GraphQLPaginationItem(
             node="experiment_pagination_count", filter=item.filter, access=[public_access])
