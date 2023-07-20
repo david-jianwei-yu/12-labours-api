@@ -50,12 +50,13 @@ class Authenticator(object):
         return True
 
     def create_user_authority(self, identity, userinfo):
-        email = identity.split(">")[1]
+        email = identity.split(">")[0]
         if email in userinfo:
             if identity in self.authorized_user:
                 return self.authorized_user[identity]
             else:
-                user = User(identity, userinfo[email]["policies"])
+                policies = userinfo[email]["policies"]
+                user = User(identity, policies)
                 self.authorized_user[identity] = user
             return user
         else:

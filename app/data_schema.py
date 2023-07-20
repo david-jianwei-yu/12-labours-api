@@ -11,7 +11,7 @@ class IdentityItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "identity": "browsername>fakeemail@gmail.com",
+                "identity": "fakeemail@gmail.com>machine_id",
             }
         }
 
