@@ -24,8 +24,8 @@ class Authenticator(object):
             if token == "undefined":
                 return self.authorized_user["public"]
             else:
-                decrypt_email = jwt.decoding_tokens(token)["email"]
-                return self.authorized_user[decrypt_email]
+                decrypt_identity = jwt.decoding_tokens(token)["identity"]
+                return self.authorized_user[decrypt_identity]
         except Exception:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -42,38 +42,40 @@ class Authenticator(object):
 
     async def revoke_user_authority(self, token: HTTPAuthorizationCredentials = Depends(security)):
         verify_user = self.authenticate_token(token.credentials)
-        if verify_user.get_user_email() == "public":
+        if verify_user.get_user_identity() == "public":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Unable to remove default access authority")
 
-        del self.authorized_user[verify_user.get_user_email()]
+        del self.authorized_user[verify_user.get_user_identity()]
         return True
 
-    def create_user_authority(self, email, userinfo):
+    def create_user_authority(self, identity, userinfo):
+        email = identity.split(">")[0]
         if email in userinfo:
-            if email in self.authorized_user:
-                return self.authorized_user[email]
+            if identity in self.authorized_user:
+                return self.authorized_user[identity]
             else:
-                user = User(email, userinfo[email]["policies"])
-                self.authorized_user[email] = user
+                policies = userinfo[email]["policies"]
+                user = User(identity, policies)
+                self.authorized_user[identity] = user
             return user
         else:
             return self.authorized_user["public"]
 
-    def generate_access_token(self, email, SESSION):
+    def generate_access_token(self, identity, SESSION):
         try:
+            yaml_string = ""
             user_obj = SESSION.data_objects.get(
                 f"{iRODSConfig.IRODS_ENDPOINT_URL}/user.yaml")
-            yaml_string = ""
             with user_obj.open("r") as f:
                 for line in f:
                     yaml_string += str(line, encoding='utf-8')
             yaml_dict = yaml.load(yaml_string, Loader=SafeLoader)
             yaml_json = json.loads(json.dumps(yaml_dict))["users"]
-
-            user = self.create_user_authority(email, yaml_json)
-            access_token = jwt.encoding_tokens(user)
-            return access_token
         except Exception:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="User data not found in the provided path")
+
+        user = self.create_user_authority(identity, yaml_json)
+        access_token = jwt.encoding_tokens(user)
+        return access_token
