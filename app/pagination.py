@@ -141,6 +141,8 @@ class Pagination(object):
 
     def update_pagination_item(self, item, input):
         is_public_access_filtered = False
+
+        # FILTER
         if item.filter != {}:
             FIELDS = self.F.get_fields()
             extra_filter = self.FG.generate_extra_filter(item.access)
@@ -178,12 +180,26 @@ class Pagination(object):
             item.filter = filter_dict
             self.F.filter_relation(item)
 
+        # SEARCH
         if input != "":
             # If input does not match any content in the database, item.search will be empty dictionary
             item.search["submitter_id"] = self.S.get_searched_datasets(input)
             if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
                 self.S.search_filter_relation(item)
 
+        # ACCESS
         if Gen3Config.PUBLIC_ACCESS not in item.access:
             item.access.append(Gen3Config.PUBLIC_ACCESS)
+        
+        # ORDER
+        order_type = item.order.lower()
+        if order_type == "published(asc)":
+            item.asc = "created_datetime"
+        elif order_type == "published(desc)":
+            item.desc = "created_datetime"
+        elif order_type == "title(asc)":
+            item.asc = "title"
+        elif order_type == "title(desc)":
+            item.desc = "title"
+
         return is_public_access_filtered
