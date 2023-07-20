@@ -8,8 +8,8 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
 from gen3.auth import Gen3Auth
-from irods.session import iRODSSession
 from gen3.submission import Gen3Submission
+from irods.session import iRODSSession
 
 from app.config import *
 from app.data_schema import *

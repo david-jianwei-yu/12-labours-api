@@ -4,6 +4,7 @@ import yaml
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from yaml import SafeLoader
+from datetime import datetime
 
 from app.config import Gen3Config, iRODSConfig
 from middleware.jwt import JWT
@@ -25,6 +26,9 @@ class Authenticator(object):
                 return self.authorized_user["public"]
             else:
                 decrypt_identity = jwt.decoding_tokens(token)["identity"]
+                current_time = datetime.utcnow()
+                if current_time > self.authorized_user[decrypt_identity].get_user_expire_time():
+                    del self.authorized_user[decrypt_identity]
                 return self.authorized_user[decrypt_identity]
         except Exception:
             raise HTTPException(
