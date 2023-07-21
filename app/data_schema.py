@@ -97,6 +97,8 @@ class GraphQLQueryItem(BaseModel):
     filter: Union[dict, None] = {}
     search: Union[str, None] = ""
     access: Union[list, None] = [Gen3Config.PUBLIC_ACCESS]
+    asc: Union[str, None] = None
+    desc: Union[str, None] = None
 
     class Config:
         schema_extra = {

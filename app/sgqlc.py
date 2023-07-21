@@ -12,19 +12,18 @@ class SimpleGraphQLClient(object):
         self.SUBMISSION = submission
 
     def remove_node_suffix(self, node, query):
-        suffix = ""
-        if "filter" in node:
-            suffix = "_filter"
-        elif "query" in node:
-            suffix = "_query"
-        elif "pagination" in node:
-            if "count" in node:
-                suffix = "_pagination_count"
-            else:
-                suffix = "_pagination"
-        query_without_suffix = re.sub(suffix, '', query)
-        node_without_suffix = re.sub(suffix, '', node)
-        return query_without_suffix, node_without_suffix
+        gen3_node = ""
+        if "experiment" in node:
+            gen3_node = "experiment"
+        elif "dataset_description" in node:
+            gen3_node = "dataset_description"
+        elif "manifest" in node:
+            gen3_node = "manifest"
+        elif "case" in node:
+            gen3_node = "case"
+        valid_query = re.sub(node, gen3_node, query)
+        valid_node = re.sub(node, gen3_node, node)
+        return valid_query, valid_node
 
     def update_manifests_information(self, item, query):
         query_with_classification = query
@@ -162,7 +161,7 @@ class SimpleGraphQLClient(object):
                     submitter_id=item.filter.get("submitter_id", None),
                     project_id=item.access,
                     order_by_asc=item.asc,
-                    order_by_desc=item.desc
+                    order_by_desc=item.desc,
                 )
             )
         elif item.node == "experiment_pagination_count":
@@ -173,6 +172,18 @@ class SimpleGraphQLClient(object):
                     offset=0,
                     submitter_id=item.filter.get("submitter_id", None),
                     project_id=item.access,
+                )
+            )
+        # SUPPORT FOR PAGINATION ORDER
+        elif item.node == "pagination_order_by_dataset_description":
+            return self.convert_query(
+                item,
+                query.paginationOrderByDatasetDescription(
+                    first=0,
+                    offset=0,
+                    project_id=item.access,
+                    order_by_asc=item.asc,
+                    order_by_desc=item.desc,
                 )
             )
         else:

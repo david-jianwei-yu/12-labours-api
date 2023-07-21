@@ -114,6 +114,27 @@ class Pagination(object):
         ]
         return self.threading_fetch(items)
 
+    def handle_pagination_item_order(self, item):
+        query_item = GraphQLQueryItem(
+            node="pagination_order_by_dataset_description", access=item.access, asc=item.asc, desc=item.desc)
+        if "asc" in item.order:
+            query_item.asc = "title"
+        elif "desc" in item.order:
+            query_item.desc = "title"
+        query_result = self.SGQLC.get_queried_result(query_item)
+        dataset_list = []
+        ordered_dataset_list = []
+        for ele in query_result[query_item.node]:
+            dataset_id = ele["experiments"][0]["submitter_id"]
+            ordered_dataset_list.append(dataset_id)
+        if "submitter_id" in item.filter:
+            for ele in ordered_dataset_list:
+                if ele in item.filter["submitter_id"]:
+                    dataset_list.append(ele)
+            item.filter["submitter_id"] = dataset_list
+        else:
+            item.filter["submitter_id"] = ordered_dataset_list
+
     def handle_pagination_item_filter(self, field, facets, extra_filter):
         FILTERS = self.FG.get_filters()
         value_list = []
@@ -190,16 +211,14 @@ class Pagination(object):
         # ACCESS
         if Gen3Config.PUBLIC_ACCESS not in item.access:
             item.access.append(Gen3Config.PUBLIC_ACCESS)
-        
+
         # ORDER
         order_type = item.order.lower()
         if order_type == "published(asc)":
             item.asc = "created_datetime"
         elif order_type == "published(desc)":
             item.desc = "created_datetime"
-        elif order_type == "title(asc)":
-            item.asc = "title"
-        elif order_type == "title(desc)":
-            item.desc = "title"
+        elif "title" in order_type:
+            self.handle_pagination_item_order(item)
 
         return is_public_access_filtered

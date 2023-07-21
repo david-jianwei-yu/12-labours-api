@@ -54,7 +54,7 @@ class Search(object):
         return dataset_list
 
     def search_filter_relation(self, item):
-        # Since only search result has order, we need to update item.filter value based on search result
+        # Search result has order, we need to update item.filter value based on search result
         # The relationship between search and filter will always be AND
         if item.filter != {}:
             dataset_list = []
