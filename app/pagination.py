@@ -41,7 +41,7 @@ class Pagination(object):
             result.update(data)
         return result
 
-    def handle_pagination_order(self, item):
+    def get_pagination_order(self, item):
         query_item = GraphQLQueryItem(
             node="pagination_order_by_dataset_description", access=item.access, asc=item.asc, desc=item.desc)
         if "asc" in item.order:
@@ -50,86 +50,87 @@ class Pagination(object):
             query_item.desc = "title"
         query_result = self.SGQLC.get_queried_result(query_item)
 
-        ordered_full_datasets = []
+        # Include both public and private if have the access
+        ordered_whole_datasets = []
         for ele in query_result[query_item.node]:
             dataset_id = ele["experiments"][0]["submitter_id"]
-            if dataset_id not in ordered_full_datasets:
-                ordered_full_datasets.append(dataset_id)
+            if dataset_id not in ordered_whole_datasets:
+                ordered_whole_datasets.append(dataset_id)
 
         ordered_filtered_datasets = []
         ordered_datasets = []
         if "submitter_id" in item.filter:
-            for dataset in ordered_full_datasets:
+            for dataset in ordered_whole_datasets:
                 if dataset in item.filter["submitter_id"]:
                     ordered_filtered_datasets.append(dataset)
             ordered_datasets = ordered_filtered_datasets
         else:
-            ordered_datasets = ordered_full_datasets
+            ordered_datasets = ordered_whole_datasets
         return ordered_datasets
 
     def get_pagination_data(self, item, match_pair, is_public_access_filtered):
         if "title" in item.order.lower():
-            ordered_datasets = self.handle_pagination_order(item)
+            # Get an ordered dataset list to update the item.filter
+            # item.filter will be updated based on the page and limit passed in
+            ordered_datasets = self.get_pagination_order(item)
             start = (item.page-1)*item.limit
             end = item.page*item.limit
             item.filter["submitter_id"] = ordered_datasets[start:end]
             item.page = 1
 
-        display_item = GraphQLPaginationItem(
+        query_item = GraphQLPaginationItem(
             limit=item.limit, page=item.page, filter=item.filter, access=item.access, order=item.order, asc=item.asc, desc=item.desc)
-        query_result = self.SGQLC.get_queried_result(display_item)
-        display = self.generate_dictionary(query_result["experiment"])
+        query_result = self.SGQLC.get_queried_result(query_item)
+        displayed_datasets = self.generate_dictionary(
+            query_result[query_item.node])
 
         item.access.remove(Gen3Config.PUBLIC_ACCESS)
         items = []
+        # Query displayed datasets which have private version
         if match_pair != []:
             for dataset in match_pair:
-                if dataset in display:
+                if dataset in displayed_datasets:
                     query_item = GraphQLQueryItem(node="experiment_query", filter={
                         "submitter_id": [dataset]}, access=item.access)
                     items.append((query_item, dataset))
-        # Query displayed datasets which have private version
-        private_replace_set = self.threading_fetch(items)
+
+        private_replacement = self.threading_fetch(items)
 
         if not is_public_access_filtered:
             # Replace the dataset if it has a private version
-            for dataset in private_replace_set.keys():
-                display[dataset] = private_replace_set[dataset][0]
-        return list(display.values())
+            for dataset in private_replacement.keys():
+                displayed_datasets[dataset] = private_replacement[dataset][0]
+        return list(displayed_datasets.values())
 
     def get_pagination_count(self, item):
         public_access = Gen3Config.PUBLIC_ACCESS
-
-        count_public_item = GraphQLPaginationItem(
+        public_pagination_count_item = GraphQLPaginationItem(
             node="experiment_pagination_count", filter=item.filter, access=[public_access])
-
         private_access = copy.deepcopy(item.access)
         private_access.remove(public_access)
-        count_private_item = GraphQLPaginationItem(
+        private_pagination_count_item = GraphQLPaginationItem(
             node="experiment_pagination_count", filter=item.filter, access=private_access)
 
         fetched_data = self.threading_fetch([
-            (count_public_item, "count_public"),
-            (count_private_item, "count_private")
+            (public_pagination_count_item, "public_pagination"),
+            (private_pagination_count_item, "private_pagination")
         ])
 
-        public_result = self.generate_dictionary(fetched_data["count_public"])
+        public_result = self.generate_dictionary(
+            fetched_data["public_pagination"])
         private_result = self.generate_dictionary(
-            fetched_data["count_private"])
+            fetched_data["private_pagination"])
         # Default datasets exist in public repository only,
         # Will contain all available datasets after updating
-        display_data = list(public_result.keys())
+        displayed_datasets = list(public_result.keys())
         # Exist in both public and private repository
         match_pair = []
-        # Exist in private repository only
-        # private_only = []
         for id in private_result.keys():
             if id not in public_result:
-                display_data.append(id)
-                # private_only.append(id)
+                displayed_datasets.append(id)
             else:
                 match_pair.append(id)
-        return len(display_data), match_pair
+        return len(displayed_datasets), match_pair
 
     def handle_pagination_item_filter(self, field, facets, extra_filter):
         FILTERS = self.FG.get_filters()
@@ -217,7 +218,7 @@ class Pagination(object):
         elif order_type == "published(desc)":
             item.desc = "created_datetime"
         elif "title" in order_type:
-            # self.handle_pagination_item_order(item)
+            # See function self.get_pagination_data
             pass
         elif "relevance" in order_type:
             # relevance is for search function applied
@@ -229,4 +230,5 @@ class Pagination(object):
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=f"{item.order} order option not provided")
+
         return is_public_access_filtered
