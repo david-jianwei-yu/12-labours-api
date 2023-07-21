@@ -332,8 +332,8 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     data_count, data_relation = p.get_pagination_count(fetched_data)
     query_result = p.update_pagination_data(
         item, data_count, data_relation, fetched_data, is_public_access_filtered)
-    if item.search != {}:
-        # Sort only if search is not empty, since search results are sorted by word relevance
+    # If both asc and desc are None, datasets ordered by self-written order function
+    if item.asc == None and item.desc == None:
         query_result = sorted(
             query_result, key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
     result = {

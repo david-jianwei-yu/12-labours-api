@@ -162,6 +162,7 @@ class Pagination(object):
 
     def update_pagination_item(self, item, input):
         is_public_access_filtered = False
+        has_search_result = False
 
         # FILTER
         if item.filter != {}:
@@ -206,6 +207,7 @@ class Pagination(object):
             # If input does not match any content in the database, item.search will be empty dictionary
             item.search["submitter_id"] = self.S.get_searched_datasets(input)
             if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
+                has_search_result = True
                 self.S.search_filter_relation(item)
 
         # ACCESS
@@ -220,5 +222,12 @@ class Pagination(object):
             item.desc = "created_datetime"
         elif "title" in order_type:
             self.handle_pagination_item_order(item)
+        elif "relevance" in order_type:
+            # relevance is for search function applied
+            # search_filter_relation has already sort the datasets
+            # If search not applied and relevance order chose
+            # Order the datasets with created_datetime asc order by default
+            if not has_search_result:
+                item.asc = "created_datetime"
 
         return is_public_access_filtered
