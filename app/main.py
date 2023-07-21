@@ -8,8 +8,8 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
 from gen3.auth import Gen3Auth
-from irods.session import iRODSSession
 from gen3.submission import Gen3Submission
+from irods.session import iRODSSession
 
 from app.config import *
 from app.data_schema import *
@@ -156,6 +156,8 @@ def periodic_execution():
         FILTER_GENERATED = fg.generate_filter_dictionary()
         if FILTER_GENERATED:
             print("Default filter dictionary has been updated.")
+
+    a.cleanup_authorized_user()
 
 
 @ app.get("/", tags=["Root"], response_class=PlainTextResponse)
@@ -366,7 +368,8 @@ async def ger_filter(sidebar: bool, item: AccessItem):
     extra_filter = fg.generate_extra_filter(item.access)
     if sidebar == True:
         return f.generate_sidebar_filter_information(extra_filter)
-    return f.generate_filter_information(extra_filter)
+    else:
+        return f.generate_filter_information(extra_filter)
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")

@@ -7,13 +7,11 @@ from app.config import Config
 
 class JWT(object):
     def __init__(self):
-        self.expire_time = 2
         self.algorithm = "HS256"
         self.secure = Config.JWT_SECURE_KEY
 
     def encoding_tokens(self, user):
         payload = {
-            "exp": datetime.utcnow() + timedelta(hours=self.expire_time),
             "nbf": datetime.utcnow(),
             "identity": user.get_user_identity(),
             "policies": user.get_user_policies(),
