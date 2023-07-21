@@ -24,28 +24,6 @@ class Pagination(object):
                 dataset_dict[dataset_id] = ele
         return dataset_dict
 
-    def get_pagination_count(self, data):
-        public_result = self.generate_dictionary(data["count_public"])
-        private_result = self.generate_dictionary(data["count_private"])
-        # Default datasets exist in public repository only,
-        # Will contain all available datasets after updating
-        display_data = list(public_result.keys())
-        # Exist in both public and private repository
-        match_pair = []
-        # Exist in private repository only
-        private_only = []
-        for id in private_result.keys():
-            if id not in public_result:
-                display_data.append(id)
-                private_only.append(id)
-            else:
-                match_pair.append(id)
-        data_relation = {
-            "match_pair": match_pair,
-            "private_only": private_only
-        }
-        return len(display_data), data_relation
-
     def threading_fetch(self, items):
         result_queue = queue.Queue()
         threads = []
@@ -62,68 +40,6 @@ class Pagination(object):
             data = result_queue.get()
             result.update(data)
         return result
-
-    def update_pagination_data(self, item, count, relation, data, is_public_access_filtered):
-        match_pair = relation["match_pair"]
-        private_only = relation["private_only"]
-        display = self.generate_dictionary(data["display_public"])
-        item.access.remove(Gen3Config.PUBLIC_ACCESS)
-        items = []
-
-        if match_pair != []:
-            for ele in match_pair:
-                if ele in display:
-                    query_item = GraphQLQueryItem(node="experiment_query", filter={
-                        "submitter_id": [ele]}, access=item.access)
-                    items.append((query_item, ele))
-
-        # Add private only datasets when datasets can be displayed in one page
-        # or when the last page be displayed when there are multiple pages
-        if private_only != []:
-            if count <= item.limit or item.limit < count <= item.page*item.limit:
-                for ele in private_only:
-                    query_item = GraphQLQueryItem(node="experiment_query", filter={
-                        "submitter_id": [ele]}, access=item.access)
-                    print(query_item)
-                items.append((query_item, ele))
-
-        # Query displayed datasets with private access
-        private_replace_set = self.threading_fetch(items)
-        # Replace the dataset if it has a private version
-        # or add the dataset if it is only in private repository
-        if not is_public_access_filtered:
-            for id in private_replace_set.keys():
-                display[id] = private_replace_set[id][0]
-        return list(display.values())
-
-    def get_pagination_data(self, item):
-        count_item_filter = copy.deepcopy(item.filter)
-
-        if "title" in item.order.lower():
-            ordered_datasets = self.handle_pagination_order(item)
-            start = (item.page-1)*item.limit
-            end = item.page*item.limit
-            item.filter["submitter_id"] = ordered_datasets[start:end]
-            item.page = 1
-
-        public_access = Gen3Config.PUBLIC_ACCESS
-        display_public_item = GraphQLPaginationItem(
-            limit=item.limit, page=item.page, filter=item.filter, access=[public_access], order=item.order, asc=item.asc, desc=item.desc)
-
-        count_public_item = GraphQLPaginationItem(
-            node="experiment_pagination_count", filter=count_item_filter, access=[public_access], order=item.order)
-
-        private_access = copy.deepcopy(item.access)
-        private_access.remove(public_access)
-        count_private_item = GraphQLPaginationItem(
-            node="experiment_pagination_count", filter=count_item_filter, access=private_access, order=item.order)
-
-        items = [
-            (display_public_item, "display_public"),
-            (count_public_item, "count_public"),
-            (count_private_item, "count_private")
-        ]
-        return self.threading_fetch(items)
 
     def handle_pagination_order(self, item):
         query_item = GraphQLQueryItem(
@@ -150,6 +66,70 @@ class Pagination(object):
         else:
             ordered_datasets = ordered_full_datasets
         return ordered_datasets
+
+    def get_pagination_data(self, item, match_pair, is_public_access_filtered):
+        if "title" in item.order.lower():
+            ordered_datasets = self.handle_pagination_order(item)
+            start = (item.page-1)*item.limit
+            end = item.page*item.limit
+            item.filter["submitter_id"] = ordered_datasets[start:end]
+            item.page = 1
+
+        display_item = GraphQLPaginationItem(
+            limit=item.limit, page=item.page, filter=item.filter, access=item.access, order=item.order, asc=item.asc, desc=item.desc)
+        query_result = self.SGQLC.get_queried_result(display_item)
+        display = self.generate_dictionary(query_result["experiment"])
+
+        item.access.remove(Gen3Config.PUBLIC_ACCESS)
+        items = []
+        if match_pair != []:
+            for dataset in match_pair:
+                if dataset in display:
+                    query_item = GraphQLQueryItem(node="experiment_query", filter={
+                        "submitter_id": [dataset]}, access=item.access)
+                    items.append((query_item, dataset))
+        # Query displayed datasets which have private version
+        private_replace_set = self.threading_fetch(items)
+
+        if not is_public_access_filtered:
+            # Replace the dataset if it has a private version
+            for dataset in private_replace_set.keys():
+                display[dataset] = private_replace_set[dataset][0]
+        return list(display.values())
+
+    def get_pagination_count(self, item):
+        public_access = Gen3Config.PUBLIC_ACCESS
+
+        count_public_item = GraphQLPaginationItem(
+            node="experiment_pagination_count", filter=item.filter, access=[public_access])
+
+        private_access = copy.deepcopy(item.access)
+        private_access.remove(public_access)
+        count_private_item = GraphQLPaginationItem(
+            node="experiment_pagination_count", filter=item.filter, access=private_access)
+
+        fetched_data = self.threading_fetch([
+            (count_public_item, "count_public"),
+            (count_private_item, "count_private")
+        ])
+
+        public_result = self.generate_dictionary(fetched_data["count_public"])
+        private_result = self.generate_dictionary(
+            fetched_data["count_private"])
+        # Default datasets exist in public repository only,
+        # Will contain all available datasets after updating
+        display_data = list(public_result.keys())
+        # Exist in both public and private repository
+        match_pair = []
+        # Exist in private repository only
+        # private_only = []
+        for id in private_result.keys():
+            if id not in public_result:
+                display_data.append(id)
+                # private_only.append(id)
+            else:
+                match_pair.append(id)
+        return len(display_data), match_pair
 
     def handle_pagination_item_filter(self, field, facets, extra_filter):
         FILTERS = self.FG.get_filters()
@@ -246,5 +226,7 @@ class Pagination(object):
             # Order the datasets with created_datetime asc order by default
             if not has_search_result:
                 item.asc = "created_datetime"
-
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=f"{item.order} order option not provided")
         return is_public_access_filtered

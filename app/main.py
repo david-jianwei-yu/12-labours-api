@@ -328,10 +328,9 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     - string content
     """
     is_public_access_filtered = p.update_pagination_item(item, search)
-    fetched_data = p.get_pagination_data(item)
-    data_count, data_relation = p.get_pagination_count(fetched_data)
-    query_result = p.update_pagination_data(
-        item, data_count, data_relation, fetched_data, is_public_access_filtered)
+    data_count, match_pair = p.get_pagination_count(item)
+    query_result = p.get_pagination_data(
+        item, match_pair, is_public_access_filtered)
     # If both asc and desc are None, datasets ordered by self-written order function
     if item.asc == None and item.desc == None:
         query_result = sorted(
@@ -339,7 +338,6 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     result = {
         "items": pf.reconstruct_data_structure(query_result),
         "numberPerPage": item.limit,
-        "page": item.page,
         "total": data_count
     }
     return result
