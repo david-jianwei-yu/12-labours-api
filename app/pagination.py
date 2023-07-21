@@ -69,6 +69,7 @@ class Pagination(object):
         display = self.generate_dictionary(data["display_public"])
         item.access.remove(Gen3Config.PUBLIC_ACCESS)
         items = []
+
         if match_pair != []:
             for ele in match_pair:
                 if ele in display:
@@ -83,6 +84,7 @@ class Pagination(object):
                 for ele in private_only:
                     query_item = GraphQLQueryItem(node="experiment_query", filter={
                         "submitter_id": [ele]}, access=item.access)
+                    print(query_item)
                 items.append((query_item, ele))
 
         # Query displayed datasets with private access
@@ -95,17 +97,26 @@ class Pagination(object):
         return list(display.values())
 
     def get_pagination_data(self, item):
+        count_item_filter = copy.deepcopy(item.filter)
+
+        if "title" in item.order.lower():
+            ordered_datasets = self.handle_pagination_order(item)
+            start = (item.page-1)*item.limit
+            end = item.page*item.limit
+            item.filter["submitter_id"] = ordered_datasets[start:end]
+            item.page = 1
+
         public_access = Gen3Config.PUBLIC_ACCESS
         display_public_item = GraphQLPaginationItem(
-            limit=item.limit, page=item.page, filter=item.filter, access=[public_access], asc=item.asc, desc=item.desc)
+            limit=item.limit, page=item.page, filter=item.filter, access=[public_access], order=item.order, asc=item.asc, desc=item.desc)
 
         count_public_item = GraphQLPaginationItem(
-            node="experiment_pagination_count", filter=item.filter, access=[public_access])
+            node="experiment_pagination_count", filter=count_item_filter, access=[public_access], order=item.order)
 
         private_access = copy.deepcopy(item.access)
         private_access.remove(public_access)
         count_private_item = GraphQLPaginationItem(
-            node="experiment_pagination_count", filter=item.filter, access=private_access)
+            node="experiment_pagination_count", filter=count_item_filter, access=private_access, order=item.order)
 
         items = [
             (display_public_item, "display_public"),
@@ -114,7 +125,7 @@ class Pagination(object):
         ]
         return self.threading_fetch(items)
 
-    def handle_pagination_item_order(self, item):
+    def handle_pagination_order(self, item):
         query_item = GraphQLQueryItem(
             node="pagination_order_by_dataset_description", access=item.access, asc=item.asc, desc=item.desc)
         if "asc" in item.order:
@@ -122,18 +133,23 @@ class Pagination(object):
         elif "desc" in item.order:
             query_item.desc = "title"
         query_result = self.SGQLC.get_queried_result(query_item)
-        dataset_list = []
-        ordered_dataset_list = []
+
+        ordered_full_datasets = []
         for ele in query_result[query_item.node]:
             dataset_id = ele["experiments"][0]["submitter_id"]
-            ordered_dataset_list.append(dataset_id)
+            if dataset_id not in ordered_full_datasets:
+                ordered_full_datasets.append(dataset_id)
+
+        ordered_filtered_datasets = []
+        ordered_datasets = []
         if "submitter_id" in item.filter:
-            for ele in ordered_dataset_list:
-                if ele in item.filter["submitter_id"]:
-                    dataset_list.append(ele)
-            item.filter["submitter_id"] = dataset_list
+            for dataset in ordered_full_datasets:
+                if dataset in item.filter["submitter_id"]:
+                    ordered_filtered_datasets.append(dataset)
+            ordered_datasets = ordered_filtered_datasets
         else:
-            item.filter["submitter_id"] = ordered_dataset_list
+            ordered_datasets = ordered_full_datasets
+        return ordered_datasets
 
     def handle_pagination_item_filter(self, field, facets, extra_filter):
         FILTERS = self.FG.get_filters()
@@ -221,7 +237,8 @@ class Pagination(object):
         elif order_type == "published(desc)":
             item.desc = "created_datetime"
         elif "title" in order_type:
-            self.handle_pagination_item_order(item)
+            # self.handle_pagination_item_order(item)
+            pass
         elif "relevance" in order_type:
             # relevance is for search function applied
             # search_filter_relation has already sort the datasets
