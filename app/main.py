@@ -157,6 +157,8 @@ def periodic_execution():
         if FILTER_GENERATED:
             print("Default filter dictionary has been updated.")
 
+    a.cleanup_authorized_user()
+
 
 @ app.get("/", tags=["Root"], response_class=PlainTextResponse)
 async def root():
@@ -366,7 +368,8 @@ async def ger_filter(sidebar: bool, item: AccessItem):
     extra_filter = fg.generate_extra_filter(item.access)
     if sidebar == True:
         return f.generate_sidebar_filter_information(extra_filter)
-    return f.generate_filter_information(extra_filter)
+    else:
+        return f.generate_filter_information(extra_filter)
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
