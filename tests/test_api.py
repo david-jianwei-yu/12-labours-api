@@ -52,7 +52,7 @@ def test_get_gen3_access(client):
     result = response.json()
     assert response.status_code == 200
     assert len(result) == 1
-    assert result["access"][0] == Gen3Config.PUBLIC_ACCESS
+    assert result["access"][0] == Gen3Config.GEN3_PUBLIC_ACCESS
 
     response = client.get(
         "/access/authorize", headers={"Authorization": "Bearer fakeaccesstoken"})
@@ -63,7 +63,7 @@ def test_get_gen3_access(client):
 
 def test_get_gen3_dictionary(client):
     pass_case = {
-        "access": [Gen3Config.PUBLIC_ACCESS],
+        "access": [Gen3Config.GEN3_PUBLIC_ACCESS],
     }
     response = client.post("/dictionary", json=pass_case)
     assert response.status_code == 200
@@ -81,7 +81,7 @@ def test_get_gen3_node_records(client):
     NODE_TYPE = "experiment"
 
     pass_case = {
-        "access": [Gen3Config.PUBLIC_ACCESS],
+        "access": [Gen3Config.GEN3_PUBLIC_ACCESS],
     }
     response = client.post(f"/records/{NODE_TYPE}", json=pass_case)
     result = response.json()
@@ -113,7 +113,7 @@ def test_get_gen3_record(client):
     UUID = "5b9ae1bd-e780-4869-a458-b3422084c480"
 
     pass_case = {
-        "access": [Gen3Config.PUBLIC_ACCESS],
+        "access": [Gen3Config.GEN3_PUBLIC_ACCESS],
     }
     response = client.post(f"/record/{UUID}", json=pass_case)
     result = response.json()
@@ -251,7 +251,7 @@ def test_graphql_pagination(client):
 
 def test_get_filter(client):
     pass_case = {
-        "access": [Gen3Config.PUBLIC_ACCESS],
+        "access": [Gen3Config.GEN3_PUBLIC_ACCESS],
     }
     response = client.post("/filter/?sidebar=true", json=pass_case)
     assert response.status_code == 200

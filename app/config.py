@@ -13,7 +13,7 @@ class Gen3Config(object):
     GEN3_ENDPOINT_URL = os.environ.get("GEN3_ENDPOINT_URL")
     GEN3_API_KEY = os.environ.get("GEN3_API_KEY")
     GEN3_KEY_ID = os.environ.get("GEN3_KEY_ID")
-    PUBLIC_ACCESS = os.environ.get("PUBLIC_ACCESS")
+    GEN3_PUBLIC_ACCESS = os.environ.get("GEN3_PUBLIC_ACCESS")
 
 
 class iRODSConfig(object):

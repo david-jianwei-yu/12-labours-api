@@ -67,7 +67,7 @@ class Pagination(object):
         match_pair = relation["match_pair"]
         private_only = relation["private_only"]
         display = self.generate_dictionary(data["display_public"])
-        item.access.remove(Gen3Config.PUBLIC_ACCESS)
+        item.access.remove(Gen3Config.GEN3_PUBLIC_ACCESS)
         items = []
         if match_pair != []:
             for ele in match_pair:
@@ -95,7 +95,7 @@ class Pagination(object):
         return list(display.values())
 
     def get_pagination_data(self, item):
-        public_access = Gen3Config.PUBLIC_ACCESS
+        public_access = Gen3Config.GEN3_PUBLIC_ACCESS
         display_public_item = GraphQLPaginationItem(
             limit=item.limit, page=item.page, filter=item.filter, access=[public_access])
 
@@ -156,7 +156,7 @@ class Pagination(object):
                     node=filter_node, filter=valid_filter)
                 if filter_node == "experiment_filter":
                     query_item.access = valid_filter["project_id"]
-                    if Gen3Config.PUBLIC_ACCESS in query_item.access:
+                    if Gen3Config.GEN3_PUBLIC_ACCESS in query_item.access:
                         is_public_access_filtered = True
                 else:
                     query_item.access = item.access
@@ -184,6 +184,6 @@ class Pagination(object):
             if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
                 self.S.search_filter_relation(item)
 
-        if Gen3Config.PUBLIC_ACCESS not in item.access:
-            item.access.append(Gen3Config.PUBLIC_ACCESS)
+        if Gen3Config.GEN3_PUBLIC_ACCESS not in item.access:
+            item.access.append(Gen3Config.GEN3_PUBLIC_ACCESS)
         return is_public_access_filtered
