@@ -84,7 +84,7 @@ class Pagination(object):
         displayed_datasets = self.generate_dictionary(
             query_result[query_item.node])
 
-        item.access.remove(Gen3Config.PUBLIC_ACCESS)
+        item.access.remove(Gen3Config.GEN3_PUBLIC_ACCESS)
         items = []
         # Query displayed datasets which have private version
         if match_pair != []:
@@ -103,7 +103,7 @@ class Pagination(object):
         return list(displayed_datasets.values())
 
     def get_pagination_count(self, item):
-        public_access = Gen3Config.PUBLIC_ACCESS
+        public_access = Gen3Config.GEN3_PUBLIC_ACCESS
         public_pagination_count_item = GraphQLPaginationItem(
             node="experiment_pagination_count", filter=item.filter, access=[public_access])
         private_access = copy.deepcopy(item.access)
@@ -177,7 +177,7 @@ class Pagination(object):
                     node=filter_node, filter=valid_filter)
                 if filter_node == "experiment_filter":
                     query_item.access = valid_filter["project_id"]
-                    if Gen3Config.PUBLIC_ACCESS in query_item.access:
+                    if Gen3Config.GEN3_PUBLIC_ACCESS in query_item.access:
                         is_public_access_filtered = True
                 else:
                     query_item.access = item.access
@@ -208,8 +208,8 @@ class Pagination(object):
                 self.S.search_filter_relation(item)
 
         # ACCESS
-        if Gen3Config.PUBLIC_ACCESS not in item.access:
-            item.access.append(Gen3Config.PUBLIC_ACCESS)
+        if Gen3Config.GEN3_PUBLIC_ACCESS not in item.access:
+            item.access.append(Gen3Config.GEN3_PUBLIC_ACCESS)
 
         # ORDER
         order_type = item.order.lower()

@@ -114,7 +114,7 @@ class FilterGenerator(object):
         is_extra = True
         access_scope = []
         for ele in access:
-            if ele != Gen3Config.PUBLIC_ACCESS:
+            if ele != Gen3Config.GEN3_PUBLIC_ACCESS:
                 access_scope.append(ele)
 
         extra_filter_dict = {}

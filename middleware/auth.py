@@ -17,7 +17,7 @@ jwt = JWT()
 class Authenticator(object):
     def __init__(self):
         self.authorized_user = {
-            "public": User("public", [Gen3Config.PUBLIC_ACCESS.split("-")[0]], None)
+            "public": User("public", [Gen3Config.GEN3_PUBLIC_ACCESS.split("-")[0]], None)
         }
         self.expire = 2
 
