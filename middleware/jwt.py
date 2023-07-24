@@ -1,7 +1,5 @@
 import jwt
 
-from datetime import datetime, timedelta
-
 from app.config import Config
 
 
@@ -10,12 +8,7 @@ class JWT(object):
         self.algorithm = "HS256"
         self.secure = Config.JWT_SECURE_KEY
 
-    def encoding_tokens(self, user):
-        payload = {
-            "nbf": datetime.utcnow(),
-            "identity": user.get_user_identity(),
-            "policies": user.get_user_policies(),
-        }
+    def encoding_tokens(self, payload):
         encoded = jwt.encode(payload, self.secure, self.algorithm)
         return encoded
 
