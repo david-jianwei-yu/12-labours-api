@@ -2,20 +2,24 @@ import re
 import time
 import mimetypes
 
-from fastapi import Depends, FastAPI, HTTPException
+
+from fastapi_utils.tasks import repeat_every
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
-from fastapi_utils.tasks import repeat_every
 from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
 from irods.session import iRODSSession
 
-from app.config import Config, Gen3Config, iRODSConfig
+from app.config import *
 from app.data_schema import *
-from app.sgqlc import SimpleGraphQLClient
+from app.filter_generator import FilterGenerator
 from app.filter import Filter
+from app.pagination_format import PaginationFormat
 from app.pagination import Pagination
-from app.filter_dictionary import FilterGenerator
+from app.search import Search
+from app.sgqlc import SimpleGraphQLClient
+from middleware.auth import Authenticator
 
 description = """
 ## Gen3
@@ -88,24 +92,24 @@ app.add_middleware(
 
 SUBMISSION = None
 SESSION = None
-SESSION_CONNECTED = False
 FILTER_GENERATED = False
-sgqlc = SimpleGraphQLClient()
-f = Filter()
-p = Pagination()
-fg = FilterGenerator()
+fg = None
+f = None
+pf = None
+p = None
+s = None
+sgqlc = None
+a = Authenticator()
 
 
-def check_irods_session():
+def check_irods_status():
     try:
-        global SESSION_CONNECTED
         SESSION.collections.get(iRODSConfig.IRODS_ENDPOINT_URL)
-        print("Successfully connected to the iRODS session.")
-        SESSION_CONNECTED = True
+        return True
     except Exception:
-        print("Encounter an error while connecting to the iRODS session.")
-        SESSION_CONNECTED = False
-    
+        print("Encounter an error while creating or using the session connection.")
+        return False
+
 
 @ app.on_event("startup")
 async def start_up():
@@ -130,9 +134,17 @@ async def start_up():
                                password=iRODSConfig.IRODS_PASSWORD,
                                zone=iRODSConfig.IRODS_ZONE)
         # SESSION.connection_timeout =
-        check_irods_session()
+        check_irods_status()
     except Exception:
         print("Encounter an error while creating the iRODS session.")
+
+    global s, sgqlc, fg, pf, f, p
+    s = Search(SESSION)
+    sgqlc = SimpleGraphQLClient(SUBMISSION)
+    fg = FilterGenerator(sgqlc)
+    pf = PaginationFormat(fg)
+    f = Filter(fg)
+    p = Pagination(fg, f, s, sgqlc)
 
 
 @ app.on_event("startup")
@@ -141,7 +153,11 @@ def periodic_execution():
     global FILTER_GENERATED
     FILTER_GENERATED = False
     while not FILTER_GENERATED:
-        FILTER_GENERATED = fg.generate_filter_dictionary(SUBMISSION)
+        FILTER_GENERATED = fg.generate_filter_dictionary()
+        if FILTER_GENERATED:
+            print("Default filter dictionary has been updated.")
+
+    a.cleanup_authorized_user()
 
 
 @ app.get("/", tags=["Root"], response_class=PlainTextResponse)
@@ -155,104 +171,116 @@ async def root():
 #########################
 
 
-def get_name_list(data, name, path):
+def split_access(access):
+    access_list = access[0].split("-")
+    return access_list[0], access_list[1]
+
+
+def update_name_list(data, name, path):
     name_dict = {name: []}
     for ele in data["links"]:
-        name_dict[name].append(ele.replace(path, ""))
+        ele = ele.replace(path, "")
+        if name == "access":
+            ele = re.sub('/', '-', ele)
+        name_dict[name].append(ele)
     return name_dict
 
 
-@ app.get("/program", tags=["Gen3"], summary="Get gen3 program information", responses=program_responses)
-async def get_gen3_program():
+@ app.post("/access/token", tags=["Access"], summary="Create gen3 access token for authorized user", responses=access_token_responses)
+async def create_gen3_access(item: IdentityItem, connected: bool = Depends(check_irods_status)):
+    if item.identity == None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Missing field in the request body")
+    if not connected:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Please check the irods server status or environment variables")
+
+    result = {
+        "identity": item.identity,
+        "access_token": a.generate_access_token(item.identity, SESSION)
+    }
+    return result
+
+
+@ app.delete("/access/revoke", tags=["Access"], summary="Revoke gen3 access for authorized user", responses=access_revoke_responses)
+async def revoke_gen3_access(is_revoked: bool = Depends(a.revoke_user_authority)):
+    if is_revoked:
+        raise HTTPException(status_code=status.HTTP_200_OK,
+                            detail="Revoke access successfully")
+
+
+@ app.get("/access/authorize", tags=["Access"], summary="Get gen3 access authorize", responses=access_authorize_responses)
+async def get_gen3_access(access: dict = Depends(a.get_user_access_scope)):
     """
-    Return all programs information from the Gen3 Data Commons.
+    Return all programs/projects information from the Gen3 Data Commons.
+
+    Use {"Authorization": "Bearer publicaccesstoken"} for accessing public program/project
     """
     try:
         program = SUBMISSION.get_programs()
-        return get_name_list(program, "program", "/v0/submission/")
+        program_dict = update_name_list(program, "program", "/v0/submission/")
+        restrict_program = list(
+            set(access["policies"]).intersection(program_dict["program"]))
+        project = {"links": []}
+        for prog in restrict_program:
+            project["links"] += SUBMISSION.get_projects(prog)["links"]
+        return update_name_list(project, "access", "/v0/submission/")
     except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
-
-
-@ app.get("/project/{program}", tags=["Gen3"], summary="Get gen3 project information", responses=project_responses)
-async def get_gen3_project(program: ProgramParam):
-    """
-    Return all projects information from a gen3 program.
-
-    - **program**: Gen3 program name.
-    """
-    try:
-        project = SUBMISSION.get_projects(program)
-        return get_name_list(project, "project", f"/v0/submission/{program}/")
-    except Exception as e:
-        raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @ app.post("/dictionary", tags=["Gen3"], summary="Get gen3 dictionary information", responses=dictionary_responses)
-async def get_gen3_dictionary(item: Gen3Item):
+async def get_gen3_dictionary(item: AccessItem):
     """
     Return all dictionary nodes from the Gen3 Data Commons
     """
-    if item.program == None or item.project == None:
-        raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one or more fields in the request body")
-
     try:
-        dictionary = SUBMISSION.get_project_dictionary(
-            item.program, item.project)
-        return get_name_list(dictionary, "dictionary", f"/v0/submission/{item.program}/{item.project}/_dictionary/")
+        program, project = split_access(item.access)
+        dictionary = SUBMISSION.get_project_dictionary(program, project)
+        return update_name_list(dictionary, "dictionary", f"/v0/submission/{program}/{project}/_dictionary/")
     except Exception:
         raise HTTPException(
-            status_code=NOT_FOUND, detail=f"Program {item.program} or project {item.project} not found")
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Program {program} or project {project} not found")
 
 
 @ app.post("/records/{node}", tags=["Gen3"], summary="Get gen3 node records information", responses=records_responses)
-async def get_gen3_node_records(node: NodeParam, item: Gen3Item):
+async def get_gen3_node_records(node: NodeParam, item: AccessItem):
     """
     Return all records information in a dictionary node.
 
     - **node**: The dictionary node to export.
     """
-    if item.program == None or item.project == None:
-        raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one or more fields in the request body")
-
-    node_record = SUBMISSION.export_node(
-        item.program, item.project, node, "json")
+    program, project = split_access(item.access)
+    node_record = SUBMISSION.export_node(program, project, node, "json")
     if "message" in node_record:
         if "unauthorized" in node_record["message"]:
-            raise HTTPException(status_code=UNAUTHORIZED,
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail=node_record["message"])
-        raise HTTPException(status_code=NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=node_record["message"])
     elif node_record["data"] == []:
-        raise HTTPException(status_code=NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"No data found with node type {node} and check if the correct project or node type is used")
-    else:
-        return node_record
+    return node_record
 
 
 @ app.post("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", responses=record_responses)
-async def get_gen3_record(uuid: str, item: Gen3Item):
+async def get_gen3_record(uuid: str, item: AccessItem):
     """
     Return record information in the Gen3 Data Commons.
 
     - **uuid**: uuid of the record.
     """
-    if item.program == None or item.project == None:
-        raise HTTPException(status_code=BAD_REQUEST,
-                            detail="Missing one or more fields in the request body")
-
-    record = SUBMISSION.export_record(
-        item.program, item.project, uuid, "json")
+    program, project = split_access(item.access)
+    record = SUBMISSION.export_record(program, project, uuid, "json")
     if "message" in record:
         if "unauthorized" in record["message"]:
-            raise HTTPException(status_code=UNAUTHORIZED,
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail=record["message"])
         raise HTTPException(
-            status_code=NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
-    else:
-        return record
+            status_code=status.HTTP_404_NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
+    return record
 
 
 @ app.post("/graphql/query", tags=["Gen3"], summary="GraphQL query gen3 information", responses=query_responses)
@@ -273,7 +301,7 @@ async def graphql_query(item: GraphQLQueryItem):
     - string content,
     - only available in dataset_description/manifest/case nodes
     """
-    query_result = sgqlc.get_queried_result(item, SUBMISSION)
+    query_result = sgqlc.get_queried_result(item)
     return query_result[item.node]
 
 
@@ -299,23 +327,26 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     **search(parameter)**: 
     - string content
     """
-    p.update_pagination_item(item, search, SUBMISSION, SESSION)
-    query_result = sgqlc.get_queried_result(item, SUBMISSION)
+    is_public_access_filtered = p.update_pagination_item(item, search)
+    fetched_data = p.get_pagination_data(item)
+    data_count, data_relation = p.get_pagination_count(fetched_data)
+    query_result = p.update_pagination_data(
+        item, data_count, data_relation, fetched_data, is_public_access_filtered)
     if item.search != {}:
         # Sort only if search is not empty, since search results are sorted by word relevance
-        query_result[item.node] = sorted(
-            query_result[item.node], key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
+        query_result = sorted(
+            query_result, key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
     result = {
-        "items": p.update_pagination_output(query_result[item.node]),
+        "items": pf.reconstruct_data_structure(query_result),
         "numberPerPage": item.limit,
         "page": item.page,
-        "total": query_result["total"]
+        "total": data_count
     }
     return result
 
 
-@ app.get("/filter/", tags=["Gen3"], summary="Get filter information", responses=filter_responses)
-async def generate_filter(sidebar: bool):
+@ app.post("/filter/", tags=["Gen3"], summary="Get filter information", responses=filter_responses)
+async def ger_filter(sidebar: bool, item: AccessItem):
     """
     /filter/?sidebar=<boolean>
 
@@ -330,17 +361,19 @@ async def generate_filter(sidebar: bool):
     while retry < 12 and not FILTER_GENERATED:
         retry += 1
         time.sleep(retry)
-    if FILTER_GENERATED:
-        if sidebar == True:
-            return f.generate_sidebar_filter_information()
-        return f.generate_filter_information()
-    else:
+    if not FILTER_GENERATED:
         raise HTTPException(
-            status_code=NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
+            status_code=status.HTTP_404_NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
+
+    extra_filter = fg.generate_extra_filter(item.access)
+    if sidebar == True:
+        return f.generate_sidebar_filter_information(extra_filter)
+    else:
+        return f.generate_filter_information(extra_filter)
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
-async def download_gen3_metadata_file(program: ProgramParam, project: ProjectParam, uuid: str, format: FormatParam):
+async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: FormatParam):
     """
     Return a single metadata file for a given uuid.
 
@@ -352,39 +385,32 @@ async def download_gen3_metadata_file(program: ProgramParam, project: ProjectPar
     try:
         metadata = SUBMISSION.export_record(program, project, uuid, format)
     except Exception as e:
-        raise HTTPException(status_code=BAD_REQUEST, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     if "message" in metadata:
         if "unauthorized" in metadata["message"]:
-            raise HTTPException(status_code=UNAUTHORIZED,
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail=metadata["message"])
         raise HTTPException(
-            status_code=NOT_FOUND, detail=metadata["message"]+" and check if the correct project or uuid is used")
-    else:
-        if format == "json":
-            return JSONResponse(content=metadata[0],
-                                media_type="application/json",
-                                headers={"Content-Disposition":
-                                         f"attachment;filename={uuid}.json"})
-        elif format == "tsv":
-            return Response(content=metadata,
-                            media_type="text/csv",
+            status_code=status.HTTP_404_NOT_FOUND, detail=metadata["message"]+" and check if the correct project or uuid is used")
+
+    if format == "json":
+        return JSONResponse(content=metadata[0],
+                            media_type="application/json",
                             headers={"Content-Disposition":
-                                     f"attachment;filename={uuid}.csv"})
+                                     f"attachment;filename={uuid}.json"})
+    elif format == "tsv":
+        return Response(content=metadata,
+                        media_type="text/csv",
+                        headers={"Content-Disposition":
+                                 f"attachment;filename={uuid}.csv"})
 
 
 ############################################
 ### iRODS                                ###
 ### Integrated Rule-Oriented Data System ###
 ############################################
-
-
-def check_irods_status():
-    try:
-        SESSION.collections.get(iRODSConfig.IRODS_ENDPOINT_URL)
-        return True
-    except Exception:
-        return False
 
 
 def generate_collection_list(data):
@@ -398,19 +424,18 @@ def generate_collection_list(data):
 
 
 @ app.post("/collection", tags=["iRODS"], summary="Get folder information", responses=sub_responses)
-async def get_irods_collection(item: CollectionItem, connect: bool = Depends(check_irods_status)):
+async def get_irods_collection(item: CollectionItem, connected: bool = Depends(check_irods_status)):
     """
     Return all collections from the required folder.
 
     Root folder will be returned if no item or "/" is passed.
     """
-    if not SESSION_CONNECTED or not connect:
-        raise HTTPException(status_code=INTERNAL_SERVER_ERROR,
-                            detail="Please check the irods server status or environment variables")
-    
     if not re.match("(/(.)*)+", item.path):
-        raise HTTPException(status_code=BAD_REQUEST,
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid path format is used")
+    if not connected:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Please check the irods server status or environment variables")
 
     try:
         collect = SESSION.collections.get(
@@ -423,12 +448,12 @@ async def get_irods_collection(item: CollectionItem, connect: bool = Depends(che
         }
         return result
     except Exception:
-        raise HTTPException(status_code=NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Data not found in the provided path")
 
 
 @ app.get("/data/{action}/{filepath:path}", tags=["iRODS"], summary="Download irods file", response_description="Successfully return a file with data")
-async def get_irods_data_file(action: ActionParam, filepath: str, connect: bool = Depends(check_irods_status)):
+async def get_irods_data_file(action: ActionParam, filepath: str, connected: bool = Depends(check_irods_status)):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
     OR
@@ -437,16 +462,16 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connect: bool 
     - **action**: Action should be either preview or download.
     - **filepath**: Required iRODS file path.
     """
-    if not SESSION_CONNECTED or not connect:
-        raise HTTPException(status_code=INTERNAL_SERVER_ERROR,
+    if not connected:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the irods server status or environment variables")
-    
+
     chunk_size = 1024*1024*1024
     try:
         file = SESSION.data_objects.get(
             f"{iRODSConfig.IRODS_ENDPOINT_URL}/{filepath}")
     except Exception:
-        raise HTTPException(status_code=NOT_FOUND,
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Data not found in the provided path")
 
     def iterate_file():
@@ -464,5 +489,5 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connect: bool 
             0],
             headers={"Content-Disposition": f"attachment;filename={file.name}"})
     else:
-        raise HTTPException(status_code=METHOD_NOT_ALLOWED,
+        raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
                             detail="The action is not provided in this API")

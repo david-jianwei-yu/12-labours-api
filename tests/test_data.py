@@ -2,6 +2,8 @@ import pytest
 from app import app
 from fastapi.testclient import TestClient
 
+from app.config import Gen3Config
+
 
 @pytest.fixture
 def client():
@@ -16,8 +18,7 @@ def client():
 def test_experiment_node(client):
     UUID = "22c4459b-5f4f-4e62-abd2-2aa205fe838b"
     payload = {
-        "program": "demo1",
-        "project": "12L",
+        "access": [Gen3Config.GEN3_PUBLIC_ACCESS]
     }
     response = client.post(
         f"/record/{UUID}", json=payload)
@@ -35,7 +36,7 @@ def test_experiment_node(client):
     assert result[0]["type"] == "experiment"
     assert type(result[0]["type"]) is str
 
-    assert result[0]["project_id"] == "demo1-12L"
+    assert result[0]["project_id"] == Gen3Config.GEN3_PUBLIC_ACCESS
     assert type(result[0]["project_id"]) is str
 
     assert result[0]["submitter_id"] == "dataset-217-version-2"
@@ -59,8 +60,7 @@ def test_experiment_node(client):
 def test_dataset_description_node(client):
     UUID = "5b9ae1bd-e780-4869-a458-b3422084c480"
     payload = {
-        "program": "demo1",
-        "project": "12L",
+        "access": [Gen3Config.GEN3_PUBLIC_ACCESS]
     }
     response = client.post(
         f"/record/{UUID}", json=payload)
@@ -78,7 +78,7 @@ def test_dataset_description_node(client):
     assert result[0]["type"] == "dataset_description"
     assert type(result[0]["type"]) is str
 
-    assert result[0]["project_id"] == "demo1-12L"
+    assert result[0]["project_id"] == Gen3Config.GEN3_PUBLIC_ACCESS
     assert type(result[0]["project_id"]) is str
 
     assert result[0]["submitter_id"] == "dataset-217-version-2-dataset_description"
@@ -163,8 +163,7 @@ def test_dataset_description_node(client):
 def test_manifest_node(client):
     UUID = "fd65a93f-ff62-45e4-b7b6-96419ef4f749"
     payload = {
-        "program": "demo1",
-        "project": "12L",
+        "access": [Gen3Config.GEN3_PUBLIC_ACCESS]
     }
     response = client.post(
         f"/record/{UUID}", json=payload)
@@ -182,7 +181,7 @@ def test_manifest_node(client):
     assert result[0]["type"] == "manifest"
     assert type(result[0]["type"]) is str
 
-    assert result[0]["project_id"] == "demo1-12L"
+    assert result[0]["project_id"] == Gen3Config.GEN3_PUBLIC_ACCESS
     assert type(result[0]["project_id"]) is str
 
     assert result[0]["submitter_id"] == "dataset-217-version-2-manifest-derivative-pig-brainstem-Layout1-view.json"
@@ -213,8 +212,7 @@ def test_manifest_node(client):
 def test_case_node(client):
     UUID = "c58ab983-6cf9-4174-a7a9-20cdf1d6bc33"
     payload = {
-        "program": "demo1",
-        "project": "12L",
+        "access": [Gen3Config.GEN3_PUBLIC_ACCESS]
     }
     response = client.post(
         f"/record/{UUID}", json=payload)
@@ -232,7 +230,7 @@ def test_case_node(client):
     assert result[0]["type"] == "case"
     assert type(result[0]["type"]) is str
 
-    assert result[0]["project_id"] == "demo1-12L"
+    assert result[0]["project_id"] == Gen3Config.GEN3_PUBLIC_ACCESS
     assert type(result[0]["project_id"]) is str
 
     assert result[0]["submitter_id"] == "dataset-46-version-2-subjects-sub-11011"

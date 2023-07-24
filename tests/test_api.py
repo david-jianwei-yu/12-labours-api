@@ -1,7 +1,9 @@
 import pytest
 from app import app
-from app.filter_dictionary import FILTERS
 from fastapi.testclient import TestClient
+
+from app.config import Gen3Config
+from app.filter_generator import FILTERS
 
 
 @pytest.fixture
@@ -10,70 +12,84 @@ def client():
         return client
 
 
-def test_get_gen3_program(client):
-    response = client.get("/program")
+def test_create_gen3_access(client):
+    missing_data = {}
+    response = client.post("/access/token", json=missing_data)
+    result = response.json()
+    assert response.status_code == 400
+    assert result["detail"] == "Missing field in the request body"
+
+    dummy_data = {
+        "identity": "dummyemail@gmail.com>machine_id"
+    }
+    response = client.post("/access/token", json=dummy_data)
+    result = response.json()
+    assert response.status_code == 200
+    assert result["identity"] == dummy_data["identity"]
+
+
+def test_revoke_gen3_access(client):
+    dummy_data = {
+        "identity": "dummyemail@gmail.com>machine_id"
+    }
+    response = client.post("/access/token", json=dummy_data)
+    dummy_token = response.json()
+    response = client.delete(
+        "/access/revoke", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
+    result = response.json()
+    assert response.status_code == 401
+    assert result["detail"] == "Unable to remove default access authority"
+
+
+def test_get_gen3_access(client):
+    dummy_data = {
+        "identity": "dummyemail@gmail.com>machine_id"
+    }
+    response = client.post("/access/token", json=dummy_data)
+    dummy_token = response.json()
+    response = client.get(
+        "/access/authorize", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
     assert response.status_code == 200
     assert len(result) == 1
-    assert result["program"][0] == "demo1"
+    assert result["access"][0] == Gen3Config.GEN3_PUBLIC_ACCESS
 
-
-def test_get_gen3_project(client):
-    response = client.get("/project/demo1")
+    response = client.get(
+        "/access/authorize", headers={"Authorization": "Bearer fakeaccesstoken"})
     result = response.json()
-    assert response.status_code == 200
-    assert len(result) == 1
-    assert result["project"][0] == "12L"
-
-    response = client.get("/project/demo")
-    assert response.status_code == 422
+    assert response.status_code == 401
+    assert result["detail"] == "Invalid authentication credentials"
 
 
 def test_get_gen3_dictionary(client):
     pass_case = {
-        "program": "demo1",
-        "project": "12L",
+        "access": [Gen3Config.GEN3_PUBLIC_ACCESS],
     }
     response = client.post("/dictionary", json=pass_case)
     assert response.status_code == 200
 
-    missing_data = {}
-    response = client.post("/dictionary", json=missing_data)
-    result = response.json()
-    assert response.status_code == 400
-    assert result["detail"] == "Missing one or more fields in the request body"
-
     invalid_data = {
-        "program": "demo",
-        "project": "12L",
+        "access": ["fakeprog-fakeproj"],
     }
     response = client.post("/dictionary", json=invalid_data)
     result = response.json()
     assert response.status_code == 404
-    assert result["detail"] == "Program demo or project 12L not found"
+    assert result["detail"] == "Program fakeprog or project fakeproj not found"
 
 
 def test_get_gen3_node_records(client):
     NODE_TYPE = "experiment"
 
     pass_case = {
-        "program": "demo1",
-        "project": "12L",
+        "access": [Gen3Config.GEN3_PUBLIC_ACCESS],
     }
     response = client.post(f"/records/{NODE_TYPE}", json=pass_case)
     result = response.json()
     assert response.status_code == 200
     assert "data" in result
 
-    missing_data = {}
-    result = response.json()
-    response = client.post(f"/records/{NODE_TYPE}", json=missing_data)
-    assert response.status_code == 400
-    # assert result["detail"] == "Missing one or more fields in the request body"
-
     invalid_program = {
-        "program": "demo",
-        "project": "12L",
+        "access": ["fakeprog-12L"],
     }
     response = client.post(f"/records/{NODE_TYPE}", json=invalid_program)
     result = response.json()
@@ -81,8 +97,7 @@ def test_get_gen3_node_records(client):
     assert result["detail"] == "You don't have access to this resource: user is unauthorized"
 
     invalid_project = {
-        "program": "demo1",
-        "project": "12Labours",
+        "access": ["demo1-fakeproj"],
     }
     response = client.post(f"/records/{NODE_TYPE}", json=invalid_project)
     result = response.json()
@@ -98,8 +113,7 @@ def test_get_gen3_record(client):
     UUID = "5b9ae1bd-e780-4869-a458-b3422084c480"
 
     pass_case = {
-        "program": "demo1",
-        "project": "12L",
+        "access": [Gen3Config.GEN3_PUBLIC_ACCESS],
     }
     response = client.post(f"/record/{UUID}", json=pass_case)
     result = response.json()
@@ -107,15 +121,8 @@ def test_get_gen3_record(client):
     assert len(result) == 1
     assert result[0]["submitter_id"] == "dataset-217-version-2-dataset_description"
 
-    missing_data = {}
-    response = client.post(f"/record/{UUID}", json=missing_data)
-    result = response.json()
-    assert response.status_code == 400
-    assert result["detail"] == "Missing one or more fields in the request body"
-
     invalid_program = {
-        "program": "demo",
-        "project": "12L",
+        "access": ["fakeprog-12L"],
     }
     response = client.post(f"/record/{UUID}", json=invalid_program)
     result = response.json()
@@ -123,8 +130,7 @@ def test_get_gen3_record(client):
     assert result["detail"] == "You don't have access to this resource: user is unauthorized"
 
     invalid_project = {
-        "program": "demo1",
-        "project": "12Labours",
+        "access": ["demo1-fakeproj"],
     }
     response = client.post(f"/record/{UUID}", json=invalid_project)
     result = response.json()
@@ -156,31 +162,15 @@ def test_graphql_query(client):
 def test_graphql_pagination(client):
     filter_pass_case = {
         "filter": {
-            "1": {
-                "node": "manifest_filter",
-                "filter": {
-                    "additional_types": [
-                        "text/vnd.abi.plot+tab-separated-values",
-                        "text/vnd.abi.plot+csv"
-                    ]
-                }
-            },
-            "2": {
-                "node": "case_filter",
-                "filter": {
-                        "species": [
-                            "Rattus norvegicus"
-                        ]
-                }
-            },
-            "3": {
-                "node": "case_filter",
-                "filter": {
-                        "sex": [
-                            "Male"
-                        ]
-                }
-            }
+            "manifest_filter>additional_types": [
+                "Plot"
+            ],
+            "case_filter>species": [
+                "Rat"
+            ],
+            "case_filter>sex": [
+                "Male"
+            ]
         },
         "relation": "and"
     }
@@ -211,78 +201,75 @@ def test_graphql_pagination(client):
     assert response.status_code == 404
     assert result["detail"] == "There is no matched content in the database"
 
-    pass_case = {
+    search_pass_case = {
         "filter": {
-            "1": {
-                "node": "manifest_filter",
-                "filter": {
-                    "additional_types": [
-                        "text/vnd.abi.plot+tab-separated-values",
-                        "text/vnd.abi.plot+csv"
-                    ]
-                }
-            },
-            "2": {
-                "node": "case_filter",
-                "filter": {
-                        "species": [
-                            "Rattus norvegicus"
-                        ]
-                }
-            },
-            "3": {
-                "node": "case_filter",
-                "filter": {
-                        "sex": [
-                            "Male"
-                        ]
-                }
-            }
+            "manifest_filter>additional_types": [
+                "Plot"
+            ],
+            "case_filter>species": [
+                "Rat"
+            ],
+            "case_filter>sex": [
+                "Male"
+            ]
         },
         "relation": "and"
     }
-    response = client.post("/graphql/pagination/?search=rats", json=pass_case)
+    response = client.post(
+        "/graphql/pagination/?search=rats", json=search_pass_case)
     result = response.json()
     assert response.status_code == 200
     assert result["items"][0]["datasetId"] == "dataset-46-version-2"
     assert result["total"] == 1
 
-    wrong_data = {
+    wrong_node = {
         "filter": {
-            "1": {
-                "node": "fakenode_filter",
-                "filter": {
-                    "additional_types": [
-                        "text/vnd.abi.plot+tab-separated-values",
-                        "text/vnd.abi.plot+csv"
-                    ]
-                }
-            },
+            "fakenode_filter>additional_types": [
+                "Plot"
+            ],
         },
         "relation": "and"
     }
-    response = client.post("/graphql/pagination/", json=wrong_data)
+    response = client.post("/graphql/pagination/", json=wrong_node)
     result = response.json()
     assert response.status_code == 404
     assert result["detail"] == "GraphQL query cannot be generated by sgqlc"
 
+    wrong_facet = {
+        "filter": {
+            "manifest_filter>additional_types": [
+                "Image"
+            ],
+        },
+        "relation": "and"
+    }
+    response = client.post("/graphql/pagination/", json=wrong_facet)
+    result = response.json()
+    assert response.status_code == 400
+    assert result["detail"] == "Invalid or unauthorized facet passed in"
 
-def test_generate_filter(client):
-    response = client.get("/filter/?sidebar=true")
-    assert response.status_code == 200
-    assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["element"]) == True
-    assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["element"]) == True
-    assert bool(FILTERS["MAPPED_SEX"]["element"]) == True
-    assert bool(FILTERS["MAPPED_MIME_TYPE"]["element"]) == True
-    assert bool(FILTERS["MAPPED_SPECIES"]["element"]) == True
 
-    response = client.get("/filter/?sidebar=false")
+def test_get_filter(client):
+    pass_case = {
+        "access": [Gen3Config.GEN3_PUBLIC_ACCESS],
+    }
+    response = client.post("/filter/?sidebar=true", json=pass_case)
     assert response.status_code == 200
-    assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["element"]) == True
-    assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["element"]) == True
-    assert bool(FILTERS["MAPPED_SEX"]["element"]) == True
-    assert bool(FILTERS["MAPPED_MIME_TYPE"]["element"]) == True
-    assert bool(FILTERS["MAPPED_SPECIES"]["element"]) == True
+    assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_SEX"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_MIME_TYPE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_SPECIES"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_ACCESS_SCOPE"]["facets"]) == True
+
+    response = client.post("/filter/?sidebar=false", json=pass_case)
+    assert response.status_code == 200
+    assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_SEX"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_MIME_TYPE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_SPECIES"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_ACCESS_SCOPE"]["facets"]) == True
 
 
 def test_download_gen3_metadata_file(client):
@@ -304,7 +291,7 @@ def test_get_irods_collection(client):
     result = response.json()
     assert response.status_code == 200
     assert len(response.json()) == 2
-    
+
     pass_case_sub = {
         "path": "/dataset-217-version-2"
     }

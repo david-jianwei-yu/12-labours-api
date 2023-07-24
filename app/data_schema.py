@@ -1,45 +1,55 @@
+from enum import Enum
 from typing import Union
 from pydantic import BaseModel
-from enum import Enum
 
-from app.config import iRODSConfig
-
-BAD_REQUEST = 400
-UNAUTHORIZED = 401
-NOT_FOUND = 404
-METHOD_NOT_ALLOWED = 405
-INTERNAL_SERVER_ERROR = 500
+from app.config import Gen3Config
 
 
-program_responses = {
-    200: {
-        "description": "Successfully return a list of Gen3 program name",
-        "content": {"application/json": {"example": {"program": []}}}
-    }
-}
-
-
-class ProgramParam(str, Enum):
-    demo1 = "demo1"
-
-
-project_responses = {
-    200: {
-        "description": "Successfully return a list of Gen3 project name",
-        "content": {"application/json": {"example": {"project": []}}}
-    }
-}
-
-
-class Gen3Item(BaseModel):
-    program: Union[str, None] = None
-    project: Union[str, None] = None
+class IdentityItem(BaseModel):
+    identity: Union[str, None] = None
 
     class Config:
         schema_extra = {
             "example": {
-                "program": "demo1",
-                "project": "12L",
+                "identity": "fakeemail@gmail.com>machine_id",
+            }
+        }
+
+
+access_token_responses = {
+    200: {
+        "description": "Successfully return the gen3 access token",
+        "content": {"application/json": {"example": {"identity": "", "access_token": ""}}},
+    },
+    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}}
+}
+
+
+access_revoke_responses = {
+    200: {
+        "description": "Successfully remove the gen3 access",
+        "content": {"application/json": {"example": {"detail": "Revoke access successfully"}}},
+    },
+    401: {"content": {"application/json": {"example": {"detail": "Unable to remove default access authority"}}}}
+}
+
+
+access_authorize_responses = {
+    200: {
+        "description": "Successfully return a list of Gen3 access scope",
+        "content": {"application/json": {"example": {"access": [Gen3Config.GEN3_PUBLIC_ACCESS]}}}
+    },
+    401: {"content": {"application/json": {"example": {"detail": "Invalid authentication credentials"}}}}
+}
+
+
+class AccessItem(BaseModel):
+    access: Union[list, None] = [Gen3Config.GEN3_PUBLIC_ACCESS]
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "access": [Gen3Config.GEN3_PUBLIC_ACCESS],
             }
         }
 
@@ -62,9 +72,7 @@ class NodeParam(str, Enum):
 records_responses = {
     200: {
         "description": "Successfully return a list of json object contains all records metadata within a node",
-        "content": {"application/json": {"example": {
-            "data": [{"project_id": "", "submitter_id": "", "id": "", "type": "experiment"}]
-        }}}
+        "content": {"application/json": {"example": {"data": [{"project_id": "", "submitter_id": "", "id": "", "type": "experiment"}]}}}
     }
 }
 
@@ -88,6 +96,7 @@ class GraphQLQueryItem(BaseModel):
     node: Union[str, None] = None
     filter: Union[dict, None] = {}
     search: Union[str, None] = ""
+    access: Union[list, None] = [Gen3Config.GEN3_PUBLIC_ACCESS]
 
     class Config:
         schema_extra = {
@@ -95,6 +104,7 @@ class GraphQLQueryItem(BaseModel):
                 "node": "experiment_query",
                 "filter": {"submitter_id": ["dataset-102-version-4"]},
                 "search": "",
+                "access": [Gen3Config.GEN3_PUBLIC_ACCESS]
             }
         }
 
@@ -103,7 +113,8 @@ query_responses = {
     200: {
         "description": "Successfully return a list of queried datasets",
         "content": {"application/json": {"example": [{
-            "cases": [], "dataset_descriptions": [],  "id": "", "plots": [], "scaffoldViews": [], "scaffolds": [], "submitter_id": "", "thumbnails": []
+            "cases": [], "dataset_descriptions": [],  "id": "", "plots": [],
+            "scaffoldViews": [], "scaffolds": [], "submitter_id": "", "thumbnails": []
         }]}}
     }
 }
@@ -116,6 +127,7 @@ class GraphQLPaginationItem(BaseModel):
     filter: Union[dict, None] = {}
     search: Union[dict, None] = {}
     relation: Union[str, None] = "and"
+    access: Union[list, None] = [Gen3Config.GEN3_PUBLIC_ACCESS]
 
     class Config:
         schema_extra = {
@@ -123,7 +135,8 @@ class GraphQLPaginationItem(BaseModel):
                 "page": 1,
                 "limit": 50,
                 "filter": {},
-                "relation": "and"
+                "relation": "and",
+                "access": [Gen3Config.GEN3_PUBLIC_ACCESS]
             }
         }
 
@@ -132,7 +145,12 @@ pagination_responses = {
     200: {
         "description": "Successfully return a list of datasets information",
         "content": {"application/json": {"example": {
-            "items": [{"data_url": "", "source_url_prefix": "", "contributors": [], "keywords": [], "numberSamples": 0, "numberSubjects": 0, "name": "", "datasetId": "", "organs": [], "species": [], "plots": [], "scaffoldViews": [], "scaffolds": [], "thumbnails": [], "detailsReady": True}]
+            "items": [{
+                "data_url": "", "source_url_prefix": "", "contributors": [], "keywords": [],
+                "numberSamples": 0, "numberSubjects": 0, "name": "", "datasetId": "",
+                "organs": [], "species": [], "plots": [], "scaffoldViews": [],
+                "scaffolds": [], "thumbnails": [], "detailsReady": True
+            }]
         }}}
     }
 }
@@ -142,15 +160,14 @@ filter_responses = {
     200: {
         "description": "Successfully return filter information",
         "content": {"application/json": {"example": {
-            "normal": {"size": 0, "titles": [], "nodes": [], "fields": [], "elements": [], "ids": []},
+            "normal": {
+                "size": 0, "titles": [], "nodes": [], "fields": [],
+                "elements": [], "ids": []
+            },
             "sidebar": [{"key": "", "label": "", "children": [{"facetPropPath": "",  "label": ""}]}]
         }}}
     }
 }
-
-
-class ProjectParam(str, Enum):
-    project = "12L"
 
 
 class FormatParam(str, Enum):
@@ -172,16 +189,10 @@ class CollectionItem(BaseModel):
 sub_responses = {
     200: {
         "description": "Successfully return all folders/files name and path under selected folder",
-        "content": {"application/json": {"example": {
-            "folders": [], "files": []
-        }}}
+        "content": {"application/json": {"example": {"folders": [], "files": []}}}
     },
-    400: {"content": {"application/json": {"example": {
-        "detail": "Invalid path format is used"
-    }}}},
-    404: {"content": {"application/json": {"example": {
-        "detail": "Data not found in the provided path"
-    }}}}
+    400: {"content": {"application/json": {"example": {"detail": "Invalid path format is used"}}}},
+    404: {"content": {"application/json": {"example": {"detail": "Data not found in the provided path"}}}}
 }
 
 

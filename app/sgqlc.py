@@ -1,35 +1,15 @@
 import re
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from sgqlc.operation import Operation
 
 from app.data_schema import *
 from app.sgqlc_schema import Query
 
 
-class SimpleGraphQLClient:
-    def add_count_field(self, item, query):
-        # Add default count field to query
-        count_field = f"total: _{item.node}_count"
-        if item.filter != {}:
-            # Manually modify and add count field into graphql query
-            filter_argument = re.sub(
-                '\'([_a-z]+)\'', r'\1', re.sub(r'\{([^{].*[^}])\}', r'\1', f'{item.filter}'))
-            count_field = re.sub(
-                '\'', '\"', f'total: _{item.node}_count({filter_argument})')
-        return query + count_field
-
-    def update_manifests_information(self, query):
-        data = {
-            'manifests1': ['scaffolds', 'additional_types', '["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"]'],
-            'manifests2': ['scaffoldViews', 'additional_types', '["application/x.vnd.abi.scaffold.view+json"]'],
-            'manifests3': ['plots', 'additional_types', '["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"]'],
-            'manifests4': ['thumbnails', 'file_type', '[".jpg", ".png"]']
-        }
-        for key in data.keys():
-            query = re.sub(
-                key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]})', query)
-        return query
+class SimpleGraphQLClient(object):
+    def __init__(self, submission):
+        self.SUBMISSION = submission
 
     def remove_node_suffix(self, node, query):
         suffix = ""
@@ -38,10 +18,27 @@ class SimpleGraphQLClient:
         elif "query" in node:
             suffix = "_query"
         elif "pagination" in node:
-            suffix = "_pagination"
-        query = re.sub(suffix, '', query)
-        node = re.sub(suffix, '', node)
-        return query, node
+            if "count" in node:
+                suffix = "_pagination_count"
+            else:
+                suffix = "_pagination"
+        query_without_suffix = re.sub(suffix, '', query)
+        node_without_suffix = re.sub(suffix, '', node)
+        return query_without_suffix, node_without_suffix
+
+    def update_manifests_information(self, item, query):
+        query_with_classification = query
+        access_scope = re.sub('\'', '\"', f"{item.access}")
+        data = {
+            'manifests1': ['scaffolds', 'additional_types', '["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"]'],
+            'manifests2': ['scaffoldViews', 'additional_types', '["application/x.vnd.abi.scaffold.view+json"]'],
+            'manifests3': ['plots', 'additional_types', '["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"]'],
+            'manifests4': ['thumbnails', 'file_type', '[".jpg", ".png"]']
+        }
+        for key in data:
+            query_with_classification = re.sub(
+                key, f'{data[key][0]}: manifests({data[key][1]}: {data[key][2]}, project_id: {access_scope})', query_with_classification)
+        return query_with_classification
 
     def convert_query(self, item, query):
         # Convert camel case to snake case
@@ -52,12 +49,9 @@ class SimpleGraphQLClient:
             snake_case_query = re.sub(
                 '[,]? [_a-z]+: null', '', snake_case_query)
         # Either pagination or experiment node query
-        if "experiment" in item.node:
+        if "experiment" in item.node and "count" not in item.node:
             snake_case_query = self.update_manifests_information(
-                snake_case_query)
-            # Only pagination will need count field
-            if type(item.search) == dict:
-                snake_case_query = self.add_count_field(item, snake_case_query)
+                item, snake_case_query)
         snake_case_query, item.node = self.remove_node_suffix(
             item.node, snake_case_query)
         return "{" + snake_case_query + "}"
@@ -68,13 +62,24 @@ class SimpleGraphQLClient:
         # FILTER
         # if the node name contains "_filter",
         # the query generator will be used for /filter/ and /graphql/pagination API
-        if item.node == "dataset_description_filter":
+        if item.node == "experiment_filter":
+            return self.convert_query(
+                item,
+                query.experimentFilter(
+                    first=0,
+                    offset=0,
+                    submitter_id=item.filter.get("submitter_id", None),
+                    project_id=item.access,
+                )
+            )
+        elif item.node == "dataset_description_filter":
             return self.convert_query(
                 item,
                 query.datasetDescriptionFilter(
                     first=0,
                     offset=0,
                     # study_organ_system=item.filter.get("study_organ_system", None),
+                    project_id=item.access,
                 )
             )
         elif item.node == "manifest_filter":
@@ -84,6 +89,7 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     additional_types=item.filter.get("additional_types", None),
+                    project_id=item.access,
                 )
             )
         elif item.node == "case_filter":
@@ -95,6 +101,7 @@ class SimpleGraphQLClient:
                     species=item.filter.get("species", None),
                     sex=item.filter.get("sex", None),
                     age_category=item.filter.get("age_category", None),
+                    project_id=item.access,
                 )
             )
         # QUERY
@@ -102,7 +109,7 @@ class SimpleGraphQLClient:
         # the query generator will only be used for /graphql/query API
         elif item.node == "experiment_query":
             if type(item.search) == str and item.search != "":
-                raise HTTPException(status_code=METHOD_NOT_ALLOWED,
+                raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
                                     detail="Search function does not support while querying in experiment node")
             return self.convert_query(
                 item,
@@ -110,6 +117,7 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     submitter_id=item.filter.get("submitter_id", None),
+                    project_id=item.access,
                 )
             )
         elif item.node == "dataset_description_query":
@@ -119,6 +127,7 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     quick_search=item.search,
+                    project_id=item.access,
                 )
             )
         elif item.node == "manifest_query":
@@ -128,6 +137,7 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     quick_search=item.search,
+                    project_id=item.access,
                 )
             )
         elif item.node == "case_query":
@@ -137,6 +147,7 @@ class SimpleGraphQLClient:
                     first=0,
                     offset=0,
                     quick_search=item.search,
+                    project_id=item.access,
                 )
             )
         # PAGINATION
@@ -149,19 +160,34 @@ class SimpleGraphQLClient:
                     first=item.limit,
                     offset=(item.page-1)*item.limit,
                     submitter_id=item.filter.get("submitter_id", None),
+                    project_id=item.access,
+                )
+            )
+        elif item.node == "experiment_pagination_count":
+            return self.convert_query(
+                item,
+                query.experimentPaginationCount(
+                    first=0,
+                    offset=0,
+                    submitter_id=item.filter.get("submitter_id", None),
+                    project_id=item.access,
                 )
             )
         else:
-            raise HTTPException(status_code=NOT_FOUND,
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="GraphQL query cannot be generated by sgqlc")
 
-    def get_queried_result(self, item, SUBMISSION):
+    def get_queried_result(self, item, key=None, queue=None):
         if item.node == None:
-            raise HTTPException(status_code=BAD_REQUEST,
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Missing one or more fields in the request body")
 
         query = self.generate_query(item)
         try:
-            return SUBMISSION.query(query)["data"]
+            result = self.SUBMISSION.query(query)["data"]
+            if key != None and queue != None:
+                queue.put({key: result[item.node]})
+            return result
         except Exception as e:
-            raise HTTPException(status_code=NOT_FOUND, detail=str(e))
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

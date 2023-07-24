@@ -1,13 +1,12 @@
 import re
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from irods.column import Like, In
 from irods.models import Collection, DataObjectMeta
 
-from app.data_schema import *
 from app.config import iRODSConfig
+from app.data_schema import *
 
-SESSION = None
 SEARCHFIELD = [
     "TITLE",
     "SUBTITLE",
@@ -15,47 +14,44 @@ SEARCHFIELD = [
 ]
 
 
-class Search:
-    def generate_dataset_dictionary(self, keyword_list):
+class Search(object):
+    def __init__(self, session):
+        self.SESSION = session
+
+    def generate_searched_datasets(self, keyword_list):
         dataset_dict = {}
         for keyword in keyword_list:
-            query = SESSION.query(Collection.name, DataObjectMeta.value).filter(
-                In(DataObjectMeta.name, SEARCHFIELD)).filter(
-                Like(DataObjectMeta.value, f"%{keyword}%"))
+            try:
+                query = self.SESSION.query(Collection.name, DataObjectMeta.value).filter(
+                    In(DataObjectMeta.name, SEARCHFIELD)).filter(
+                    Like(DataObjectMeta.value, f"%{keyword}%"))
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
             # Any keyword that does not match with the database content will cause a search no result
             if len(query.all()) == 0:
-                dataset_dict = {}
-                return dataset_dict
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                    detail="There is no matched content in the database")
+
             for result in query:
                 content_list = re.findall(
                     fr'(\s{keyword}|{keyword}\s)', result[DataObjectMeta.value])
                 if content_list != []:
                     dataset = re.sub(
                         f'{iRODSConfig.IRODS_ENDPOINT_URL}/', '', result[Collection.name])
-                    if dataset not in dataset_dict.keys():
+                    if dataset not in dataset_dict:
                         dataset_dict[dataset] = 1
                     else:
                         dataset_dict[dataset] += 1
         return dataset_dict
 
     # The dataset list order is based on how the dataset content is relevant to the input string.
-    def get_searched_datasets(self, input, session):
-        global SESSION
-        SESSION = session
-        try:
-            keyword_list = re.findall('[a-zA-Z0-9]+', input.lower())
-            dataset_dict = self.generate_dataset_dictionary(keyword_list)
-            dataset_list = sorted(
-                dataset_dict, key=dataset_dict.get, reverse=True)
-        except Exception as e:
-            raise HTTPException(
-                status_code=INTERNAL_SERVER_ERROR, detail=str(e))
-
-        if dataset_list == []:
-            raise HTTPException(status_code=NOT_FOUND,
-                                detail="There is no matched content in the database")
-        else:
-            return dataset_list
+    def get_searched_datasets(self, input):
+        keyword_list = re.findall('[a-zA-Z0-9]+', input.lower())
+        dataset_dict = self.generate_searched_datasets(keyword_list)
+        dataset_list = sorted(
+            dataset_dict, key=dataset_dict.get, reverse=True)
+        return dataset_list
 
     def search_filter_relation(self, item):
         # Since only search result has order, we need to update item.filter value based on search result
