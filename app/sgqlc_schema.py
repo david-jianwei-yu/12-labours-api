@@ -158,6 +158,15 @@ class ExperimentPaginationCount(Node):
     submitter_id = String
 
 
+class ExperimentOrder(Node):
+    submitter_id = String
+
+
+class PaginationOrderByDatasetDescription(Node):
+    experiments = list_of(ExperimentOrder)
+    title = String
+
+
 class Query(Type):
     # FILTER
     experimentFilter = Field(
@@ -243,6 +252,8 @@ class Query(Type):
             "offset": Int,
             "submitter_id": list_of(String),
             "project_id": list_of(String),
+            "order_by_asc": String,
+            "order_by_desc": String,
         }
     )
     experimentPaginationCount = Field(
@@ -252,5 +263,15 @@ class Query(Type):
             "offset": Int,
             "submitter_id": list_of(String),
             "project_id": list_of(String),
+        }
+    )
+    paginationOrderByDatasetDescription = Field(
+        PaginationOrderByDatasetDescription,
+        args={
+            "first": Int,
+            "offset": Int,
+            "project_id": list_of(String),
+            "order_by_asc": String,
+            "order_by_desc": String,
         }
     )

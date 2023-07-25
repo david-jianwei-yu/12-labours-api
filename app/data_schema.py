@@ -34,15 +34,6 @@ access_revoke_responses = {
 }
 
 
-access_authorize_responses = {
-    200: {
-        "description": "Successfully return a list of Gen3 access scope",
-        "content": {"application/json": {"example": {"access": [Gen3Config.GEN3_PUBLIC_ACCESS]}}}
-    },
-    401: {"content": {"application/json": {"example": {"detail": "Invalid authentication credentials"}}}}
-}
-
-
 class AccessItem(BaseModel):
     access: Union[list, None] = [Gen3Config.GEN3_PUBLIC_ACCESS]
 
@@ -97,6 +88,8 @@ class GraphQLQueryItem(BaseModel):
     filter: Union[dict, None] = {}
     search: Union[str, None] = ""
     access: Union[list, None] = [Gen3Config.GEN3_PUBLIC_ACCESS]
+    asc: Union[str, None] = None
+    desc: Union[str, None] = None
 
     class Config:
         schema_extra = {
@@ -128,6 +121,9 @@ class GraphQLPaginationItem(BaseModel):
     search: Union[dict, None] = {}
     relation: Union[str, None] = "and"
     access: Union[list, None] = [Gen3Config.GEN3_PUBLIC_ACCESS]
+    order: Union[str, None] = "published(asc)"
+    asc: Union[str, None] = None
+    desc: Union[str, None] = None
 
     class Config:
         schema_extra = {
@@ -135,7 +131,6 @@ class GraphQLPaginationItem(BaseModel):
                 "page": 1,
                 "limit": 50,
                 "filter": {},
-                "relation": "and",
                 "access": [Gen3Config.GEN3_PUBLIC_ACCESS]
             }
         }

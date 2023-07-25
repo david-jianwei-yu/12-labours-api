@@ -176,16 +176,6 @@ def split_access(access):
     return access_list[0], access_list[1]
 
 
-def update_name_list(data, name, path):
-    name_dict = {name: []}
-    for ele in data["links"]:
-        ele = ele.replace(path, "")
-        if name == "access":
-            ele = re.sub('/', '-', ele)
-        name_dict[name].append(ele)
-    return name_dict
-
-
 @ app.post("/access/token", tags=["Access"], summary="Create gen3 access token for authorized user", responses=access_token_responses)
 async def create_gen3_access(item: IdentityItem, connected: bool = Depends(check_irods_status)):
     if item.identity == None:
@@ -197,7 +187,7 @@ async def create_gen3_access(item: IdentityItem, connected: bool = Depends(check
 
     result = {
         "identity": item.identity,
-        "access_token": a.generate_access_token(item.identity, SESSION)
+        "access_token": a.generate_access_token(item.identity, SUBMISSION, SESSION)
     }
     return result
 
@@ -209,27 +199,6 @@ async def revoke_gen3_access(is_revoked: bool = Depends(a.revoke_user_authority)
                             detail="Revoke access successfully")
 
 
-@ app.get("/access/authorize", tags=["Access"], summary="Get gen3 access authorize", responses=access_authorize_responses)
-async def get_gen3_access(access: dict = Depends(a.get_user_access_scope)):
-    """
-    Return all programs/projects information from the Gen3 Data Commons.
-
-    Use {"Authorization": "Bearer publicaccesstoken"} for accessing public program/project
-    """
-    try:
-        program = SUBMISSION.get_programs()
-        program_dict = update_name_list(program, "program", "/v0/submission/")
-        restrict_program = list(
-            set(access["policies"]).intersection(program_dict["program"]))
-        project = {"links": []}
-        for prog in restrict_program:
-            project["links"] += SUBMISSION.get_projects(prog)["links"]
-        return update_name_list(project, "access", "/v0/submission/")
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
-
 @ app.post("/dictionary", tags=["Gen3"], summary="Get gen3 dictionary information", responses=dictionary_responses)
 async def get_gen3_dictionary(item: AccessItem):
     """
@@ -238,7 +207,12 @@ async def get_gen3_dictionary(item: AccessItem):
     try:
         program, project = split_access(item.access)
         dictionary = SUBMISSION.get_project_dictionary(program, project)
-        return update_name_list(dictionary, "dictionary", f"/v0/submission/{program}/{project}/_dictionary/")
+        name_dict = {"dictionary": []}
+        for ele in dictionary["links"]:
+            ele = ele.replace(
+                f"/v0/submission/{program}/{project}/_dictionary/", "")
+            name_dict["dictionary"].append(ele)
+        return name_dict
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Program {program} or project {project} not found")
@@ -295,7 +269,7 @@ async def graphql_query(item: GraphQLQueryItem):
     - case_query
 
     **filter**
-    - {"field_name": ["<field_value>", ...], ...}
+    - {"field_name": ["field_value", ...], ...}
 
     **search**
     - string content,
@@ -306,7 +280,7 @@ async def graphql_query(item: GraphQLQueryItem):
 
 
 @ app.post("/graphql/pagination/", tags=["Gen3"], summary="Display datasets", responses=pagination_responses)
-async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
+async def graphql_pagination(item: GraphQLPaginationItem, search: str = "", access_scope: list = Depends(a.gain_user_authority)):
     """
     /graphql/pagination/?search=<string>
 
@@ -317,36 +291,36 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = ""):
     - Default filter = {}
     - Default search = ""
     - Default relation = "and"
+    - Default access = gen3 public access repository
+    - Default order = "published(asc)"
 
     **node**
     - experiment_pagination
 
     **filter(zero or more)** 
-    - {"\\<id\\>": {"node": "<gen3_node>", "filter": {"<gen3_field>": [<filed_content>,...]}}, ...}
+    - {"gen3_node>gen3_field": [filter_name,...], ...}
 
     **search(parameter)**: 
     - string content
     """
-    is_public_access_filtered = p.update_pagination_item(item, search)
-    fetched_data = p.get_pagination_data(item)
-    data_count, data_relation = p.get_pagination_count(fetched_data)
-    query_result = p.update_pagination_data(
-        item, data_count, data_relation, fetched_data, is_public_access_filtered)
-    if item.search != {}:
-        # Sort only if search is not empty, since search results are sorted by word relevance
+    is_public_access_filtered = p.update_pagination_item(item, search, access_scope)
+    data_count, match_pair = p.get_pagination_count(item)
+    query_result = p.get_pagination_data(
+        item, match_pair, is_public_access_filtered)
+    # If both asc and desc are None, datasets ordered by self-written order function
+    if item.asc == None and item.desc == None:
         query_result = sorted(
             query_result, key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]))
     result = {
         "items": pf.reconstruct_data_structure(query_result),
         "numberPerPage": item.limit,
-        "page": item.page,
         "total": data_count
     }
     return result
 
 
-@ app.post("/filter/", tags=["Gen3"], summary="Get filter information", responses=filter_responses)
-async def ger_filter(sidebar: bool, item: AccessItem):
+@ app.get("/filter/", tags=["Gen3"], summary="Get filter information", responses=filter_responses)
+async def get_filter(sidebar: bool, access_scope: list = Depends(a.gain_user_authority)):
     """
     /filter/?sidebar=<boolean>
 
@@ -365,7 +339,7 @@ async def ger_filter(sidebar: bool, item: AccessItem):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
 
-    extra_filter = fg.generate_extra_filter(item.access)
+    extra_filter = fg.generate_extra_filter(access_scope)
     if sidebar == True:
         return f.generate_sidebar_filter_information(extra_filter)
     else:
