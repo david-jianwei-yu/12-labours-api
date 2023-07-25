@@ -135,6 +135,5 @@ class Authenticator(object):
             "identity": user.get_user_identity(),
             "scope": user.get_user_scope(),
         }
-        token = jwt.encoding_tokens(payload)
-        access_token = f"Bearer {token}"
+        access_token = jwt.encoding_tokens(payload)
         return access_token
