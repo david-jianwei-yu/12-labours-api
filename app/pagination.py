@@ -138,28 +138,33 @@ class Pagination(object):
         for facet in facets:
             # Use .title() to make it non-case sensitive
             facet_name = facet.title()
-            for ele in FILTERS:
-                if ele in extra_filter:
+            for mapped_element in FILTERS:
+                if mapped_element in extra_filter:
                     filter_dict = extra_filter
                 else:
                     filter_dict = FILTERS
                 # Check if title can match with a exist filter object
-                if filter_dict[ele]["field"] == field:
+                if filter_dict[mapped_element]["field"] == field:
                     # Check if ele_name is a key under filter object element field
-                    if facet_name not in filter_dict[ele]["facets"]:
+                    if facet_name not in filter_dict[mapped_element]["facets"]:
                         raise HTTPException(
                             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or unauthorized facet passed in")
 
-                    facet_value = filter_dict[ele]["facets"][facet_name]
+                    facet_value = filter_dict[mapped_element]["facets"][facet_name]
                     if type(facet_value) == list:
                         value_list.extend(facet_value)
                     else:
                         value_list.append(facet_value)
         return {field: value_list}
 
-    def update_pagination_item(self, item, input):
+    def update_pagination_item(self, item, input, scope):
         is_public_access_filtered = False
         has_search_result = False
+
+        # ACCESS
+        item.access = scope
+        if Gen3Config.GEN3_PUBLIC_ACCESS not in item.access:
+            item.access.append(Gen3Config.GEN3_PUBLIC_ACCESS)
 
         # FILTER
         if item.filter != {}:
@@ -206,10 +211,6 @@ class Pagination(object):
             if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
                 has_search_result = True
                 self.S.search_filter_relation(item)
-
-        # ACCESS
-        if Gen3Config.GEN3_PUBLIC_ACCESS not in item.access:
-            item.access.append(Gen3Config.GEN3_PUBLIC_ACCESS)
 
         # ORDER
         order_type = item.order.lower()

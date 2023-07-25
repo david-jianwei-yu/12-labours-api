@@ -41,26 +41,6 @@ def test_revoke_gen3_access(client):
     assert result["detail"] == "Unable to remove default access authority"
 
 
-def test_get_gen3_access(client):
-    dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
-    }
-    response = client.post("/access/token", json=dummy_data)
-    dummy_token = response.json()
-    response = client.get(
-        "/access/authorize", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
-    result = response.json()
-    assert response.status_code == 200
-    assert len(result) == 1
-    assert result["access"][0] == Gen3Config.GEN3_PUBLIC_ACCESS
-
-    response = client.get(
-        "/access/authorize", headers={"Authorization": "Bearer fakeaccesstoken"})
-    result = response.json()
-    assert response.status_code == 401
-    assert result["detail"] == "Invalid authentication credentials"
-
-
 def test_get_gen3_dictionary(client):
     pass_case = {
         "access": [Gen3Config.GEN3_PUBLIC_ACCESS],

@@ -34,15 +34,6 @@ access_revoke_responses = {
 }
 
 
-access_authorize_responses = {
-    200: {
-        "description": "Successfully return a list of Gen3 access scope",
-        "content": {"application/json": {"example": {"access": [Gen3Config.GEN3_PUBLIC_ACCESS]}}}
-    },
-    401: {"content": {"application/json": {"example": {"detail": "Invalid authentication credentials"}}}}
-}
-
-
 class AccessItem(BaseModel):
     access: Union[list, None] = [Gen3Config.GEN3_PUBLIC_ACCESS]
 
