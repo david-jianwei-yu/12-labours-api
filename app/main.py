@@ -269,7 +269,7 @@ async def graphql_query(item: GraphQLQueryItem):
     - case_query
 
     **filter**
-    - {"field_name": ["<field_value>", ...], ...}
+    - {"field_name": ["field_value", ...], ...}
 
     **search**
     - string content,
@@ -291,12 +291,14 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = "", acce
     - Default filter = {}
     - Default search = ""
     - Default relation = "and"
+    - Default access = gen3 public access repository
+    - Default order = "published(asc)"
 
     **node**
     - experiment_pagination
 
     **filter(zero or more)** 
-    - {"\\<id\\>": {"node": "<gen3_node>", "filter": {"<gen3_field>": [<filed_content>,...]}}, ...}
+    - {"gen3_node>gen3_field": [filter_name,...], ...}
 
     **search(parameter)**: 
     - string content
