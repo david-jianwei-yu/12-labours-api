@@ -6,5 +6,6 @@ gunicorn==20.1.0
 PyJWT==2.7.0
 python-dotenv==0.20.0
 python-irodsclient==1.1.8
+PyYAML==5.4.1
 sgqlc==16.3
 uvicorn==0.18.2
