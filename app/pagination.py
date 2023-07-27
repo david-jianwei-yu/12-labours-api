@@ -103,6 +103,8 @@ class Pagination(object):
         return list(displayed_datasets.values())
 
     def get_pagination_count(self, item):
+        # Used to get the total count for either public or private datasets
+        # Public or private datasets will be processed separately
         public_access = Gen3Config.GEN3_PUBLIC_ACCESS
         public_pagination_count_item = GraphQLPaginationItem(
             node="experiment_pagination_count", filter=item.filter, access=[public_access])
@@ -123,7 +125,8 @@ class Pagination(object):
         # Default datasets exist in public repository only,
         # Will contain all available datasets after updating
         displayed_datasets = list(public_result.keys())
-        # Exist in both public and private repository
+        # Datasets which exist in both public and private repository will be added to match_pair
+        # It will be used to help achieve priority presentation of private datasets
         match_pair = []
         for id in private_result.keys():
             if id not in public_result:
