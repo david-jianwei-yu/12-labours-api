@@ -9,10 +9,6 @@ FIELDS = [
 class Filter(object):
     def __init__(self, fg):
         self.FG = fg
-        self.FIELDS = FIELDS
-
-    def get_fields(self):
-        return self.FIELDS
 
     def generate_filtered_datasets(self, filter, field, data):
         result = []
@@ -46,18 +42,18 @@ class Filter(object):
                     dataset_list.add(id)
         item.filter["submitter_id"] = list(dataset_list)
 
-    def set_filter_dict(self, element, extra):
+    def set_filter_dict(self, element, private):
         FILTERS = self.FG.get_filters()
-        if element in extra:
-            return extra
+        if element in private:
+            return private
         else:
             return FILTERS
 
-    def generate_sidebar_filter_information(self, extra):
+    def generate_sidebar_filter_information(self, private):
         FILTERS = self.FG.get_filters()
         sidebar_filter_information = []
         for mapped_element in FILTERS:
-            filter_dict = self.set_filter_dict(mapped_element, extra)
+            filter_dict = self.set_filter_dict(mapped_element, private)
             sidebar_filter_parent = {
                 "key": "",
                 "label": "",
@@ -78,7 +74,7 @@ class Filter(object):
             sidebar_filter_information.append(sidebar_filter_parent)
         return sidebar_filter_information
 
-    def generate_filter_information(self, extra):
+    def generate_filter_information(self, private):
         FILTERS = self.FG.get_filters()
         filter_information = {
             "size": len(FILTERS),
@@ -88,7 +84,7 @@ class Filter(object):
             "ids": []
         }
         for mapped_element in FILTERS:
-            filter_dict = self.set_filter_dict(mapped_element, extra)
+            filter_dict = self.set_filter_dict(mapped_element, private)
             filter_information["titles"].append(
                 filter_dict[mapped_element]["title"])
             filter_information["nodes>fields"].append(

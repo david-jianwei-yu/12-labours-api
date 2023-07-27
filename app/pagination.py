@@ -1,4 +1,5 @@
 import re
+import json
 import copy
 import queue
 import threading
@@ -135,15 +136,15 @@ class Pagination(object):
                 match_pair.append(id)
         return len(displayed_datasets), match_pair
 
-    def handle_pagination_item_filter(self, field, facets, extra_filter):
+    def handle_pagination_item_filter(self, field, facets, private_filter):
         FILTERS = self.FG.get_filters()
         value_list = []
         for facet in facets:
             # Use .title() to make it non-case sensitive
             facet_name = facet.title()
             for mapped_element in FILTERS:
-                if mapped_element in extra_filter:
-                    filter_dict = extra_filter
+                if mapped_element in private_filter:
+                    filter_dict = private_filter
                 else:
                     filter_dict = FILTERS
                 # Check if title can match with a exist filter object
@@ -171,16 +172,15 @@ class Pagination(object):
 
         # FILTER
         if item.filter != {}:
-            FIELDS = self.F.get_fields()
-            extra_filter = self.FG.generate_extra_filter(item.access)
-            temp_node_dict = {}
+            private_filter = self.FG.generate_private_filter(item.access)
+            items = []
             filter_dict = {"submitter_id": []}
             for node_filed, facet_name in item.filter.items():
                 filter_node = node_filed.split(">")[0]
                 filter_field = node_filed.split(">")[1]
                 # Update filter based on authority
                 valid_filter = self.handle_pagination_item_filter(
-                    filter_field, facet_name, extra_filter)
+                    filter_field, facet_name, private_filter)
                 query_item = GraphQLQueryItem(
                     node=filter_node, filter=valid_filter)
                 if filter_node == "experiment_filter":
@@ -189,21 +189,16 @@ class Pagination(object):
                         is_public_access_filtered = True
                 else:
                     query_item.access = item.access
+                key = json.dumps(valid_filter)
+                items.append((query_item, key))
 
-                node_name = re.sub('_filter', '', filter_node)
-                # Only do fetch when there is no related temp data stored in temp_node_dict
-                # or the node field type is "String"
-                if node_name not in temp_node_dict or filter_field not in FIELDS:
-                    query_result = self.SGQLC.get_queried_result(query_item)
-                    # The data will be stored when the field type is an "Array"
-                    # The default filter relation of the Gen3 "Array" type field is "AND"
-                    # We need "OR", therefore entire node data will go through a self-written filter function
-                    if filter_field in FIELDS:
-                        temp_node_dict[node_name] = query_result[node_name]
-                elif node_name in temp_node_dict and filter_field in FIELDS:
-                    query_result = temp_node_dict
-                filter_dict["submitter_id"].append(self.F.get_filtered_datasets(
-                    query_item.filter, query_result[node_name]))
+            fetched_data = self.threading_fetch(items)
+
+            for key in fetched_data:
+                filter = json.loads(key)
+                filtered_datasets = self.F.get_filtered_datasets(
+                    filter, fetched_data[key])
+                filter_dict["submitter_id"].append(filtered_datasets)
             item.filter = filter_dict
             self.F.filter_relation(item)
 

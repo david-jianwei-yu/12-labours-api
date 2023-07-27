@@ -339,11 +339,11 @@ async def get_filter(sidebar: bool, access_scope: list = Depends(a.gain_user_aut
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
 
-    extra_filter = fg.generate_extra_filter(access_scope)
+    private_filter = fg.generate_private_filter(access_scope)
     if sidebar == True:
-        return f.generate_sidebar_filter_information(extra_filter)
+        return f.generate_sidebar_filter_information(private_filter)
     else:
-        return f.generate_filter_information(extra_filter)
+        return f.generate_filter_information(private_filter)
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")

@@ -84,9 +84,9 @@ class FilterGenerator(object):
         if name not in exist:
             facets[name] = value
 
-    def update_filter_facets(self, temp_data, element, is_extra=False):
+    def update_filter_facets(self, temp_data, element, is_private=False):
         filter_facets = {}
-        if is_extra:
+        if is_private:
             exist_facets = FILTERS[element]["facets"]
         else:
             exist_facets = filter_facets
@@ -110,14 +110,14 @@ class FilterGenerator(object):
         if filter_node not in temp_dict:
             temp_dict[filter_node] = self.SGQLC.get_queried_result(query_item)
 
-    def generate_extra_filter(self, access):
-        is_extra = True
+    def generate_private_filter(self, access):
+        is_private = True
         access_scope = []
         for ele in access:
             if ele != Gen3Config.GEN3_PUBLIC_ACCESS:
                 access_scope.append(ele)
 
-        extra_filter_dict = {}
+        private_filter_dict = {}
         if access_scope != []:
             temp_node_dict = {}
             for mapped_element in FILTERS:
@@ -126,18 +126,18 @@ class FilterGenerator(object):
                         temp_node_dict, mapped_element, access_scope)
 
                     filter_facets = self.update_filter_facets(
-                        temp_node_dict, mapped_element, is_extra)
+                        temp_node_dict, mapped_element, is_private)
                     if filter_facets != {}:
                         updated_element = FILTERS[mapped_element]["facets"] | filter_facets
-                        extra_filter_dict[mapped_element] = {
+                        private_filter_dict[mapped_element] = {
                             "title": FILTERS[mapped_element]["title"],
                             "node": FILTERS[mapped_element]["node"],
                             "field": FILTERS[mapped_element]["field"],
                             "facets": {}
                         }
-                        extra_filter_dict[mapped_element]["facets"] = dict(
+                        private_filter_dict[mapped_element]["facets"] = dict(
                             sorted(updated_element.items()))
-        return extra_filter_dict
+        return private_filter_dict
 
     def generate_filter_dictionary(self):
         is_generated = True
