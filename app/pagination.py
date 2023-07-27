@@ -42,47 +42,43 @@ class Pagination(object):
             result.update(data)
         return result
 
+    def handle_order_by_dataset_description_filter(self, filter):
+        result = {}
+        if "submitter_id" in filter:
+            result["submitter_id"] = []
+            for dataset in filter["submitter_id"]:
+                result["submitter_id"].append(f"{dataset}-dataset_description")
+        return result
+
     def get_pagination_order(self, item):
+        filter_dict = self.handle_order_by_dataset_description_filter(
+            item.filter)
         query_item = GraphQLQueryItem(
-            node="pagination_order_by_dataset_description", access=item.access, asc=item.asc, desc=item.desc)
+            node="pagination_order_by_dataset_description", limit=item.limit, page=item.page, filter=filter_dict, access=item.access, asc=item.asc, desc=item.desc)
         if "asc" in item.order:
             query_item.asc = "title"
         elif "desc" in item.order:
             query_item.desc = "title"
         query_result = self.SGQLC.get_queried_result(query_item)
-
+        
         # Include both public and private if have the access
-        ordered_whole_datasets = []
+        ordered_dataset = []
         for ele in query_result[query_item.node]:
             dataset_id = ele["experiments"][0]["submitter_id"]
-            if dataset_id not in ordered_whole_datasets:
-                ordered_whole_datasets.append(dataset_id)
-
-        ordered_filtered_datasets = []
-        ordered_datasets = []
-        if "submitter_id" in item.filter:
-            for dataset in ordered_whole_datasets:
-                if dataset in item.filter["submitter_id"]:
-                    ordered_filtered_datasets.append(dataset)
-            ordered_datasets = ordered_filtered_datasets
-        else:
-            ordered_datasets = ordered_whole_datasets
-        return ordered_datasets
+            if dataset_id not in ordered_dataset:
+                ordered_dataset.append(dataset_id)
+        return ordered_dataset
 
     def get_pagination_data(self, item, match_pair, is_public_access_filtered):
         if "title" in item.order.lower():
-            # Get an ordered dataset list to update the item.filter
-            # item.filter will be updated based on the page and limit passed in
-            ordered_datasets = self.get_pagination_order(item)
-            start = (item.page-1)*item.limit
-            end = item.page*item.limit
-            item.filter["submitter_id"] = ordered_datasets[start:end]
+            # Get an ordered filter
+            item.filter["submitter_id"] = self.get_pagination_order(item)
             item.page = 1
 
         query_item = GraphQLPaginationItem(
             limit=item.limit, page=item.page, filter=item.filter, access=item.access, order=item.order, asc=item.asc, desc=item.desc)
         query_result = self.SGQLC.get_queried_result(query_item)
-        displayed_datasets = self.generate_dictionary(
+        displayed_dataset = self.generate_dictionary(
             query_result[query_item.node])
 
         item.access.remove(Gen3Config.GEN3_PUBLIC_ACCESS)
@@ -90,7 +86,7 @@ class Pagination(object):
         # Query displayed datasets which have private version
         if match_pair != []:
             for dataset in match_pair:
-                if dataset in displayed_datasets:
+                if dataset in displayed_dataset:
                     query_item = GraphQLQueryItem(node="experiment_query", filter={
                         "submitter_id": [dataset]}, access=item.access)
                     items.append((query_item, dataset))
@@ -100,8 +96,8 @@ class Pagination(object):
         if not is_public_access_filtered:
             # Replace the dataset if it has a private version
             for dataset in private_replacement.keys():
-                displayed_datasets[dataset] = private_replacement[dataset][0]
-        return list(displayed_datasets.values())
+                displayed_dataset[dataset] = private_replacement[dataset][0]
+        return list(displayed_dataset.values())
 
     def get_pagination_count(self, item):
         # Used to get the total count for either public or private datasets
@@ -125,16 +121,16 @@ class Pagination(object):
             fetched_data["private_pagination"])
         # Default datasets exist in public repository only,
         # Will contain all available datasets after updating
-        displayed_datasets = list(public_result.keys())
+        displayed_dataset = list(public_result.keys())
         # Datasets which exist in both public and private repository will be added to match_pair
         # It will be used to help achieve priority presentation of private datasets
         match_pair = []
         for id in private_result.keys():
             if id not in public_result:
-                displayed_datasets.append(id)
+                displayed_dataset.append(id)
             else:
                 match_pair.append(id)
-        return len(displayed_datasets), match_pair
+        return len(displayed_dataset), match_pair
 
     def handle_pagination_item_filter(self, field, facets, private_filter):
         FILTERS = self.FG.get_filters()
@@ -196,9 +192,9 @@ class Pagination(object):
 
             for key in fetched_data:
                 filter = json.loads(key)
-                filtered_datasets = self.F.get_filtered_datasets(
+                filtered_dataset = self.F.get_filtered_datasets(
                     filter, fetched_data[key])
-                filter_dict["submitter_id"].append(filtered_datasets)
+                filter_dict["submitter_id"].append(filtered_dataset)
             item.filter = filter_dict
             self.F.filter_relation(item)
 

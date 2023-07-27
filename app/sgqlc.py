@@ -179,8 +179,9 @@ class SimpleGraphQLClient(object):
             return self.convert_query(
                 item,
                 query.paginationOrderByDatasetDescription(
-                    first=0,
-                    offset=0,
+                    first=item.limit,
+                    offset=(item.page-1)*item.limit,
+                    submitter_id=item.filter.get("submitter_id", None),
                     project_id=item.access,
                     order_by_asc=item.asc,
                     order_by_desc=item.desc,
