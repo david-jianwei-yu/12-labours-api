@@ -25,7 +25,7 @@ class Authenticator(object):
         self.expire = 2
 
     def delete_expired_user(self, user):
-        if user in self.authorized_user:
+        if user in self.authorized_user and user != "public":
             current_time = datetime.utcnow()
             expire_time = self.authorized_user[user].get_user_expire_time()
             if current_time >= expire_time:
