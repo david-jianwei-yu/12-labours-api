@@ -1,4 +1,3 @@
-import re
 import json
 import copy
 import queue
@@ -60,7 +59,7 @@ class Pagination(object):
         elif "desc" in item.order:
             query_item.desc = "title"
         query_result = self.SGQLC.get_queried_result(query_item)
-        
+
         # Include both public and private if have the access
         ordered_dataset = []
         for ele in query_result[query_item.node]:
@@ -100,25 +99,26 @@ class Pagination(object):
         return list(displayed_dataset.values())
 
     def get_pagination_count(self, item):
+        public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
+        private_access = copy.deepcopy(item.access)
+        private_access.remove(public_access[0])
+        user_access = {
+            "public_access": public_access,
+            "private_access": private_access
+        }
         # Used to get the total count for either public or private datasets
         # Public or private datasets will be processed separately
-        public_access = Gen3Config.GEN3_PUBLIC_ACCESS
-        public_pagination_count_item = GraphQLPaginationItem(
-            node="experiment_pagination_count", filter=item.filter, access=[public_access])
-        private_access = copy.deepcopy(item.access)
-        private_access.remove(public_access)
-        private_pagination_count_item = GraphQLPaginationItem(
-            node="experiment_pagination_count", filter=item.filter, access=private_access)
+        items = []
+        for key, value in user_access.items():
+            pagination_count_item = GraphQLPaginationItem(
+                node="experiment_pagination_count", filter=item.filter, access=value)
+            items.append((pagination_count_item, key))
 
-        fetched_data = self.threading_fetch([
-            (public_pagination_count_item, "public_pagination"),
-            (private_pagination_count_item, "private_pagination")
-        ])
+        fetched_data = self.threading_fetch(items)
 
-        public_result = self.generate_dictionary(
-            fetched_data["public_pagination"])
+        public_result = self.generate_dictionary(fetched_data["public_access"])
         private_result = self.generate_dictionary(
-            fetched_data["private_pagination"])
+            fetched_data["private_access"])
         # Default datasets exist in public repository only,
         # Will contain all available datasets after updating
         displayed_dataset = list(public_result.keys())
