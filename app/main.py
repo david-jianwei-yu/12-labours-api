@@ -303,7 +303,8 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = "", acce
     **search(parameter)**: 
     - string content
     """
-    is_public_access_filtered = p.update_pagination_item(item, search, access_scope)
+    is_public_access_filtered = p.update_pagination_item(
+        item, search, access_scope)
     data_count, match_pair = p.get_pagination_count(item)
     query_result = p.get_pagination_data(
         item, match_pair, is_public_access_filtered)
@@ -339,11 +340,10 @@ async def get_filter(sidebar: bool, access_scope: list = Depends(a.gain_user_aut
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Failed to generate filter or the maximum retry limit was reached")
 
-    private_filter = fg.generate_private_filter(access_scope)
     if sidebar == True:
-        return f.generate_sidebar_filter_information(private_filter)
+        return fg.generate_sidebar_filter_information(access_scope)
     else:
-        return f.generate_filter_information(private_filter)
+        return fg.generate_filter_information(access_scope)
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
