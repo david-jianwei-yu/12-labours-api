@@ -157,7 +157,7 @@ class FilterGenerator(object):
         return is_generated
 
     def set_filter_dict(self, element, access):
-        private_filter = self.generate_extra_filter(access)
+        private_filter = self.generate_private_filter(access)
         if element in private_filter:
             return private_filter
         else:
