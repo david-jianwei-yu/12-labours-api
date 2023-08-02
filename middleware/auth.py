@@ -5,6 +5,7 @@ import yaml
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from yaml import SafeLoader
+from multiprocessing import Manager
 from datetime import datetime, timedelta
 
 from app.config import Gen3Config, iRODSConfig
@@ -12,24 +13,23 @@ from middleware.jwt import JWT
 from middleware.user import User
 
 security = HTTPBearer()
+manager = Manager()
 jwt = JWT()
 
 
 class Authenticator(object):
     def __init__(self):
-        self.authorized_user = {
-            "public": User("public", [Gen3Config.GEN3_PUBLIC_ACCESS], None)
-        }
+        self.authorized_user = manager.dict()
+        self.authorized_user["public"] = User(
+            "public", [Gen3Config.GEN3_PUBLIC_ACCESS], None)
         self.expire = 2
 
     def delete_expired_user(self, user):
-        try:
+        if user in self.authorized_user and user != "public":
             current_time = datetime.utcnow()
             expire_time = self.authorized_user[user].get_user_expire_time()
             if current_time >= expire_time:
                 del self.authorized_user[user]
-        except:
-            pass
 
     def cleanup_authorized_user(self):
         for user in list(self.authorized_user):
