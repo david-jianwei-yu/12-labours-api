@@ -56,10 +56,6 @@ class Authenticator(object):
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-    async def gain_user_authority(self, token: HTTPAuthorizationCredentials = Depends(security)):
-        verify_user = self.authenticate_token(token.credentials)
-        return verify_user.get_user_scope()
-
     async def revoke_user_authority(self, token: HTTPAuthorizationCredentials = Depends(security)):
         verify_user = self.authenticate_token(token.credentials, "revoke")
         if verify_user.get_user_identity() == "public":
@@ -68,6 +64,10 @@ class Authenticator(object):
 
         del self.authorized_user[verify_user.get_user_identity()]
         return True
+
+    async def gain_user_authority(self, token: HTTPAuthorizationCredentials = Depends(security)):
+        verify_user = self.authenticate_token(token.credentials)
+        return verify_user.get_user_scope()
 
     def update_name_list(self, data, path, type_name=None):
         name_list = []

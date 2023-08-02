@@ -270,6 +270,7 @@ class Query(Type):
         args={
             "first": Int,
             "offset": Int,
+            "submitter_id": list_of(String),
             "project_id": list_of(String),
             "order_by_asc": String,
             "order_by_desc": String,

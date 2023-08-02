@@ -85,6 +85,8 @@ record_responses = {
 
 class GraphQLQueryItem(BaseModel):
     node: Union[str, None] = None
+    page: Union[int, None] = None
+    limit: Union[int, None] = None
     filter: Union[dict, None] = {}
     search: Union[str, None] = ""
     access: Union[list, None] = [Gen3Config.GEN3_PUBLIC_ACCESS]
