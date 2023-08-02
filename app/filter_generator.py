@@ -201,5 +201,7 @@ class FilterGenerator(object):
             filter_information["nodes>fields"].append(
                 filter_dict[mapped_element]["node"] + ">" + filter_dict[mapped_element]["field"])
             filter_information["elements"].append(
-                list(filter_dict[mapped_element]["facets"].keys()))
+                filter_dict[mapped_element]["facets"])
+            # filter_information["elements"].append(
+            #     list(filter_dict[mapped_element]["facets"].keys()))
         return filter_information
