@@ -176,13 +176,13 @@ def test_graphql_pagination(client):
     assert result["total"] == 1
 
     order_pass_case = {
-        "order": "Title(asc)"
+        "order": "Title(desc)"
     }
     response = client.post("/graphql/pagination/?search=", json=order_pass_case,
                            headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
     assert response.status_code == 200
-    assert result["items"][6]["datasetId"] == "dataset-46-version-2"
+    assert result["items"][13]["datasetId"] == "dataset-46-version-2"
 
     search_pass_case = {}
     response = client.post("/graphql/pagination/?search=rats", json=search_pass_case,
