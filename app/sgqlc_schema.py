@@ -115,6 +115,8 @@ class ExperimentQuery(Node):
     manifests2 = list_of(ManifestQuery)
     manifests3 = list_of(ManifestQuery)
     manifests4 = list_of(ManifestQuery)
+    manifests5 = list_of(ManifestQuery)
+    manifests6 = list_of(ManifestQuery)
     cases = list_of(CaseQuery)
 
 
@@ -131,6 +133,7 @@ class SubDatasetDescription(Node):
 class SubManifest(Node):
     filename = String
     file_type = String
+    additional_metadata = list_of(String)
     additional_types = String
     is_derived_from = list_of(String)
     is_described_by = list_of(String)
@@ -150,6 +153,8 @@ class ExperimentPagination(Node):
     manifests2 = list_of(SubManifest)
     manifests3 = list_of(SubManifest)
     manifests4 = list_of(SubManifest)
+    manifests5 = list_of(SubManifest)
+    manifests6 = list_of(SubManifest)
     cases = list_of(SubCase)
 
 
