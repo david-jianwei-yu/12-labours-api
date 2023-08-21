@@ -1,3 +1,4 @@
+import io
 import re
 import time
 import mimetypes
@@ -10,6 +11,7 @@ from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse
 from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
 from irods.session import iRODSSession
+from pyorthanc import Orthanc
 
 from app.config import *
 from app.data_schema import *
@@ -92,6 +94,7 @@ app.add_middleware(
 
 SUBMISSION = None
 SESSION = None
+ORTHANC = None
 FILTER_GENERATED = False
 fg = None
 f = None
@@ -104,7 +107,7 @@ a = Authenticator()
 
 def check_irods_status():
     try:
-        SESSION.collections.get(iRODSConfig.IRODS_ENDPOINT_URL)
+        SESSION.collections.get(iRODSConfig.IRODS_ROOT_PATH)
         return True
     except Exception:
         print("Encounter an error while creating or using the session connection.")
@@ -137,6 +140,14 @@ async def start_up():
         check_irods_status()
     except Exception:
         print("Encounter an error while creating the iRODS session.")
+
+    try:
+        global ORTHANC
+        ORTHANC = Orthanc(OrthancConfig.ORTHANC_ENDPOINT_URL,
+                          username=OrthancConfig.ORTHANC_USERNAME,
+                          password=OrthancConfig.ORTHANC_PASSWORD)
+    except Exception:
+        print("Encounter an error while creating the Orthanc client.")
 
     global s, sgqlc, fg, pf, f, p
     s = Search(SESSION)
@@ -392,7 +403,7 @@ def generate_collection_list(data):
     for ele in data:
         collection_list.append({
             "name": ele.name,
-            "path": re.sub(iRODSConfig.IRODS_ENDPOINT_URL, '', ele.path)
+            "path": re.sub(iRODSConfig.IRODS_ROOT_PATH, '', ele.path)
         })
     return collection_list
 
@@ -413,7 +424,7 @@ async def get_irods_collection(item: CollectionItem, connected: bool = Depends(c
 
     try:
         collect = SESSION.collections.get(
-            iRODSConfig.IRODS_ENDPOINT_URL + item.path)
+            iRODSConfig.IRODS_ROOT_PATH + item.path)
         folder_list = generate_collection_list(collect.subcollections)
         file_list = generate_collection_list(collect.data_objects)
         result = {
@@ -443,7 +454,7 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
     chunk_size = 1024*1024*1024
     try:
         file = SESSION.data_objects.get(
-            f"{iRODSConfig.IRODS_ENDPOINT_URL}/{filepath}")
+            f"{iRODSConfig.IRODS_ROOT_PATH}/{filepath}")
     except Exception:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Data not found in the provided path")
@@ -451,6 +462,7 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
     def iterate_file():
         with file.open("r") as file_like:
             chunk = file_like.read(chunk_size)
+            print(chunk)
             while chunk:
                 yield chunk
                 chunk = file_like.read(chunk_size)
@@ -465,3 +477,58 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
     else:
         raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
                             detail="The action is not provided in this API")
+
+####################
+### Orthanc      ###
+### DICOM serber ###
+####################
+
+
+@ app.get("/instance", tags=["Orthanc"])
+async def get_instance_ids():
+    instance_ids = []
+    try:
+        patients_identifiers = ORTHANC.get_patients()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Invalid orthanc username or password are used")
+
+    for patient_identifier in patients_identifiers:
+        # To get patient information
+        patient_info = ORTHANC.get_patients_id(patient_identifier)
+        patient_name = patient_info['MainDicomTags']['PatientName']
+        study_identifiers = patient_info['Studies']
+
+    # To get patient's studies identifier and main information
+    for study_identifier in study_identifiers:
+        # To get Study info
+        study_info = ORTHANC.get_studies_id(study_identifier)
+        study_date = study_info['MainDicomTags']['StudyDate']
+        series_identifiers = study_info['Series']
+
+    # To get study's series identifier and main information
+    for series_identifier in series_identifiers:
+        # Get series info
+        series_info = ORTHANC.get_series_id(series_identifier)
+        modality = series_info['MainDicomTags']['Modality']
+        SeriesInstanceUID = series_info['MainDicomTags']['SeriesInstanceUID']
+        if SeriesInstanceUID == "1.3.6.1.4.1.14519.5.2.1.175414966301645518238419021688341658582":
+            instance_identifiers = series_info['Instances']
+
+    # and so on ...
+    for instance_identifier in instance_identifiers:
+        instance_info = ORTHANC.get_instances_id(instance_identifier)
+        instance_ids.append(instance_info["ID"])
+    return instance_ids
+    
+@ app.get("/dicom/{identifier}", tags=["Orthanc"])
+async def get_dicom_file(identifier:str):
+    instance_file = ORTHANC.get_instances_id_file(identifier)
+    dicom_file = io.BytesIO(instance_file)
+    chunk_size = 1024
+    def iterate_file():
+        chunk = dicom_file.read(chunk_size)
+        while chunk:
+            yield chunk
+            chunk = dicom_file.read(chunk_size)
+    return StreamingResponse(iterate_file(), media_type="application/dicom")
