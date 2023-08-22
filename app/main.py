@@ -23,54 +23,12 @@ from app.search import Search
 from app.sgqlc import SimpleGraphQLClient
 from middleware.auth import Authenticator
 
-description = """
-## Gen3
-
-You will be able to:
-
-* **Get Gen3 program/project**
-* **Get Gen3 node dictionary**
-* **Get Gen3 record(s) metadata**
-* **Use GraphQL query Gen3 metadata**
-* **Download Gen3 file**
-
-## iRODS
-
-You will be able to:
-
-* **Get iRODS root/sub-folder(s)/sub-file(s)**
-* **Download iRODS file**
-"""
-
-tags_metadata = [
-    {
-        "name": "Gen3",
-        "description": "Gen3 is a data platform for building data commons and data ecosystems",
-        "externalDocs": {
-            "description": "Gen3 official website",
-            "url": "https://gen3.org/",
-        },
-    },
-    {
-        "name": "iRODS",
-        "description": "iRODS is an open source data management software",
-        "externalDocs": {
-            "description": "iRODS official website",
-            "url": "https://irods.org/",
-        },
-    },
-]
-
 app = FastAPI(
-    title="12 Labours Portal",
+    title=title,
     description=description,
     # version="",
     # terms_of_service="",
-    contact={
-        "name": "Auckland Bioengineering Institute",
-        "url": "https://www.auckland.ac.nz/en/abi.html",
-        # "email": "bioeng-enquiries@auckland.ac.nz",
-    },
+    contact=contact,
     # license_info={
     #     "name": "",
     #     "url": "",

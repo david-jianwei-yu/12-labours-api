@@ -4,6 +4,74 @@ from pydantic import BaseModel
 
 from app.config import Gen3Config
 
+title = "12 Labours Portal"
+
+contact = {
+    "name": "Auckland Bioengineering Institute",
+    "url": "https://www.auckland.ac.nz/en/abi.html",
+    # "email": "bioeng-enquiries@auckland.ac.nz",
+}
+
+description = """
+## Access
+
+You will be able to:
+
+* **Create Gen3 access based on authority**
+* **Revoke Gen3 access**
+
+## Gen3
+
+You will be able to:
+
+* **Get Gen3 program/project**
+* **Get Gen3 node dictionary**
+* **Get Gen3 record(s) metadata**
+* **Use GraphQL query Gen3 metadata**
+* **Download Gen3 metadata file**
+
+## iRODS
+
+You will be able to:
+
+* **Get iRODS root/sub-folder(s)/sub-file(s)**
+* **Download iRODS data file**
+
+## Orthanc
+
+You will be able to:
+
+* **Get Orthanc dicom file instance ids**
+* **Download Orthanc dicom file**
+"""
+
+tags_metadata = [
+    {
+        "name": "Gen3",
+        "description": "Gen3 is a data platform for building data commons and data ecosystems",
+        "externalDocs": {
+            "description": "Gen3 official website",
+            "url": "https://gen3.org/",
+        },
+    },
+    {
+        "name": "iRODS",
+        "description": "iRODS is an open source data management software",
+        "externalDocs": {
+            "description": "iRODS official website",
+            "url": "https://irods.org/",
+        },
+    },
+    {
+        "name": "Orthanc",
+        "description": "Orthanc is a free and open-source, lightweight DICOM server for medical imaging",
+        "externalDocs": {
+            "description": "Orthanc official website",
+            "url": "https://www.orthanc-server.com/",
+        },
+    },
+]
+
 chunk_size = 1024*1024*1024
 
 
