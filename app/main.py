@@ -279,12 +279,11 @@ async def graphql_query(item: GraphQLQueryItem):
     - only available in dataset_description/manifest/case nodes
     """
     query_result = sgqlc.get_queried_result(item)
-    data = query_result[item.node][0]
-    facet = q.generate_related_facet(data)
     result = {
-        "data": data,
-        "facet": facet
+        "data": query_result[item.node],
     }
+    if "submitter_id" in item.filter and len(item.filter["submitter_id"]) == 1:
+        result["facets"] = q.generate_related_facet(query_result[item.node][0])
     return result
 
 
