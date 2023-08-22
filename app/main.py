@@ -283,7 +283,11 @@ async def graphql_query(item: GraphQLQueryItem):
         "data": query_result[item.node],
     }
     if "submitter_id" in item.filter and len(item.filter["submitter_id"]) == 1:
-        result["facets"] = q.generate_related_facet(query_result[item.node][0])
+        data = query_result[item.node][0]
+        result = {
+            "data": data,
+            "facets": q.generate_related_facet(data)
+        }
     return result
 
 
