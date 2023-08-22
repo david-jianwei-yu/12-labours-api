@@ -74,13 +74,12 @@ DYNAMIC_FILTERS = [
 class FilterGenerator(object):
     def __init__(self, sgqlc):
         self.SGQLC = sgqlc
-        self.FILTERS = FILTERS
 
     def get_filters(self):
-        return self.FILTERS
+        return FILTERS
 
     def add_facets(self, facets, exist, value):
-        name = value.title()
+        name = value.capitalize()
         if name not in exist:
             facets[name] = value
 
