@@ -10,7 +10,7 @@ FILTERS = {
         "field": "age_category",
         "facets": {}
     },
-    "MAPPED_ANATOMICAL_STRUCTURE": {
+    "MAPPED_STUDY_ORGAN_SYSTEM": {
         "title": "Anatomical Structure",
         "node": "dataset_description_filter",
         "field": "study_organ_system",
@@ -22,7 +22,7 @@ FILTERS = {
         "field": "sex",
         "facets": {}
     },
-    "MAPPED_MIME_TYPE": {
+    "MAPPED_ADDITIONAL_TYPES": {
         "title": "Mime Type",
         "node": "manifest_filter",
         "field": "additional_types",
@@ -55,7 +55,7 @@ FILTERS = {
             "Rat": "Rattus norvegicus",
         }
     },
-    "MAPPED_ACCESS_SCOPE": {
+    "MAPPED_PROJECT_ID": {
         "title": "Access Scope",
         "node": "experiment_filter",
         "field": "project_id",
