@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 from app.config import Gen3Config
 
+chunk_size = 1024*1024*1024
+
 
 class IdentityItem(BaseModel):
     identity: Union[str, None] = None
@@ -183,7 +185,7 @@ class CollectionItem(BaseModel):
         }
 
 
-sub_responses = {
+collection_responses = {
     200: {
         "description": "Successfully return all folders/files name and path under selected folder",
         "content": {"application/json": {"example": {"folders": [], "files": []}}}
@@ -196,3 +198,27 @@ sub_responses = {
 class ActionParam(str, Enum):
     preview = "preview"
     download = "download"
+
+
+class InstanceItem(BaseModel):
+    study: Union[str, None] = ""
+    series: Union[str, None] = ""
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "study": "",
+                "series": "",
+            }
+        }
+
+
+instance_responses = {
+    200: {
+        "description": "Successfully return all folders/files name and path under selected folder",
+        "content": {"application/json": {"example": []}}
+    },
+    400: {"content": {"application/json": {"example": {"detail": "Missing one or more fields in the request body"}}}},
+    401: {"content": {"application/json": {"example": {"detail": "Invalid orthanc username or password are used"}}}},
+    404: {"content": {"application/json": {"example": {"detail": "Resource is not found in the orthanc server"}}}}
+}

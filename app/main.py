@@ -11,7 +11,7 @@ from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse
 from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
 from irods.session import iRODSSession
-from pyorthanc import Orthanc
+from pyorthanc import find, Orthanc
 
 from app.config import *
 from app.data_schema import *
@@ -408,7 +408,7 @@ def generate_collection_list(data):
     return collection_list
 
 
-@ app.post("/collection", tags=["iRODS"], summary="Get folder information", responses=sub_responses)
+@ app.post("/collection", tags=["iRODS"], summary="Get folder information", responses=collection_responses)
 async def get_irods_collection(item: CollectionItem, connected: bool = Depends(check_irods_status)):
     """
     Return all collections from the required folder.
@@ -451,7 +451,6 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the irods server status or environment variables")
 
-    chunk_size = 1024*1024*1024
     try:
         file = SESSION.data_objects.get(
             f"{iRODSConfig.IRODS_ROOT_PATH}/{filepath}")
@@ -462,7 +461,6 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
     def iterate_file():
         with file.open("r") as file_like:
             chunk = file_like.read(chunk_size)
-            print(chunk)
             while chunk:
                 yield chunk
                 chunk = file_like.read(chunk_size)
@@ -480,55 +478,56 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
 
 ####################
 ### Orthanc      ###
-### DICOM serber ###
+### DICOM server ###
 ####################
 
 
-@ app.get("/instance", tags=["Orthanc"])
-async def get_instance_ids():
-    instance_ids = []
+@ app.post("/instance", tags=["Orthanc"], summary="Get instance ids", responses=instance_responses)
+async def get_orthanc_instance(item: InstanceItem):
+    if item.study == None or item.series == None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Missing one or more fields in the request body")
+
     try:
-        patients_identifiers = ORTHANC.get_patients()
+        patients = find(
+            orthanc=ORTHANC,
+            study_filter=lambda s: s.uid == item.study,
+            series_filter=lambda s: s.uid == item.series,
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Invalid orthanc username or password are used")
+        if "401" in str(e):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Invalid orthanc username or password are used")
 
-    for patient_identifier in patients_identifiers:
-        # To get patient information
-        patient_info = ORTHANC.get_patients_id(patient_identifier)
-        patient_name = patient_info['MainDicomTags']['PatientName']
-        study_identifiers = patient_info['Studies']
+    if patients == []:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Resource is not found in the orthanc server")
 
-    # To get patient's studies identifier and main information
-    for study_identifier in study_identifiers:
-        # To get Study info
-        study_info = ORTHANC.get_studies_id(study_identifier)
-        study_date = study_info['MainDicomTags']['StudyDate']
-        series_identifiers = study_info['Series']
-
-    # To get study's series identifier and main information
-    for series_identifier in series_identifiers:
-        # Get series info
-        series_info = ORTHANC.get_series_id(series_identifier)
-        modality = series_info['MainDicomTags']['Modality']
-        SeriesInstanceUID = series_info['MainDicomTags']['SeriesInstanceUID']
-        if SeriesInstanceUID == "1.3.6.1.4.1.14519.5.2.1.175414966301645518238419021688341658582":
-            instance_identifiers = series_info['Instances']
-
-    # and so on ...
-    for instance_identifier in instance_identifiers:
-        instance_info = ORTHANC.get_instances_id(instance_identifier)
-        instance_ids.append(instance_info["ID"])
+    instance_ids = []
+    for patient in patients:
+        for study in patient.studies:
+            for series in study.series:
+                for instance in series.instances:
+                    instance_ids.append(instance.id_)
     return instance_ids
-    
-@ app.get("/dicom/{identifier}", tags=["Orthanc"])
-async def get_dicom_file(identifier:str):
-    instance_file = ORTHANC.get_instances_id_file(identifier)
-    dicom_file = io.BytesIO(instance_file)
-    chunk_size = 1024
-    def iterate_file():
-        chunk = dicom_file.read(chunk_size)
-        while chunk:
-            yield chunk
+
+
+@ app.get("/dicom/{identifier}", tags=["Orthanc"], summary="Export dicom file", response_description="Successfully return a file with data")
+async def get_orthanc_dicom_file(identifier: str):
+    try:
+        instance_file = ORTHANC.get_instances_id_file(identifier)
+        dicom_file = io.BytesIO(instance_file)
+
+        def iterate_file():
             chunk = dicom_file.read(chunk_size)
-    return StreamingResponse(iterate_file(), media_type="application/dicom")
+            while chunk:
+                yield chunk
+                chunk = dicom_file.read(chunk_size)
+        return StreamingResponse(iterate_file(), media_type="application/dicom")
+    except Exception as e:
+        if "401" in str(e):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Invalid orthanc username or password are used")
+        elif "404" in str(e):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="Resource is not found in the orthanc server")
