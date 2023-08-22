@@ -201,8 +201,8 @@ class ActionParam(str, Enum):
 
 
 class InstanceItem(BaseModel):
-    study: Union[str, None] = ""
-    series: Union[str, None] = ""
+    study: Union[str, None] = None
+    series: Union[str, None] = None
 
     class Config:
         schema_extra = {
