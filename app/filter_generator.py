@@ -155,9 +155,9 @@ class FilterGenerator(object):
                     sorted(filter_facets.items()))
         return is_generated
 
-    def set_filter_dict(self, element, access):
+    def set_filter_dict(self, mapped_element, access):
         private_filter = self.generate_private_filter(access)
-        if element in private_filter:
+        if mapped_element in private_filter:
             return private_filter
         else:
             return FILTERS
