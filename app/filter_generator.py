@@ -173,7 +173,8 @@ class FilterGenerator(object):
             }
             sidebar_filter_parent["key"] = filter_dict[mapped_element]["node"] + \
                 ">" + filter_dict[mapped_element]["field"]
-            sidebar_filter_parent["label"] = filter_dict[mapped_element]["title"].capitalize()
+            sidebar_filter_parent["label"] = filter_dict[mapped_element]["title"].capitalize(
+            )
             for facet_name in filter_dict[mapped_element]["facets"]:
                 sidebar_filter_children = {
                     "facetPropPath": "",

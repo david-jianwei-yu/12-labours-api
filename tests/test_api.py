@@ -131,7 +131,13 @@ def test_graphql_query(client):
     response = client.post("/graphql/query", json=pass_case)
     result = response.json()
     assert response.status_code == 200
-    assert result[0]["submitter_id"] == DATASET_ID
+    assert result["data"]["submitter_id"] == DATASET_ID
+    assert len(result["facets"]) == 2
+    assert result["facets"][0] == {
+        "facet": "Brainstem",
+        "term": "Anatomical structure",
+        "facetPropPath": "dataset_description_filter>study_organ_system"
+    }
 
     missing_data = {}
     response = client.post("/graphql/query", json=missing_data)
