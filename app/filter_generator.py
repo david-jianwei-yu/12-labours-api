@@ -5,25 +5,25 @@ from app.data_schema import *
 
 FILTERS = {
     "MAPPED_AGE_CATEGORY": {
-        "title": "Age Category",
+        "title": "age category",
         "node": "case_filter",
         "field": "age_category",
         "facets": {}
     },
     "MAPPED_STUDY_ORGAN_SYSTEM": {
-        "title": "Anatomical Structure",
+        "title": "anatomical structure",
         "node": "dataset_description_filter",
         "field": "study_organ_system",
         "facets": {}
     },
     "MAPPED_SEX": {
-        "title": "Sex",
+        "title": "sex",
         "node": "case_filter",
         "field": "sex",
         "facets": {}
     },
     "MAPPED_ADDITIONAL_TYPES": {
-        "title": "Mime Type",
+        "title": "mime type",
         "node": "manifest_filter",
         "field": "additional_types",
         "facets": {
@@ -44,7 +44,7 @@ FILTERS = {
         }
     },
     "MAPPED_SPECIES": {
-        "title": "Species",
+        "title": "species",
         "node": "case_filter",
         "field": "species",
         "facets": {
@@ -56,7 +56,7 @@ FILTERS = {
         }
     },
     "MAPPED_PROJECT_ID": {
-        "title": "Access Scope",
+        "title": "access scope",
         "node": "experiment_filter",
         "field": "project_id",
         "facets": {}
@@ -129,7 +129,7 @@ class FilterGenerator(object):
                     if filter_facets != {}:
                         updated_element = FILTERS[mapped_element]["facets"] | filter_facets
                         private_filter_dict[mapped_element] = {
-                            "title": FILTERS[mapped_element]["title"],
+                            "title": FILTERS[mapped_element]["title"].capitalize(),
                             "node": FILTERS[mapped_element]["node"],
                             "field": FILTERS[mapped_element]["field"],
                             "facets": {}
@@ -173,7 +173,7 @@ class FilterGenerator(object):
             }
             sidebar_filter_parent["key"] = filter_dict[mapped_element]["node"] + \
                 ">" + filter_dict[mapped_element]["field"]
-            sidebar_filter_parent["label"] = filter_dict[mapped_element]["title"]
+            sidebar_filter_parent["label"] = filter_dict[mapped_element]["title"].capitalize()
             for facet_name in filter_dict[mapped_element]["facets"]:
                 sidebar_filter_children = {
                     "facetPropPath": "",
@@ -196,7 +196,7 @@ class FilterGenerator(object):
         for mapped_element in FILTERS:
             filter_dict = self.set_filter_dict(mapped_element, access)
             filter_information["titles"].append(
-                filter_dict[mapped_element]["title"])
+                filter_dict[mapped_element]["title"].capitalize())
             filter_information["nodes>fields"].append(
                 filter_dict[mapped_element]["node"] + ">" + filter_dict[mapped_element]["field"])
             filter_information["elements"].append(

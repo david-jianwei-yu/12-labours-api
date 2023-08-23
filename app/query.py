@@ -15,7 +15,7 @@ class Query(object):
                 is_match = True
             if is_match and facet_key not in self.added:
                 facet_obj["facet"] = facet_key
-                facet_obj["term"] = self.FILTERS[mapped_element]["title"]
+                facet_obj["term"] = self.FILTERS[mapped_element]["title"].capitalize()
                 facet_obj["facetPropPath"] = self.FILTERS[mapped_element]["node"] + \
                     ">" + self.FILTERS[mapped_element]["field"]
                 self.added.append(facet_key)
