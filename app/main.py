@@ -147,7 +147,7 @@ async def start_up():
     pf = PaginationFormat(fg)
     f = Filter(fg)
     p = Pagination(fg, f, s, sgqlc)
-    q = Query(fg)
+    q = Query(f, fg)
 
 
 @ app.on_event("startup")

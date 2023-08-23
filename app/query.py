@@ -1,29 +1,38 @@
 class Query(object):
-    def __init__(self, fg):
+    def __init__(self, f, fg):
+        self.FIELDS = f.get_fields()
         self.FILTERS = fg.get_filters()
         self.added = []
         self.facet_dict = []
 
+    def generate_facet_object(self, facet_key, mapped_element):
+        facet_object = {}
+        facet_object["facet"] = facet_key
+        facet_object["term"] = self.FILTERS[mapped_element]["title"].capitalize()
+        facet_object["facetPropPath"] = self.FILTERS[mapped_element]["node"] + \
+            ">" + self.FILTERS[mapped_element]["field"]
+        return facet_object
+
     def add_matched_facet(self, field_key, field_value):
         mapped_element = f"MAPPED_{field_key.upper()}"
         for facet_key, facet_value in self.FILTERS[mapped_element]["facets"].items():
-            facet_obj = {}
             is_match = False
             if type(facet_value) == str:
-                if type(field_value) == str and field_value == facet_value:
+                # for study_organ_system
+                # array type field
+                if field_key in self.FIELDS and facet_value in field_value:
                     is_match = True
-                elif type(field_value) == list and facet_value in field_value:
+                # for age_category/sex/species
+                # string type field
+                elif field_value == facet_value:
                     is_match = True
-            elif type(facet_value) == list:
-                if type(field_value) == str and field_value in facet_value:
-                    is_match = True
+            # for additional_types
+            elif type(facet_value) == list and field_value in facet_value:
+                is_match = True
             if is_match and facet_key not in self.added:
-                facet_obj["facet"] = facet_key
-                facet_obj["term"] = self.FILTERS[mapped_element]["title"].capitalize()
-                facet_obj["facetPropPath"] = self.FILTERS[mapped_element]["node"] + \
-                    ">" + self.FILTERS[mapped_element]["field"]
                 self.added.append(facet_key)
-                self.facet_dict.append(facet_obj)
+                self.facet_dict.append(
+                    self.generate_facet_object(facet_key, mapped_element))
 
     def generate_related_facet(self, data):
         self.added = []
