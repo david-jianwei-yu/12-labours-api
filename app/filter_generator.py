@@ -166,25 +166,23 @@ class FilterGenerator(object):
         sidebar_filter_information = []
         for mapped_element in FILTERS:
             filter_dict = self.set_filter_dict(mapped_element, access)
-            sidebar_filter_parent = {
+            filter_parent = {
                 "key": "",
                 "label": "",
                 "children": [],
             }
-            sidebar_filter_parent["key"] = filter_dict[mapped_element]["node"] + \
+            filter_parent["key"] = filter_dict[mapped_element]["node"] + \
                 ">" + filter_dict[mapped_element]["field"]
-            sidebar_filter_parent["label"] = filter_dict[mapped_element]["title"].capitalize(
-            )
+            filter_parent["label"] = filter_dict[mapped_element]["title"].capitalize()
             for facet_name in filter_dict[mapped_element]["facets"]:
-                sidebar_filter_children = {
+                filter_children = {
                     "facetPropPath": "",
                     "label": "",
                 }
-                sidebar_filter_children["facetPropPath"] = sidebar_filter_parent["key"]
-                sidebar_filter_children["label"] = facet_name
-                sidebar_filter_parent["children"].append(
-                    sidebar_filter_children)
-            sidebar_filter_information.append(sidebar_filter_parent)
+                filter_children["facetPropPath"] = filter_parent["key"]
+                filter_children["label"] = facet_name
+                filter_parent["children"].append(filter_children)
+            sidebar_filter_information.append(filter_parent)
         return sidebar_filter_information
 
     def generate_filter_information(self, access):
