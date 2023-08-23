@@ -9,10 +9,14 @@ class Query(object):
         for facet_key, facet_value in self.FILTERS[mapped_element]["facets"].items():
             facet_obj = {}
             is_match = False
-            if type(facet_value) == str and field_value == facet_value:
-                is_match = True
-            elif type(facet_value) == list and field_value in facet_value:
-                is_match = True
+            if type(facet_value) == str:
+                if type(field_value) == str and field_value == facet_value:
+                    is_match = True
+                elif type(field_value) == list and facet_value in field_value:
+                    is_match = True
+            elif type(facet_value) == list:
+                if type(field_value) == str and field_value in facet_value:
+                    is_match = True
             if is_match and facet_key not in self.added:
                 facet_obj["facet"] = facet_key
                 facet_obj["term"] = self.FILTERS[mapped_element]["title"].capitalize()
@@ -22,6 +26,8 @@ class Query(object):
                 self.facet_dict.append(facet_obj)
 
     def generate_related_facet(self, data):
+        self.added = []
+        self.facet_dict = []
         if "dataset_descriptions" in data.keys() and data["dataset_descriptions"] != []:
             for dataset_description in data["dataset_descriptions"]:
                 self.add_matched_facet(
