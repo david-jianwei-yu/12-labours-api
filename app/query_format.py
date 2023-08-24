@@ -1,7 +1,7 @@
 class QueryFormat(object):
-    def __init__(self, f, fg):
-        self.FIELDS = f.get_fields()
+    def __init__(self, fg, f):
         self.FILTERS = fg.get_filters()
+        self.FIELDS = f.get_fields()
 
     def generate_facet_object(self, filter_facet, mapped_element):
         # Based on mapintergratedvuer map sidebar required filter format

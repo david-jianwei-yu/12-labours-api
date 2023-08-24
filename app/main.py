@@ -116,7 +116,7 @@ async def start_up():
     pf = PaginationFormat(fg)
     f = Filter(fg)
     p = Pagination(fg, f, s, sgqlc)
-    qf = QueryFormat(f, fg)
+    qf = QueryFormat(fg, f)
 
 
 @ app.on_event("startup")
@@ -488,14 +488,8 @@ async def get_orthanc_instance(item: InstanceItem):
 async def get_orthanc_dicom_file(identifier: str):
     try:
         instance_file = ORTHANC.get_instances_id_file(identifier)
-        dicom_file = io.BytesIO(instance_file)
-
-        def iterate_file():
-            chunk = dicom_file.read(chunk_size)
-            while chunk:
-                yield chunk
-                chunk = dicom_file.read(chunk_size)
-        return StreamingResponse(iterate_file(), media_type="application/dicom")
+        bytes_file = io.BytesIO(instance_file)
+        return Response(bytes_file.getvalue(), media_type="application/dicom")
     except Exception as e:
         if "401" in str(e):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
