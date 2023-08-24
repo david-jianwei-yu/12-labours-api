@@ -72,8 +72,6 @@ tags_metadata = [
     },
 ]
 
-chunk_size = 1024*1024*1024
-
 
 class IdentityItem(BaseModel):
     identity: Union[str, None] = None
@@ -102,17 +100,6 @@ access_revoke_responses = {
     },
     401: {"content": {"application/json": {"example": {"detail": "Unable to remove default access authority"}}}}
 }
-
-
-class AccessItem(BaseModel):
-    access: Union[list, None] = [Gen3Config.GEN3_PUBLIC_ACCESS]
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "access": [Gen3Config.GEN3_PUBLIC_ACCESS],
-            }
-        }
 
 
 dictionary_responses = {
