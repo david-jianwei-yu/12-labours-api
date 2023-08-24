@@ -175,18 +175,14 @@ async def get_gen3_dictionary(access_scope: list = Depends(a.gain_user_authority
     """
     Return all dictionary nodes from the Gen3 Data Commons
     """
-    try:
-        program, project = split_access(access_scope)
-        dictionary = SUBMISSION.get_project_dictionary(program, project)
-        name_dict = {"dictionary": []}
-        for ele in dictionary["links"]:
-            ele = ele.replace(
-                f"/v0/submission/{program}/{project}/_dictionary/", "")
-            name_dict["dictionary"].append(ele)
-        return name_dict
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Program {program} or project {project} not found")
+    program, project = split_access(access_scope)
+    dictionary = SUBMISSION.get_project_dictionary(program, project)
+    dictionary_list = {"dictionary": []}
+    for ele in dictionary["links"]:
+        ele = ele.replace(
+            f"/v0/submission/{program}/{project}/_dictionary/", "")
+        dictionary_list["dictionary"].append(ele)
+    return dictionary_list
 
 
 @ app.post("/records/{node}", tags=["Gen3"], summary="Get gen3 node records information", responses=records_responses)
@@ -199,9 +195,6 @@ async def get_gen3_node_records(node: NodeParam, access_scope: list = Depends(a.
     program, project = split_access(access_scope)
     node_record = SUBMISSION.export_node(program, project, node, "json")
     if "message" in node_record:
-        if "unauthorized" in node_record["message"]:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail=node_record["message"])
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=node_record["message"])
     elif node_record["data"] == []:
@@ -220,9 +213,6 @@ async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_au
     program, project = split_access(access_scope)
     record = SUBMISSION.export_record(program, project, uuid, "json")
     if "message" in record:
-        if "unauthorized" in record["message"]:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail=record["message"])
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
     return record
@@ -329,16 +319,15 @@ async def get_gen3_filter(sidebar: bool, access_scope: list = Depends(a.gain_use
         return fg.generate_filter_information(access_scope)
 
 
-@ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
-async def get_gen3_metadata_file(program: str, project: str, uuid: str, format: FormatParam):
+@ app.get("/metadata/download/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
+async def get_gen3_metadata_file(uuid: str, format: FormatParam, access_scope: list = Depends(a.gain_user_authority)):
     """
     Return a single metadata file for a given uuid.
 
-    - **program**: program name.
-    - **project**: project name.
     - **uuid**: uuid of the file.
     - **format**: file format (must be one of the following: json, tsv).
     """
+    program, project = split_access(access_scope)
     try:
         metadata = SUBMISSION.export_record(program, project, uuid, format)
     except Exception as e:
@@ -346,11 +335,8 @@ async def get_gen3_metadata_file(program: str, project: str, uuid: str, format: 
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     if "message" in metadata:
-        if "unauthorized" in metadata["message"]:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail=metadata["message"])
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=metadata["message"]+" and check if the correct project or uuid is used")
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"{metadata['message']} and check if the correct project or uuid is used")
 
     if format == "json":
         return JSONResponse(content=metadata[0],
