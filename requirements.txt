@@ -4,6 +4,7 @@ fastapi-utils==0.2.1
 gen3==4.19.1
 gunicorn==20.1.0
 PyJWT==2.7.0
+pyorthanc==1.11.5
 python-dotenv==0.20.0
 python-irodsclient==1.1.8
 sgqlc==16.3
