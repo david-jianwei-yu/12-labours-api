@@ -17,6 +17,7 @@ from app.filter_generator import FilterGenerator
 from app.filter import Filter
 from app.pagination_format import PaginationFormat
 from app.pagination import Pagination
+from app.query_format import QueryFormat
 from app.search import Search
 from app.sgqlc import SimpleGraphQLClient
 from middleware.auth import Authenticator
@@ -97,6 +98,7 @@ fg = None
 f = None
 pf = None
 p = None
+qf = None
 s = None
 sgqlc = None
 a = Authenticator()
@@ -138,13 +140,14 @@ async def start_up():
     except Exception:
         print("Encounter an error while creating the iRODS session.")
 
-    global s, sgqlc, fg, pf, f, p
+    global s, sgqlc, fg, pf, f, p, qf
     s = Search(SESSION)
     sgqlc = SimpleGraphQLClient(SUBMISSION)
     fg = FilterGenerator(sgqlc)
     pf = PaginationFormat(fg)
     f = Filter(fg)
     p = Pagination(fg, f, s, sgqlc)
+    qf = QueryFormat(f, fg)
 
 
 @ app.on_event("startup")
@@ -276,7 +279,18 @@ async def graphql_query(item: GraphQLQueryItem):
     - only available in dataset_description/manifest/case nodes
     """
     query_result = sgqlc.get_queried_result(item)
-    return query_result[item.node]
+    result = {
+        "data": query_result[item.node],
+    }
+    # When use experiment_query to query specific dataset
+    # Add related facets
+    if "submitter_id" in item.filter and len(item.filter["submitter_id"]) == 1:
+        data = query_result[item.node][0]
+        result = {
+            "data": data,
+            "facets": qf.generate_related_facet(data)
+        }
+    return result
 
 
 @ app.post("/graphql/pagination/", tags=["Gen3"], summary="Display datasets", responses=pagination_responses)

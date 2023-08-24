@@ -136,8 +136,9 @@ class Pagination(object):
         FILTERS = self.FG.get_filters()
         value_list = []
         for facet in facets:
-            # Use .title() to make it non-case sensitive
-            facet_name = facet.title()
+            # Use .capitalize() to make it non-case sensitive
+            # Avoid mis-match
+            facet_name = facet.capitalize()
             for mapped_element in FILTERS:
                 if mapped_element in private_filter:
                     filter_dict = private_filter
