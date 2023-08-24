@@ -230,7 +230,7 @@ async def get_gen3_record(uuid: str, item: AccessItem):
 
 
 @ app.post("/graphql/query", tags=["Gen3"], summary="GraphQL query gen3 information", responses=query_responses)
-async def graphql_query(item: GraphQLQueryItem):
+async def gen3_graphql_query(item: GraphQLQueryItem):
     """
     Return queries metadata records. The API uses GraphQL query language.
 
@@ -263,7 +263,7 @@ async def graphql_query(item: GraphQLQueryItem):
 
 
 @ app.post("/graphql/pagination/", tags=["Gen3"], summary="Display datasets", responses=pagination_responses)
-async def graphql_pagination(item: GraphQLPaginationItem, search: str = "", access_scope: list = Depends(a.gain_user_authority)):
+async def gen3_graphql_pagination(item: GraphQLPaginationItem, search: str = "", access_scope: list = Depends(a.gain_user_authority)):
     """
     /graphql/pagination/?search=<string>
 
@@ -304,7 +304,7 @@ async def graphql_pagination(item: GraphQLPaginationItem, search: str = "", acce
 
 
 @ app.get("/filter/", tags=["Gen3"], summary="Get filter information", responses=filter_responses)
-async def get_filter(sidebar: bool, access_scope: list = Depends(a.gain_user_authority)):
+async def get_gen3_filter(sidebar: bool, access_scope: list = Depends(a.gain_user_authority)):
     """
     /filter/?sidebar=<boolean>
 
@@ -330,7 +330,7 @@ async def get_filter(sidebar: bool, access_scope: list = Depends(a.gain_user_aut
 
 
 @ app.get("/metadata/download/{program}/{project}/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
-async def download_gen3_metadata_file(program: str, project: str, uuid: str, format: FormatParam):
+async def get_gen3_metadata_file(program: str, project: str, uuid: str, format: FormatParam):
     """
     Return a single metadata file for a given uuid.
 
@@ -370,16 +370,6 @@ async def download_gen3_metadata_file(program: str, project: str, uuid: str, for
 ############################################
 
 
-def generate_collection_list(data):
-    collection_list = []
-    for ele in data:
-        collection_list.append({
-            "name": ele.name,
-            "path": re.sub(iRODSConfig.IRODS_ROOT_PATH, '', ele.path)
-        })
-    return collection_list
-
-
 @ app.post("/collection", tags=["iRODS"], summary="Get folder information", responses=collection_responses)
 async def get_irods_collection(item: CollectionItem, connected: bool = Depends(check_irods_status)):
     """
@@ -394,11 +384,19 @@ async def get_irods_collection(item: CollectionItem, connected: bool = Depends(c
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the irods server status or environment variables")
 
+    def handle_collection(data):
+        collection = []
+        for ele in data:
+            collection.append({
+                "name": ele.name,
+                "path": re.sub(iRODSConfig.IRODS_ROOT_PATH, '', ele.path)
+            })
+        return collection
     try:
         collect = SESSION.collections.get(
             iRODSConfig.IRODS_ROOT_PATH + item.path)
-        folder_list = generate_collection_list(collect.subcollections)
-        file_list = generate_collection_list(collect.data_objects)
+        folder_list = handle_collection(collect.subcollections)
+        file_list = handle_collection(collect.data_objects)
         result = {
             "folders": folder_list,
             "files": file_list
@@ -430,6 +428,9 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Data not found in the provided path")
 
+    def handle_mimetype():
+        return mimetypes.guess_type(file.name)[0]
+
     def iterate_file():
         with file.open("r") as file_like:
             chunk = file_like.read(chunk_size)
@@ -437,16 +438,14 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
                 yield chunk
                 chunk = file_like.read(chunk_size)
     if action == "preview":
-        return StreamingResponse(iterate_file(),
-                                 media_type=mimetypes.guess_type(file.name)[0])
+        return StreamingResponse(iterate_file(), media_type=handle_mimetype())
     elif action == "download":
-        return StreamingResponse(iterate_file(),
-                                 media_type=mimetypes.guess_type(file.name)[
-            0],
-            headers={"Content-Disposition": f"attachment;filename={file.name}"})
+        return StreamingResponse(iterate_file(), media_type=handle_mimetype(),
+                                 headers={"Content-Disposition": f"attachment;filename={file.name}"})
     else:
         raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
                             detail="The action is not provided in this API")
+
 
 ####################
 ### Orthanc      ###
@@ -484,7 +483,7 @@ async def get_orthanc_instance(item: InstanceItem):
     return instance_ids
 
 
-@ app.get("/dicom/{identifier}", tags=["Orthanc"], summary="Export dicom file", response_description="Successfully return a file with data")
+@ app.get("/dicom/export/{identifier}", tags=["Orthanc"], summary="Export dicom file", response_description="Successfully return a file with data")
 async def get_orthanc_dicom_file(identifier: str):
     try:
         instance_file = ORTHANC.get_instances_id_file(identifier)

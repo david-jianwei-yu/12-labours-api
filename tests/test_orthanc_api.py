@@ -37,11 +37,11 @@ def test_get_orthanc_instance(client):
 
 def test_get_orthanc_dicom_file(client):
     IDENTIFIER = "5490c29e-b24b6cf6-8ad2e2af-5056e4b5-e67f118e"
-    response = client.get(f"/dicom/{IDENTIFIER}")
+    response = client.get(f"/dicom/export/{IDENTIFIER}")
     assert response.status_code == 200
 
     INVALID_IDENTIFIER = "fakeuuid"
-    response = client.get(f"/dicom/{INVALID_IDENTIFIER}")
+    response = client.get(f"/dicom/export/{INVALID_IDENTIFIER}")
     result = response.json()
     assert response.status_code == 404
     assert result["detail"] == "Resource is not found in the orthanc server"
