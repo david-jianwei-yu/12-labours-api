@@ -3,7 +3,6 @@ import re
 import time
 import mimetypes
 
-
 from fastapi_utils.tasks import repeat_every
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -172,12 +171,12 @@ async def revoke_gen3_access(is_revoked: bool = Depends(a.revoke_user_authority)
 
 
 @ app.post("/dictionary", tags=["Gen3"], summary="Get gen3 dictionary information", responses=dictionary_responses)
-async def get_gen3_dictionary(item: AccessItem):
+async def get_gen3_dictionary(access_scope: list = Depends(a.gain_user_authority)):
     """
     Return all dictionary nodes from the Gen3 Data Commons
     """
     try:
-        program, project = split_access(item.access)
+        program, project = split_access(access_scope)
         dictionary = SUBMISSION.get_project_dictionary(program, project)
         name_dict = {"dictionary": []}
         for ele in dictionary["links"]:
@@ -191,13 +190,13 @@ async def get_gen3_dictionary(item: AccessItem):
 
 
 @ app.post("/records/{node}", tags=["Gen3"], summary="Get gen3 node records information", responses=records_responses)
-async def get_gen3_node_records(node: NodeParam, item: AccessItem):
+async def get_gen3_node_records(node: NodeParam, access_scope: list = Depends(a.gain_user_authority)):
     """
     Return all records information in a dictionary node.
 
     - **node**: The dictionary node to export.
     """
-    program, project = split_access(item.access)
+    program, project = split_access(access_scope)
     node_record = SUBMISSION.export_node(program, project, node, "json")
     if "message" in node_record:
         if "unauthorized" in node_record["message"]:
@@ -212,13 +211,13 @@ async def get_gen3_node_records(node: NodeParam, item: AccessItem):
 
 
 @ app.post("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", responses=record_responses)
-async def get_gen3_record(uuid: str, item: AccessItem):
+async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_authority)):
     """
     Return record information in the Gen3 Data Commons.
 
     - **uuid**: uuid of the record.
     """
-    program, project = split_access(item.access)
+    program, project = split_access(access_scope)
     record = SUBMISSION.export_record(program, project, uuid, "json")
     if "message" in record:
         if "unauthorized" in record["message"]:
@@ -229,8 +228,8 @@ async def get_gen3_record(uuid: str, item: AccessItem):
     return record
 
 
-@ app.post("/graphql/query", tags=["Gen3"], summary="GraphQL query gen3 information", responses=query_responses)
-async def gen3_graphql_query(item: GraphQLQueryItem):
+@ app.post("/graphql/query", tags=["Gen3"], summary="GraphQL query gen3 metadata information", responses=query_responses)
+async def get_gen3_graphql_query(item: GraphQLQueryItem, access_scope: list = Depends(a.gain_user_authority)):
     """
     Return queries metadata records. The API uses GraphQL query language.
 
@@ -247,6 +246,7 @@ async def gen3_graphql_query(item: GraphQLQueryItem):
     - string content,
     - only available in dataset_description/manifest/case nodes
     """
+    item.access = access_scope
     query_result = sgqlc.get_queried_result(item)
     result = {
         "data": query_result[item.node],
@@ -263,7 +263,7 @@ async def gen3_graphql_query(item: GraphQLQueryItem):
 
 
 @ app.post("/graphql/pagination/", tags=["Gen3"], summary="Display datasets", responses=pagination_responses)
-async def gen3_graphql_pagination(item: GraphQLPaginationItem, search: str = "", access_scope: list = Depends(a.gain_user_authority)):
+async def get_gen3_graphql_pagination(item: GraphQLPaginationItem, search: str = "", access_scope: list = Depends(a.gain_user_authority)):
     """
     /graphql/pagination/?search=<string>
 
@@ -395,11 +395,11 @@ async def get_irods_collection(item: CollectionItem, connected: bool = Depends(c
     try:
         collect = SESSION.collections.get(
             iRODSConfig.IRODS_ROOT_PATH + item.path)
-        folder_list = handle_collection(collect.subcollections)
-        file_list = handle_collection(collect.data_objects)
+        folder = handle_collection(collect.subcollections)
+        file = handle_collection(collect.data_objects)
         result = {
-            "folders": folder_list,
-            "files": file_list
+            "folders": folder,
+            "files": file
         }
         return result
     except Exception:
@@ -417,6 +417,11 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
     - **action**: Action should be either preview or download.
     - **filepath**: Required iRODS file path.
     """
+    chunk_size = 1024*1024*1024
+    if action != "preview" and action != "download":
+        raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+                            detail="The action is not provided in this API")
+
     if not connected:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the irods server status or environment variables")
@@ -428,6 +433,12 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Data not found in the provided path")
 
+    def handle_header():
+        header = None
+        if action == "download":
+            header = {"Content-Disposition": f"attachment;filename={file.name}"}
+        return header
+
     def handle_mimetype():
         return mimetypes.guess_type(file.name)[0]
 
@@ -437,14 +448,7 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
             while chunk:
                 yield chunk
                 chunk = file_like.read(chunk_size)
-    if action == "preview":
-        return StreamingResponse(iterate_file(), media_type=handle_mimetype())
-    elif action == "download":
-        return StreamingResponse(iterate_file(), media_type=handle_mimetype(),
-                                 headers={"Content-Disposition": f"attachment;filename={file.name}"})
-    else:
-        raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
-                            detail="The action is not provided in this API")
+    return StreamingResponse(iterate_file(), media_type=handle_mimetype(), headers=handle_header())
 
 
 ####################
