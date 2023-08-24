@@ -239,21 +239,21 @@ def test_get_filter(client):
                           headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     assert response.status_code == 200
     assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_STUDY_ORGAN_SYSTEM"]["facets"]) == True
     assert bool(FILTERS["MAPPED_SEX"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_MIME_TYPE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_ADDITIONAL_TYPES"]["facets"]) == True
     assert bool(FILTERS["MAPPED_SPECIES"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_ACCESS_SCOPE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_PROJECT_ID"]["facets"]) == True
 
     response = client.get("/filter/?sidebar=false",
                           headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     assert response.status_code == 200
     assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_ANATOMICAL_STRUCTURE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_STUDY_ORGAN_SYSTEM"]["facets"]) == True
     assert bool(FILTERS["MAPPED_SEX"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_MIME_TYPE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_ADDITIONAL_TYPES"]["facets"]) == True
     assert bool(FILTERS["MAPPED_SPECIES"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_ACCESS_SCOPE"]["facets"]) == True
+    assert bool(FILTERS["MAPPED_PROJECT_ID"]["facets"]) == True
 
 
 def test_download_gen3_metadata_file(client):
