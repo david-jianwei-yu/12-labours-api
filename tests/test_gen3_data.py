@@ -23,27 +23,27 @@ def test_experiment_node(client):
     dummy_token = response.json()
 
     UUID = "22c4459b-5f4f-4e62-abd2-2aa205fe838b"
-    response = client.post(
+    response = client.get(
         f"/record/{UUID}", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
 
-    assert result[0]["id"] == UUID
-    assert type(result[0]["id"]) is str
+    assert result["record"]["id"] == UUID
+    assert type(result["record"]["id"]) is str
 
-    assert result[0]["projects"][0] == {
+    assert result["record"]["projects"][0] == {
         "node_id": "ce3985ad-1599-52df-bf54-5f34a87e0120",
         "code": "12L"
     }
-    assert type(result[0]["projects"][0]) is dict
+    assert type(result["record"]["projects"][0]) is dict
 
-    assert result[0]["type"] == "experiment"
-    assert type(result[0]["type"]) is str
+    assert result["record"]["type"] == "experiment"
+    assert type(result["record"]["type"]) is str
 
-    assert result[0]["project_id"] == Gen3Config.GEN3_PUBLIC_ACCESS
-    assert type(result[0]["project_id"]) is str
+    assert result["record"]["project_id"] == Gen3Config.GEN3_PUBLIC_ACCESS
+    assert type(result["record"]["project_id"]) is str
 
-    assert result[0]["submitter_id"] == "dataset-217-version-2"
-    assert type(result[0]["submitter_id"]) is str
+    assert result["record"]["submitter_id"] == "dataset-217-version-2"
+    assert type(result["record"]["submitter_id"]) is str
 
     # "associated_experiment": null,
     # "copy_numbers_identified": null,
@@ -68,87 +68,87 @@ def test_dataset_description_node(client):
     dummy_token = response.json()
 
     UUID = "5b9ae1bd-e780-4869-a458-b3422084c480"
-    response = client.post(
+    response = client.get(
         f"/record/{UUID}", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
 
-    assert result[0]["id"] == UUID
-    assert type(result[0]["id"]) is str
+    assert result["record"]["id"] == UUID
+    assert type(result["record"]["id"]) is str
 
-    assert result[0]["experiments"][0] == {
+    assert result["record"]["experiments"][0] == {
         "node_id": "22c4459b-5f4f-4e62-abd2-2aa205fe838b",
         "submitter_id": "dataset-217-version-2"
     }
-    assert type(result[0]["experiments"][0]) is dict
+    assert type(result["record"]["experiments"][0]) is dict
 
-    assert result[0]["type"] == "dataset_description"
-    assert type(result[0]["type"]) is str
+    assert result["record"]["type"] == "dataset_description"
+    assert type(result["record"]["type"]) is str
 
-    assert result[0]["project_id"] == Gen3Config.GEN3_PUBLIC_ACCESS
-    assert type(result[0]["project_id"]) is str
+    assert result["record"]["project_id"] == Gen3Config.GEN3_PUBLIC_ACCESS
+    assert type(result["record"]["project_id"]) is str
 
-    assert result[0]["submitter_id"] == "dataset-217-version-2-dataset_description"
-    assert type(result[0]["submitter_id"]) is str
+    assert result["record"]["submitter_id"] == "dataset-217-version-2-dataset_description"
+    assert type(result["record"]["submitter_id"]) is str
 
-    assert result[0]["contributor_affiliation"] == [
+    assert result["record"]["contributor_affiliation"] == [
         "Auckland Bioegineering Institute",
         "Auckland Bioegineering Institute",
         "Auckland Bioegineering Institute"
     ]
-    assert type(result[0]["contributor_affiliation"]) is list
+    assert type(result["record"]["contributor_affiliation"]) is list
 
-    assert result[0]["contributor_affiliation"] == [
+    assert result["record"]["contributor_affiliation"] == [
         "Auckland Bioegineering Institute",
         "Auckland Bioegineering Institute",
         "Auckland Bioegineering Institute"
     ]
-    assert type(result[0]["contributor_affiliation"]) is list
+    assert type(result["record"]["contributor_affiliation"]) is list
 
-    assert result[0]["contributor_name"] == [
+    assert result["record"]["contributor_name"] == [
         "Sukasem, Atchariya",
         "Christie, Richard",
         "Hunter, Peter"
     ]
-    assert type(result[0]["contributor_name"]) is list
+    assert type(result["record"]["contributor_name"]) is list
 
-    assert result[0]["contributor_orcid"] == [
+    assert result["record"]["contributor_orcid"] == [
         "0000-0002-9749-0557",
         "0000-0003-4336-4640",
         "0000-0001-9665-4145"
     ]
-    assert type(result[0]["contributor_orcid"]) is list
+    assert type(result["record"]["contributor_orcid"]) is list
 
-    assert result[0]["contributor_role"] == [
+    assert result["record"]["contributor_role"] == [
         "Researcher",
         "Researcher",
         "Principle Investigator"
     ]
-    assert type(result[0]["contributor_role"]) is list
+    assert type(result["record"]["contributor_role"]) is list
 
-    assert result[0]["keywords"] == [
+    assert result["record"]["keywords"] == [
         "brainstem",
         "pig"
     ]
-    assert type(result[0]["keywords"]) is list
+    assert type(result["record"]["keywords"]) is list
 
-    assert result[0]["metadata_version"] == ["1.2.3"]
-    assert type(result[0]["metadata_version"]) is list
+    assert result["record"]["metadata_version"] == ["1.2.3"]
+    assert type(result["record"]["metadata_version"]) is list
 
-    assert result[0]["subtitle"] == [
+    assert result["record"]["subtitle"] == [
         "Annotated pig brainstem scaffold available for registration of segmented neural anatomical-functional mapping of neural circuits."]
-    assert type(result[0]["subtitle"]) is list
+    assert type(result["record"]["subtitle"]) is list
 
-    assert result[0]["title"] == ["Generic pig brainstem scaffold"]
-    assert type(result[0]["title"]) is list
+    assert result["record"]["title"] == ["Generic pig brainstem scaffold"]
+    assert type(result["record"]["title"]) is list
 
-    assert result[0]["acknowledgments"] == [
+    assert result["record"]["acknowledgments"] == [
         "Beckman Institute for Advanced Science and Technology, Pig Imaging Group, University Of Illiois urbana-champaign"]
-    assert type(result[0]["acknowledgments"]) is list
+    assert type(result["record"]["acknowledgments"]) is list
 
-    assert result[0]["funding"] == [
+    assert result["record"]["funding"] == [
         "OT3OD025349"
     ]
-    assert type(result[0]["funding"]) is list
+    assert type(result["record"]["funding"]) is list
 
     # "dataset_type": "NA",
     # "identifier": "NA",
@@ -174,39 +174,39 @@ def test_manifest_node(client):
     dummy_token = response.json()
 
     UUID = "fd65a93f-ff62-45e4-b7b6-96419ef4f749"
-    response = client.post(
+    response = client.get(
         f"/record/{UUID}", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
 
-    assert result[0]["id"] == UUID
-    assert type(result[0]["id"]) is str
+    assert result["record"]["id"] == UUID
+    assert type(result["record"]["id"]) is str
 
-    assert result[0]["experiments"][0] == {
+    assert result["record"]["experiments"][0] == {
         "node_id": "22c4459b-5f4f-4e62-abd2-2aa205fe838b",
         "submitter_id": "dataset-217-version-2"
     }
-    assert type(result[0]["experiments"][0]) is dict
+    assert type(result["record"]["experiments"][0]) is dict
 
-    assert result[0]["type"] == "manifest"
-    assert type(result[0]["type"]) is str
+    assert result["record"]["type"] == "manifest"
+    assert type(result["record"]["type"]) is str
 
-    assert result[0]["project_id"] == Gen3Config.GEN3_PUBLIC_ACCESS
-    assert type(result[0]["project_id"]) is str
+    assert result["record"]["project_id"] == Gen3Config.GEN3_PUBLIC_ACCESS
+    assert type(result["record"]["project_id"]) is str
 
-    assert result[0]["submitter_id"] == "dataset-217-version-2-manifest-derivative-pig-brainstem-Layout1-view.json"
-    assert type(result[0]["submitter_id"]) is str
+    assert result["record"]["submitter_id"] == "dataset-217-version-2-manifest-derivative-pig-brainstem-Layout1-view.json"
+    assert type(result["record"]["submitter_id"]) is str
 
-    assert result[0]["filename"] == "derivative/pig_brainstem_Layout1_view.json"
-    assert type(result[0]["filename"]) is str
+    assert result["record"]["filename"] == "derivative/pig_brainstem_Layout1_view.json"
+    assert type(result["record"]["filename"]) is str
 
-    assert result[0]["additional_types"] == "application/x.vnd.abi.scaffold.view+json"
-    assert type(result[0]["additional_types"]) is str
+    assert result["record"]["additional_types"] == "application/x.vnd.abi.scaffold.view+json"
+    assert type(result["record"]["additional_types"]) is str
 
-    assert result[0]["is_derived_from"] == "pig_brainstem_metadata.json"
-    assert type(result[0]["is_derived_from"]) is str
+    assert result["record"]["is_derived_from"] == "pig_brainstem_metadata.json"
+    assert type(result["record"]["is_derived_from"]) is str
 
-    assert result[0]["is_source_of"] == "pig_brainstem_Layout1_thumbnail.jpeg"
-    assert type(result[0]["is_source_of"]) is str
+    assert result["record"]["is_source_of"] == "pig_brainstem_Layout1_thumbnail.jpeg"
+    assert type(result["record"]["is_source_of"]) is str
 
     # "description": "NA",
     # "file_type": "NA",
@@ -226,48 +226,48 @@ def test_case_node(client):
     dummy_token = response.json()
 
     UUID = "c58ab983-6cf9-4174-a7a9-20cdf1d6bc33"
-    response = client.post(
+    response = client.get(
         f"/record/{UUID}", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
 
-    assert result[0]["id"] == UUID
-    assert type(result[0]["id"]) is str
+    assert result["record"]["id"] == UUID
+    assert type(result["record"]["id"]) is str
 
-    assert result[0]["experiments"][0] == {
+    assert result["record"]["experiments"][0] == {
         "node_id": "f7bc3db5-4d4c-4c50-9124-0434a66a51a2",
         "submitter_id": "dataset-46-version-2"
     }
-    assert type(result[0]["experiments"][0]) is dict
+    assert type(result["record"]["experiments"][0]) is dict
 
-    assert result[0]["type"] == "case"
-    assert type(result[0]["type"]) is str
+    assert result["record"]["type"] == "case"
+    assert type(result["record"]["type"]) is str
 
-    assert result[0]["project_id"] == Gen3Config.GEN3_PUBLIC_ACCESS
-    assert type(result[0]["project_id"]) is str
+    assert result["record"]["project_id"] == Gen3Config.GEN3_PUBLIC_ACCESS
+    assert type(result["record"]["project_id"]) is str
 
-    assert result[0]["submitter_id"] == "dataset-46-version-2-subjects-sub-11011"
-    assert type(result[0]["submitter_id"]) is str
+    assert result["record"]["submitter_id"] == "dataset-46-version-2-subjects-sub-11011"
+    assert type(result["record"]["submitter_id"]) is str
 
-    assert result[0]["age"] == "12 weeks"
-    assert type(result[0]["age"]) is str
+    assert result["record"]["age"] == "12 weeks"
+    assert type(result["record"]["age"]) is str
 
-    assert result[0]["pool_id"] == "pool-1"
-    assert type(result[0]["pool_id"]) is str
+    assert result["record"]["pool_id"] == "pool-1"
+    assert type(result["record"]["pool_id"]) is str
 
-    assert result[0]["rrid_for_strain"] == "RRID:RGD_737903"
-    assert type(result[0]["rrid_for_strain"]) is str
+    assert result["record"]["rrid_for_strain"] == "RRID:RGD_737903"
+    assert type(result["record"]["rrid_for_strain"]) is str
 
-    assert result[0]["sex"] == "Male"
-    assert type(result[0]["sex"]) is str
+    assert result["record"]["sex"] == "Male"
+    assert type(result["record"]["sex"]) is str
 
-    assert result[0]["species"] == "Rattus norvegicus"
-    assert type(result[0]["species"]) is str
+    assert result["record"]["species"] == "Rattus norvegicus"
+    assert type(result["record"]["species"]) is str
 
-    assert result[0]["strain"] == "Sprague-Dawley"
-    assert type(result[0]["strain"]) is str
+    assert result["record"]["strain"] == "Sprague-Dawley"
+    assert type(result["record"]["strain"]) is str
 
-    assert result[0]["subject_id"] == "sub-11011"
-    assert type(result[0]["subject_id"]) is str
+    assert result["record"]["subject_id"] == "sub-11011"
+    assert type(result["record"]["subject_id"]) is str
 
     # "age_category": "NA",
     # "also_in_dataset": "NA",
