@@ -149,7 +149,7 @@ class PaginationFormat(object):
                 "scaffolds": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffolds"]),
                 "thumbnails": self.update_manifests_based(ele["id"], image_url_middle, self.update_thumbnails(ele["thumbnails"]), True),
                 "mris": self.update_manifests_based(ele["id"], image_url_middle, ele["mris"]),
-                "dicomImage": self.update_manifests_based(ele["id"], image_url_middle, ele["dicomImage"]),
+                "dicomImages": self.update_manifests_based(ele["id"], image_url_middle, ele["dicomImages"]),
                 "detailsReady": True,
             }
             result.append(dataset_item)
