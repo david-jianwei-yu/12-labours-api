@@ -1,3 +1,6 @@
+import re
+
+
 class QueryFormat(object):
     def __init__(self, fg, f):
         self.FILTERS = fg.get_filters()
@@ -52,3 +55,43 @@ class QueryFormat(object):
                 for ele in data[key]:
                     self.handle_matched_facet(related_facet, field, ele[field])
         return list(related_facet.values())
+
+    def update_mris(self, data):
+        mris = []
+        mri_path = {}
+        for mri in data:
+            filename = mri["filename"]
+            if "c0" in filename:
+                mris.append(mri)
+            start = filename.rindex("/") + 1
+            end = filename.rindex("_")
+            instance = filename[start:end]
+            if instance not in mri_path:
+                mri_path[instance] = [filename]
+            else:
+                mri_path[instance].append(filename)
+        return mris, mri_path
+
+    def update_dicom_images(self, data):
+        dicom_images = []
+        dicom_path = {}
+        for dicom in data:
+            filename = dicom["filename"].split("/")
+            study = re.sub('sub-', '', filename[1])
+            series = re.sub('sam-', '', filename[2])
+            instance = filename[3]
+            path = f"{study}/{series}"
+            if path not in dicom_path:
+                dicom_path[path] = instance
+                dicom_images.append(dicom)
+        return dicom_images, dicom_path
+
+    def modify_data_structure(self, data):
+        if data["dicomImages"] != []:
+            dicom_images, dicom_path = self.update_dicom_images(
+                data["dicomImages"])
+            data["dicomImages"] = dicom_images
+        if data["mris"] != []:
+            mris, mri_path = self.update_mris(data["mris"])
+            data["mris"] = mris
+        return data
