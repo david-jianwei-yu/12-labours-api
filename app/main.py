@@ -64,7 +64,7 @@ sgqlc = None
 a = Authenticator()
 
 
-def check_irods_status():
+def check_external_service():
     try:
         SESSION.collections.get(iRODSConfig.IRODS_ROOT_PATH)
         return True
@@ -96,7 +96,7 @@ async def start_up():
                                password=iRODSConfig.IRODS_PASSWORD,
                                zone=iRODSConfig.IRODS_ZONE)
         # SESSION.connection_timeout =
-        check_irods_status()
+        check_external_service()
     except Exception:
         print("Encounter an error while creating the iRODS session.")
 
@@ -148,7 +148,7 @@ def split_access(access):
 
 
 @ app.post("/access/token", tags=["Access"], summary="Create gen3 access token for authorized user", responses=access_token_responses)
-async def create_gen3_access(item: IdentityItem, connected: bool = Depends(check_irods_status)):
+async def create_gen3_access(item: IdentityItem, connected: bool = Depends(check_external_service)):
     if item.identity == None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Missing field in the request body")
@@ -357,7 +357,7 @@ async def get_gen3_metadata_file(uuid: str, format: FormatParam, access_scope: l
 
 
 @ app.post("/collection", tags=["iRODS"], summary="Get folder information", responses=collection_responses)
-async def get_irods_collection(item: CollectionItem, connected: bool = Depends(check_irods_status)):
+async def get_irods_collection(item: CollectionItem, connected: bool = Depends(check_external_service)):
     """
     Return all collections from the required folder.
 
@@ -394,7 +394,7 @@ async def get_irods_collection(item: CollectionItem, connected: bool = Depends(c
 
 
 @ app.get("/data/{action}/{filepath:path}", tags=["iRODS"], summary="Download irods file", response_description="Successfully return a file with data")
-async def get_irods_data_file(action: ActionParam, filepath: str, connected: bool = Depends(check_irods_status)):
+async def get_irods_data_file(action: ActionParam, filepath: str, connected: bool = Depends(check_external_service)):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
     OR
