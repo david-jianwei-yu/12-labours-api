@@ -110,21 +110,6 @@ dictionary_responses = {
 }
 
 
-class NodeParam(str, Enum):
-    experiment = "experiment"
-    dataset_description = "dataset_description"
-    manifest = "manifest"
-    case = "case"
-
-
-records_responses = {
-    200: {
-        "description": "Successfully return a list of json object contains all records metadata within a node",
-        "content": {"application/json": {"example": {"data": [{"project_id": "", "submitter_id": "", "id": "", "type": "experiment"}]}}}
-    }
-}
-
-
 record_responses = {
     200: {
         "description": "Successfully return a json object contains gen3 record metadata",

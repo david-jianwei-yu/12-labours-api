@@ -54,37 +54,6 @@ def test_get_gen3_dictionary(client):
     assert response.status_code == 200
 
 
-def test_get_gen3_node_records(client):
-    dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
-    }
-    response = client.post("/access/token", json=dummy_data)
-    dummy_token = response.json()
-
-    NODE_TYPE = "experiment"
-    response = client.post(
-        f"/records/{NODE_TYPE}", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
-    result = response.json()
-    assert response.status_code == 200
-    assert "data" in result
-
-    # NODE_TYPE = "resource"
-    # response = client.post(f"/records/{NODE_TYPE}", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
-    # result = response.json()
-    # assert response.status_code == 404
-    # assert result["detail"] == "No data found with node type experiment and check if the correct project or node type is used"
-
-    NODE_TYPE = "resource"
-    response = client.post(
-        f"/records/{NODE_TYPE}", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
-    assert response.status_code == 422
-
-    NODE_TYPE = "fakenode"
-    response = client.post(
-        f"/records/{NODE_TYPE}", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
-    assert response.status_code == 422
-
-
 def test_get_gen3_record(client):
     dummy_data = {
         "identity": "dummyemail@gmail.com>machine_id"
@@ -93,15 +62,15 @@ def test_get_gen3_record(client):
     dummy_token = response.json()
 
     UUID = "5b9ae1bd-e780-4869-a458-b3422084c480"
-    response = client.post(
+    response = client.get(
         f"/record/{UUID}", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
     assert response.status_code == 200
     assert len(result) == 1
-    assert result[0]["submitter_id"] == "dataset-217-version-2-dataset_description"
+    assert result["record"]["submitter_id"] == "dataset-217-version-2-dataset_description"
 
     UUID = "5b9ae1bd-e780-4869-a458-fakeuuidsuffix"
-    response = client.post(
+    response = client.get(
         f"/record/{UUID}", headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
     assert response.status_code == 404
@@ -269,7 +238,7 @@ def test_get_gen3_metadata_file(client):
     assert response.status_code == 200
     assert len(result) == 18
     assert result["submitter_id"] == "dataset-217-version-2"
-    
+
     UUID = "22c4459b-5f4f-4e62-abd2-fakeuuidsuffix"
     FORM = "json"
     response = client.get(f"/metadata/download/{UUID}/{FORM}",

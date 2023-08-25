@@ -185,25 +185,7 @@ async def get_gen3_dictionary(access_scope: list = Depends(a.gain_user_authority
     return dictionary_list
 
 
-@ app.post("/records/{node}", tags=["Gen3"], summary="Get gen3 node records information", responses=records_responses)
-async def get_gen3_node_records(node: NodeParam, access_scope: list = Depends(a.gain_user_authority)):
-    """
-    Return all records information in a dictionary node.
-
-    - **node**: The dictionary node to export.
-    """
-    program, project = split_access(access_scope)
-    node_record = SUBMISSION.export_node(program, project, node, "json")
-    if "message" in node_record:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=node_record["message"])
-    elif node_record["data"] == []:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"No data found with node type {node} and check if the correct project or node type is used")
-    return node_record
-
-
-@ app.post("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", responses=record_responses)
+@ app.get("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", responses=record_responses)
 async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_authority)):
     """
     Return record information in the Gen3 Data Commons.
@@ -215,7 +197,11 @@ async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_au
     if "message" in record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
-    return record
+    
+    result = {
+        "record": record[0]
+    }
+    return result
 
 
 @ app.post("/graphql/query", tags=["Gen3"], summary="GraphQL query gen3 metadata information", responses=query_responses)
