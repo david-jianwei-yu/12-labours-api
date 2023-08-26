@@ -197,15 +197,15 @@ async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_au
     if "message" in record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
-    
+
     result = {
         "record": record[0]
     }
     return result
 
 
-@ app.post("/graphql/query", tags=["Gen3"], summary="GraphQL query gen3 metadata information", responses=query_responses)
-async def get_gen3_graphql_query(item: GraphQLQueryItem, access_scope: list = Depends(a.gain_user_authority)):
+@ app.post("/graphql/query/", tags=["Gen3"], summary="GraphQL query gen3 metadata information", responses=query_responses)
+async def get_gen3_graphql_query(item: GraphQLQueryItem, mode: ModeParam, access_scope: list = Depends(a.gain_user_authority)):
     """
     Return queries metadata records. The API uses GraphQL query language.
 
@@ -222,20 +222,24 @@ async def get_gen3_graphql_query(item: GraphQLQueryItem, access_scope: list = De
     - string content,
     - only available in dataset_description/manifest/case nodes
     """
+    if mode != "data" and ("submitter_id" not in item.filter or len(item.filter["submitter_id"]) > 1):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Mode {mode} only available when query exact one dataset")
+
     item.access = access_scope
     query_result = sgqlc.get_queried_result(item)
-    result = {
-        "data": query_result[item.node],
-    }
-    # When use experiment_query to query specific dataset
-    # Add related facets
-    if "submitter_id" in item.filter and len(item.filter["submitter_id"]) == 1:
+
+    if len(query_result[item.node]) == 1:
         data = query_result[item.node][0]
-        result = {
-            "data": qf.modify_output_data(data),
-            "facets": qf.generate_related_facet(data)
-        }
-    return result
+    else:
+        data = query_result[item.node]
+    result = {
+        "data": {"data": data},
+        "facet": {"facets": qf.generate_related_facet(data, mode)},
+        "mri": {"mris": qf.generate_related_mri(data)},
+        "detail": {"data": qf.modify_output_data(data), "facets": qf.generate_related_facet(data, mode)},
+    }
+    return result[mode]
 
 
 @ app.post("/graphql/pagination/", tags=["Gen3"], summary="Display datasets", responses=pagination_responses)
@@ -450,13 +454,13 @@ async def get_orthanc_instance(item: InstanceItem):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Resource is not found in the orthanc server")
 
-    instance_ids = []
+    result = []
     for patient in patients:
         for study in patient.studies:
             for series in study.series:
                 for instance in series.instances:
-                    instance_ids.append(instance.id_)
-    return instance_ids
+                    result.append(instance.id_)
+    return result
 
 
 @ app.get("/dicom/export/{identifier}", tags=["Orthanc"], summary="Export dicom file", response_description="Successfully return a file with data")

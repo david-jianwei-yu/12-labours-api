@@ -125,6 +125,13 @@ record_responses = {
 }
 
 
+class ModeParam(str, Enum):
+    data = "data"
+    detail = "detail"
+    facet = "facet"
+    mri = "mri"
+
+
 class GraphQLQueryItem(BaseModel):
     node: Union[str, None] = None
     page: Union[int, None] = None
