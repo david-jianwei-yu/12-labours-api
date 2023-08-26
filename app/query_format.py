@@ -1,3 +1,6 @@
+from fastapi import HTTPException, status
+
+
 class QueryFormat(object):
     def __init__(self, fg, f):
         self.FILTERS = fg.get_filters()
@@ -76,7 +79,7 @@ class QueryFormat(object):
         if mode == "facet":
             return list(related_facet.values())
         return related_facet
-    
+
     def update_mris(self, data):
         mris = []
         for mri in data:
@@ -96,7 +99,6 @@ class QueryFormat(object):
             if folder_path not in dicom_images:
                 dicom_images[folder_path] = dicom
         return list(dicom_images.values())
-    
 
     def modify_output_data(self, data):
         if data["dicomImages"] != []:
@@ -106,3 +108,19 @@ class QueryFormat(object):
             mris = self.update_mris(data["mris"])
             data["mris"] = mris
         return data
+
+    def process_data_output(self, data, mode):
+        result = {}
+        if mode == "data":
+            result["data"] = data
+        elif mode == "detail":
+            result["data"] = self.modify_output_data(data)
+            result["facet"] = self.generate_related_facet(data, mode)
+        elif mode == "facet":
+            result["facets"] = self.generate_related_facet(data, mode)
+        elif mode == "mri":
+            result["mris"] = self.generate_related_mri(data)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid query mode {mode}")
+        return result

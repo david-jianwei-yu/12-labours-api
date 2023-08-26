@@ -229,17 +229,13 @@ async def get_gen3_graphql_query(item: GraphQLQueryItem, mode: ModeParam, access
     item.access = access_scope
     query_result = sgqlc.get_queried_result(item)
 
-    if len(query_result[item.node]) == 1:
-        data = query_result[item.node][0]
-    else:
+    def handle_result():
         data = query_result[item.node]
-    result = {
-        "data": {"data": data},
-        "facet": {"facets": qf.generate_related_facet(data, mode)},
-        "mri": {"mris": qf.generate_related_mri(data)},
-        "detail": {"data": qf.modify_output_data(data), "facets": qf.generate_related_facet(data, mode)},
-    }
-    return result[mode]
+        if len(data) == 1:
+            return data[0]
+        else:
+            return data
+    return qf.process_data_output(handle_result(), mode)
 
 
 @ app.post("/graphql/pagination/", tags=["Gen3"], summary="Display datasets", responses=pagination_responses)
