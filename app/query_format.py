@@ -19,16 +19,25 @@ class QueryFormat(object):
                 mri_path[filename].append(file_path)
         return mri_path
 
-    def handle_facet_object(self, filter_facet, mapped_element):
-        # Based on mapintergratedvuer map sidebar required filter format
-        facet_object = {}
-        facet_object["facet"] = filter_facet
-        facet_object["term"] = self.FILTERS[mapped_element]["title"].capitalize()
-        facet_object["facetPropPath"] = self.FILTERS[mapped_element]["node"] + \
-            ">" + self.FILTERS[mapped_element]["field"]
-        return facet_object
+    def handle_facet_structure(self, related_facet, filter_facet, mapped_element, mode):
+        if mode == "detail":
+            title = self.FILTERS[mapped_element]["title"].capitalize()
+            if title in related_facet and filter_facet not in related_facet[title]:
+                related_facet[title].append(filter_facet)
+            else:
+                related_facet[title] = [filter_facet]
+        else:
+            if filter_facet not in related_facet:
+                # Based on mapintergratedvuer map sidebar required filter format
+                facet_object = {}
+                facet_object["facet"] = filter_facet
+                facet_object["term"] = self.FILTERS[mapped_element]["title"].capitalize(
+                )
+                facet_object["facetPropPath"] = self.FILTERS[mapped_element]["node"] + \
+                    ">" + self.FILTERS[mapped_element]["field"]
+                related_facet[filter_facet] = facet_object
 
-    def check_facet(self, facet_value, field, field_value):
+    def handle_facet_check(self, facet_value, field, field_value):
         if type(facet_value) == str:
             # For study_organ_system
             # Array type field
@@ -43,21 +52,12 @@ class QueryFormat(object):
             return True
         return False
 
-    def handle_matched_facet(self, related_facet, field, field_value, mode):
+    def handle_facet(self, related_facet, field, field_value, mode):
         mapped_element = f"MAPPED_{field.upper()}"
         for filter_facet, facet_value in self.FILTERS[mapped_element]["facets"].items():
-            is_match = self.check_facet(facet_value, field, field_value)
-            if is_match:
-                if mode == "facet":
-                    if filter_facet not in related_facet:
-                        related_facet[filter_facet] = self.handle_facet_object(
-                            filter_facet, mapped_element)
-                else:
-                    title = self.FILTERS[mapped_element]["title"].capitalize()
-                    if title in related_facet and filter_facet not in related_facet[title]:
-                        related_facet[title].append(filter_facet)
-                    else:
-                        related_facet[title] = [filter_facet]
+            if self.handle_facet_check(facet_value, field, field_value):
+                self.handle_facet_structure(
+                    related_facet, filter_facet, mapped_element, mode)
 
     def generate_related_facet(self, data, mode):
         related_facet = {}
@@ -74,8 +74,7 @@ class QueryFormat(object):
             field = info.split(">")[1]
             if key in data and data[key] != []:
                 for ele in data[key]:
-                    self.handle_matched_facet(
-                        related_facet, field, ele[field], mode)
+                    self.handle_facet(related_facet, field, ele[field], mode)
         if mode == "facet":
             return list(related_facet.values())
         return related_facet
@@ -122,5 +121,5 @@ class QueryFormat(object):
             result["mris"] = self.generate_related_mri(data)
         else:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid query mode {mode}")
+                status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail=f"Invalid query mode {mode}")
         return result

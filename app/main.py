@@ -224,7 +224,7 @@ async def get_gen3_graphql_query(item: GraphQLQueryItem, mode: ModeParam, access
     """
     if mode != "data" and ("submitter_id" not in item.filter or len(item.filter["submitter_id"]) > 1):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"Mode {mode} only available when query exact one dataset")
+                            detail=f"Mode {mode} only available when query exact one dataset with node experiment_query")
 
     item.access = access_scope
     query_result = sgqlc.get_queried_result(item)
