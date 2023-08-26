@@ -6,7 +6,7 @@ class PaginationFormat(object):
     def __init__(self, fg):
         self.FG = fg
 
-    def update_thumbnails(self, data):
+    def update_thumbnail(self, data):
         result = []
         if data == []:
             return result
@@ -71,7 +71,7 @@ class PaginationFormat(object):
             return ""
         return full_url
 
-    def update_manifests_based(self, uuid, middle, data, image=False):
+    def update_manifest_based(self, uuid, middle, data, image=False):
         result = []
         for ele in data:
             item = {
@@ -115,7 +115,7 @@ class PaginationFormat(object):
                     result.append(species)
         return result
 
-    def update_contributors(self, data):
+    def update_contributor(self, data):
         result = []
         if data == []:
             return result
@@ -136,7 +136,7 @@ class PaginationFormat(object):
                 "belong_to": access,
                 "data_url_suffix": f"/data/browser/dataset/{dataset_id}?datasetTab=abstract&access={access}",
                 "source_url_middle": f"/data/download/{dataset_id}/",
-                "contributors": self.update_contributors(ele["dataset_descriptions"][0]["contributor_name"]),
+                "contributors": self.update_contributor(ele["dataset_descriptions"][0]["contributor_name"]),
                 "keywords": ele["dataset_descriptions"][0]["keywords"],
                 "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
                 "numberSubjects": int(ele["dataset_descriptions"][0]["number_of_subjects"][0]),
@@ -144,12 +144,12 @@ class PaginationFormat(object):
                 "datasetId": dataset_id,
                 "organs": ele["dataset_descriptions"][0]["study_organ_system"],
                 "species": self.update_species(ele["cases"]),
-                "plots": self.update_manifests_based(ele["id"], image_url_middle, ele["plots"]),
-                "scaffoldViews": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffoldViews"], True),
-                "scaffolds": self.update_manifests_based(ele["id"], image_url_middle, ele["scaffolds"]),
-                "thumbnails": self.update_manifests_based(ele["id"], image_url_middle, self.update_thumbnails(ele["thumbnails"]), True),
-                "mris": self.update_manifests_based(ele["id"], image_url_middle, ele["mris"]),
-                "dicomImages": self.update_manifests_based(ele["id"], image_url_middle, ele["dicomImages"]),
+                "plots": self.update_manifest_based(ele["id"], image_url_middle, ele["plots"]),
+                "scaffoldViews": self.update_manifest_based(ele["id"], image_url_middle, ele["scaffoldViews"], True),
+                "scaffolds": self.update_manifest_based(ele["id"], image_url_middle, ele["scaffolds"]),
+                "thumbnails": self.update_manifest_based(ele["id"], image_url_middle, self.update_thumbnail(ele["thumbnails"]), True),
+                "mris": self.update_manifest_based(ele["id"], image_url_middle, ele["mris"]),
+                "dicomImages": self.update_manifest_based(ele["id"], image_url_middle, ele["dicomImages"]),
                 "detailsReady": True,
             }
             result.append(dataset_item)

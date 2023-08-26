@@ -100,7 +100,7 @@ class QueryFormat(object):
                 dicom_images[folder_path] = dicom
         return list(dicom_images.values())
 
-    def modify_output_data(self, data):
+    def modify_data_content(self, data):
         if data["dicomImages"] != []:
             dicom_images = self.update_dicom_images(data["dicomImages"])
             data["dicomImages"] = dicom_images
@@ -114,7 +114,7 @@ class QueryFormat(object):
         if mode == "data":
             result["data"] = data
         elif mode == "detail":
-            result["data"] = self.modify_output_data(data)
+            result["data"] = self.modify_data_content(data)
             result["facet"] = self.generate_related_facet(data, mode)
         elif mode == "facet":
             result["facets"] = self.generate_related_facet(data, mode)
