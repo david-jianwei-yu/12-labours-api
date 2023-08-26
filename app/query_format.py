@@ -73,23 +73,20 @@ class QueryFormat(object):
         return mris, mri_path
 
     def update_dicom_images(self, data):
-        dicom_images = []
-        dicom_path = {}
+        dicom_images = {}
         for dicom in data:
-            filename = dicom["filename"].split("/")
-            study = re.sub('sub-', '', filename[1])
-            series = re.sub('sam-', '', filename[2])
-            instance = filename[3]
-            path = f"{study}/{series}"
-            if path not in dicom_path:
-                dicom_path[path] = instance
-                dicom_images.append(dicom)
-        return dicom_images, dicom_path
+            file_path = dicom["filename"]
+            # Find the last "/" index in the file path
+            index = file_path.rindex("/")
+            folder_path = file_path[:index]
+            # Keep only the first dicom data each folder
+            if folder_path not in dicom_images:
+                dicom_images[folder_path] = dicom
+        return list(dicom_images.values())
 
-    def modify_data_structure(self, data):
+    def modify_output_data(self, data):
         if data["dicomImages"] != []:
-            dicom_images, dicom_path = self.update_dicom_images(
-                data["dicomImages"])
+            dicom_images = self.update_dicom_images(data["dicomImages"])
             data["dicomImages"] = dicom_images
         if data["mris"] != []:
             mris, mri_path = self.update_mris(data["mris"])

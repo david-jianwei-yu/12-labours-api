@@ -232,7 +232,7 @@ async def get_gen3_graphql_query(item: GraphQLQueryItem, access_scope: list = De
     if "submitter_id" in item.filter and len(item.filter["submitter_id"]) == 1:
         data = query_result[item.node][0]
         result = {
-            "data": qf.modify_data_structure(data),
+            "data": qf.modify_output_data(data),
             "facets": qf.generate_related_facet(data)
         }
     return result
