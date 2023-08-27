@@ -19,23 +19,30 @@ class QueryFormat(object):
                 mri_path[filename].append(file_path)
         return mri_path
 
+    def handle_detail_mode(self, related_facet, filter_facet, mapped_element):
+        title = self.FILTERS[mapped_element]["title"].capitalize()
+        if title in related_facet and filter_facet not in related_facet[title]:
+            related_facet[title].append(filter_facet)
+        else:
+            related_facet[title] = [filter_facet]
+
+    def handle_facet_mode(self, related_facet, filter_facet, mapped_element):
+        if filter_facet not in related_facet:
+            # Based on mapintergratedvuer map sidebar required filter format
+            facet_object = {}
+            facet_object["facet"] = filter_facet
+            facet_object["term"] = self.FILTERS[mapped_element]["title"].capitalize(
+            )
+            facet_object["facetPropPath"] = self.FILTERS[mapped_element]["node"] + \
+                ">" + self.FILTERS[mapped_element]["field"]
+            related_facet[filter_facet] = facet_object
+
     def handle_facet_structure(self, related_facet, filter_facet, mapped_element, mode):
         if mode == "detail":
-            title = self.FILTERS[mapped_element]["title"].capitalize()
-            if title in related_facet and filter_facet not in related_facet[title]:
-                related_facet[title].append(filter_facet)
-            else:
-                related_facet[title] = [filter_facet]
-        else:
-            if filter_facet not in related_facet:
-                # Based on mapintergratedvuer map sidebar required filter format
-                facet_object = {}
-                facet_object["facet"] = filter_facet
-                facet_object["term"] = self.FILTERS[mapped_element]["title"].capitalize(
-                )
-                facet_object["facetPropPath"] = self.FILTERS[mapped_element]["node"] + \
-                    ">" + self.FILTERS[mapped_element]["field"]
-                related_facet[filter_facet] = facet_object
+            self.handle_detail_mode(
+                related_facet, filter_facet, mapped_element)
+        elif mode == "facet":
+            self.handle_facet_mode(related_facet, filter_facet, mapped_element)
 
     def handle_facet_check(self, facet_value, field, field_value):
         if type(facet_value) == str:
@@ -75,9 +82,10 @@ class QueryFormat(object):
             if key in data and data[key] != []:
                 for ele in data[key]:
                     self.handle_facet(related_facet, field, ele[field], mode)
-        if mode == "facet":
+        if mode == "deatil":
+            return related_facet
+        elif mode == "facet":
             return list(related_facet.values())
-        return related_facet
 
     def update_mris(self, data):
         mris = []
