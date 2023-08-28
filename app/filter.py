@@ -10,9 +10,6 @@ class Filter(object):
     def __init__(self, fg):
         self.FG = fg
 
-    def get_fields(self):
-        return FIELDS
-
     def generate_filtered_dataset(self, filter, field, data):
         result = []
         for dataset in data:

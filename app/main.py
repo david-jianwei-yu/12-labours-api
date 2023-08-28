@@ -116,7 +116,7 @@ async def start_up():
     pf = PaginationFormat(fg)
     f = Filter(fg)
     p = Pagination(fg, f, s, sgqlc)
-    qf = QueryFormat(fg, f)
+    qf = QueryFormat(fg)
 
 
 @ app.on_event("startup")
@@ -212,6 +212,7 @@ async def get_gen3_graphql_query(item: GraphQLQueryItem, mode: ModeParam, access
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"Mode {mode} only available when query exact one dataset with node experiment_query")
 
+    qf.set_mode(mode)
     item.access = access_scope
     query_result = sgqlc.get_queried_result(item)
 
@@ -221,7 +222,7 @@ async def get_gen3_graphql_query(item: GraphQLQueryItem, mode: ModeParam, access
             return data[0]
         else:
             return data
-    return qf.process_data_output(handle_result(), mode)
+    return qf.process_data_output(handle_result())
 
 
 @ app.post("/graphql/pagination/", tags=["Gen3"], summary="Display datasets", responses=pagination_responses)

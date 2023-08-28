@@ -1,7 +1,13 @@
+import re
+
+
 class QueryFormat(object):
-    def __init__(self, fg, f):
+    def __init__(self, fg):
         self.FILTERS = fg.get_filters()
-        self.FIELDS = f.get_fields()
+        self.mode = None
+
+    def set_mode(self, mode):
+        self.mode = mode
 
     def generate_related_mri(self, data):
         mri_path = {}
@@ -34,18 +40,11 @@ class QueryFormat(object):
         else:
             related_facet[title] = [filter_facet]
 
-    def handle_facet_structure(self, related_facet, filter_facet, mapped_element, mode):
-        if mode == "detail":
-            self.handle_detail_mode(
-                related_facet, filter_facet, mapped_element)
-        elif mode == "facet":
-            self.handle_facet_mode(related_facet, filter_facet, mapped_element)
-
-    def handle_facet_check(self, facet_value, field, field_value):
+    def handle_facet_check(self, facet_value, field_value):
         if type(facet_value) == str:
             # For study_organ_system
             # Array type field
-            if field in self.FIELDS and facet_value in field_value:
+            if type(field_value) == list and facet_value in field_value:
                 return True
             # For age_category/sex/species
             # String type field
@@ -56,14 +55,20 @@ class QueryFormat(object):
             return True
         return False
 
-    def handle_facet(self, related_facet, field, field_value, mode):
+    def handle_facet_structure(self, related_facet, field, data):
         mapped_element = f"MAPPED_{field.upper()}"
         for filter_facet, facet_value in self.FILTERS[mapped_element]["facets"].items():
-            if self.handle_facet_check(facet_value, field, field_value):
-                self.handle_facet_structure(
-                    related_facet, filter_facet, mapped_element, mode)
+            for ele in data:
+                field_value = ele[field]
+                if self.handle_facet_check(facet_value, field_value):
+                    if self.mode == "detail":
+                        self.handle_detail_mode(
+                            related_facet, filter_facet, mapped_element)
+                    elif self.mode == "facet":
+                        self.handle_facet_mode(
+                            related_facet, filter_facet, mapped_element)
 
-    def generate_related_facet(self, data, mode):
+    def generate_related_facet(self, data):
         related_facet = {}
         facet_source = [
             "dataset_descriptions>study_organ_system",
@@ -77,18 +82,18 @@ class QueryFormat(object):
             key = info.split(">")[0]
             field = info.split(">")[1]
             if key in data and data[key] != []:
-                for ele in data[key]:
-                    self.handle_facet(related_facet, field, ele[field], mode)
-        if mode == "detail":
+                self.handle_facet_structure(related_facet, field, data[key])
+        if self.mode == "detail":
             return related_facet
-        elif mode == "facet":
+        elif self.mode == "facet":
             return list(related_facet.values())
 
     def update_mri(self, data):
         mris = []
         for mri in data:
             file_path = mri["filename"]
-            if "c0" in file_path:
+            if "_c0" in file_path:
+                mri["filename"] = re.sub('_c0', '', mri["filename"])
                 mris.append(mri)
         return mris
 
@@ -106,22 +111,20 @@ class QueryFormat(object):
 
     def update_detail_content(self, data):
         if data["dicomImages"] != []:
-            dicom_images = self.update_dicom_image(data["dicomImages"])
-            data["dicomImages"] = dicom_images
+            data["dicomImages"] = self.update_dicom_image(data["dicomImages"])
         if data["mris"] != []:
-            mris = self.update_mri(data["mris"])
-            data["mris"] = mris
+            data["mris"] = self.update_mri(data["mris"])
         return data
 
-    def process_data_output(self, data, mode):
+    def process_data_output(self, data):
         result = {}
-        if mode == "data":
+        if self.mode == "data":
             result["data"] = data
-        elif mode == "detail":
+        elif self.mode == "detail":
             result["detail"] = self.update_detail_content(data)
-            result["facet"] = self.generate_related_facet(data, mode)
-        elif mode == "facet":
-            result["facet"] = self.generate_related_facet(data, mode)
-        elif mode == "mri":
+            result["facet"] = self.generate_related_facet(data)
+        elif self.mode == "facet":
+            result["facet"] = self.generate_related_facet(data)
+        elif self.mode == "mri":
             result["mri"] = self.generate_related_mri(data)
         return result
