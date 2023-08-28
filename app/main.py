@@ -182,7 +182,7 @@ async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_au
     record = SUBMISSION.export_record(program, project, uuid, "json")
     if "message" in record:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"{record['message']} and check if the correct project or uuid is used")
 
     result = {
         "record": record[0]
@@ -208,6 +208,12 @@ async def get_gen3_graphql_query(item: GraphQLQueryItem, mode: ModeParam, access
     - string content,
     - only available in dataset_description/manifest/case nodes
     """
+    if mode not in ["data", "detail", "facet", "mri"]:
+        raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+                            detail=f"The query mode ({mode}) is not provided in this API")
+
+    # Mode detail/facet/mri only be supported when query one dataset in experiment node
+    # Use to pre-process the data
     if mode != "data" and ("submitter_id" not in item.filter or len(item.filter["submitter_id"]) > 1):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"Mode {mode} only available when query exact one dataset with node experiment_query")
@@ -353,7 +359,7 @@ async def get_irods_collection(item: CollectionItem, connected: bool = Depends(c
         return collection
     try:
         collect = SESSION.collections.get(
-            iRODSConfig.IRODS_ROOT_PATH + item.path)
+            f"{iRODSConfig.IRODS_ROOT_PATH}{item.path}")
         folder = handle_collection(collect.subcollections)
         file = handle_collection(collect.data_objects)
         result = {
@@ -377,9 +383,10 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
     - **filepath**: Required iRODS file path.
     """
     chunk_size = 1024*1024*1024
-    if action != "preview" and action != "download":
+
+    if action not in ["preview", "download"]:
         raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
-                            detail="The action is not provided in this API")
+                            detail=f"The action ({action}) is not provided in this API")
 
     if not connected:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
