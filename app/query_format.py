@@ -110,6 +110,8 @@ class QueryFormat(object):
         return list(dicom_images.values())
 
     def update_detail_content(self, data):
+        # Combine multiple files within the dataset into one
+        # Only need to display one in the portal
         if data["dicomImages"] != []:
             data["dicomImages"] = self.update_dicom_image(data["dicomImages"])
         if data["mris"] != []:
@@ -122,9 +124,12 @@ class QueryFormat(object):
             result["data"] = data
         elif self.mode == "detail":
             result["detail"] = self.update_detail_content(data)
+            # Filter format facet
             result["facet"] = self.generate_related_facet(data)
         elif self.mode == "facet":
+            # Sidebar format facet
             result["facet"] = self.generate_related_facet(data)
         elif self.mode == "mri":
+            # Combine 5 sub-file paths based on filename
             result["mri"] = self.generate_related_mri(data)
         return result
