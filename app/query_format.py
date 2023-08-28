@@ -16,13 +16,6 @@ class QueryFormat(object):
                 mri_path[filename].append(file_path)
         return mri_path
 
-    def handle_detail_mode(self, related_facet, filter_facet, mapped_element):
-        title = self.FILTERS[mapped_element]["title"].capitalize()
-        if title in related_facet and filter_facet not in related_facet[title]:
-            related_facet[title].append(filter_facet)
-        else:
-            related_facet[title] = [filter_facet]
-
     def handle_facet_mode(self, related_facet, filter_facet, mapped_element):
         if filter_facet not in related_facet:
             # Based on mapintergratedvuer map sidebar required filter format
@@ -33,6 +26,13 @@ class QueryFormat(object):
             facet_object["facetPropPath"] = self.FILTERS[mapped_element]["node"] + \
                 ">" + self.FILTERS[mapped_element]["field"]
             related_facet[filter_facet] = facet_object
+
+    def handle_detail_mode(self, related_facet, filter_facet, mapped_element):
+        title = self.FILTERS[mapped_element]["title"].capitalize()
+        if title in related_facet and filter_facet not in related_facet[title]:
+            related_facet[title].append(filter_facet)
+        else:
+            related_facet[title] = [filter_facet]
 
     def handle_facet_structure(self, related_facet, filter_facet, mapped_element, mode):
         if mode == "detail":
@@ -84,7 +84,7 @@ class QueryFormat(object):
         elif mode == "facet":
             return list(related_facet.values())
 
-    def update_mris(self, data):
+    def update_mri(self, data):
         mris = []
         for mri in data:
             file_path = mri["filename"]
@@ -92,7 +92,7 @@ class QueryFormat(object):
                 mris.append(mri)
         return mris
 
-    def update_dicom_images(self, data):
+    def update_dicom_image(self, data):
         dicom_images = {}
         for dicom in data:
             file_path = dicom["filename"]
@@ -106,10 +106,10 @@ class QueryFormat(object):
 
     def update_detail_content(self, data):
         if data["dicomImages"] != []:
-            dicom_images = self.update_dicom_images(data["dicomImages"])
+            dicom_images = self.update_dicom_image(data["dicomImages"])
             data["dicomImages"] = dicom_images
         if data["mris"] != []:
-            mris = self.update_mris(data["mris"])
+            mris = self.update_mri(data["mris"])
             data["mris"] = mris
         return data
 

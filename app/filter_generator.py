@@ -78,12 +78,12 @@ class FilterGenerator(object):
     def get_filters(self):
         return FILTERS
 
-    def add_facets(self, facets, exist, value):
+    def add_facet(self, facets, exist, value):
         name = value.capitalize()
         if name not in exist:
             facets[name] = value
 
-    def update_filter_facets(self, temp_data, element, is_private=False):
+    def update_filter_facet(self, temp_data, element, is_private=False):
         filter_facets = {}
         if is_private:
             exist_facets = FILTERS[element]["facets"]
@@ -96,9 +96,9 @@ class FilterGenerator(object):
             field_value = ele[field]
             if type(field_value) == list and field_value != []:
                 for sub_value in field_value:
-                    self.add_facets(filter_facets, exist_facets, sub_value)
+                    self.add_facet(filter_facets, exist_facets, sub_value)
             elif type(field_value) == str and field_value != "NA":
-                self.add_facets(filter_facets, exist_facets, field_value)
+                self.add_facet(filter_facets, exist_facets, field_value)
         return filter_facets
 
     def update_temp_node_dict(self, temp_dict, element, access=None):
@@ -124,7 +124,7 @@ class FilterGenerator(object):
                     self.update_temp_node_dict(
                         temp_node_dict, mapped_element, access_scope)
 
-                    filter_facets = self.update_filter_facets(
+                    filter_facets = self.update_filter_facet(
                         temp_node_dict, mapped_element, is_private)
                     if filter_facets != {}:
                         updated_element = FILTERS[mapped_element]["facets"] | filter_facets
@@ -146,7 +146,7 @@ class FilterGenerator(object):
                 # Add to temp_node_dict, avoid node data duplicate fetch
                 self.update_temp_node_dict(temp_node_dict, mapped_element)
 
-                filter_facets = self.update_filter_facets(
+                filter_facets = self.update_filter_facet(
                     temp_node_dict, mapped_element)
                 if filter_facets == {}:
                     return not is_generated

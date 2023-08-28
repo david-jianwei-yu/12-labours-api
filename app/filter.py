@@ -13,7 +13,7 @@ class Filter(object):
     def get_fields(self):
         return FIELDS
 
-    def generate_filtered_datasets(self, filter, field, data):
+    def generate_filtered_dataset(self, filter, field, data):
         result = []
         for dataset in data:
             for kwd in filter[field]:
@@ -21,10 +21,10 @@ class Filter(object):
                     result.append(dataset)
         return result
 
-    def get_filtered_datasets(self, filter, data):
+    def get_filtered_dataset(self, filter, data):
         field = list(filter.keys())[0]
         if field in FIELDS:
-            data = self.generate_filtered_datasets(filter, field, data)
+            data = self.generate_filtered_dataset(filter, field, data)
         dataset_list = []
         for record in data:
             if "experiments" in record:

@@ -193,7 +193,7 @@ class Pagination(object):
 
             for key in fetched_data:
                 filter = json.loads(key)
-                filtered_dataset = self.F.get_filtered_datasets(
+                filtered_dataset = self.F.get_filtered_dataset(
                     filter, fetched_data[key])
                 filter_dict["submitter_id"].append(filtered_dataset)
             item.filter = filter_dict
@@ -202,7 +202,7 @@ class Pagination(object):
         # SEARCH
         if input != "":
             # If input does not match any content in the database, item.search will be empty dictionary
-            item.search["submitter_id"] = self.S.get_searched_datasets(input)
+            item.search["submitter_id"] = self.S.get_searched_dataset(input)
             if item.search != {} and ("submitter_id" not in item.filter or item.filter["submitter_id"] != []):
                 has_search_result = True
                 self.S.search_filter_relation(item)

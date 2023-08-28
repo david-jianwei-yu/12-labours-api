@@ -18,7 +18,7 @@ class Search(object):
     def __init__(self, session):
         self.SESSION = session
 
-    def generate_searched_datasets(self, keyword_list):
+    def generate_searched_dataset(self, keyword_list):
         dataset_dict = {}
         for keyword in keyword_list:
             try:
@@ -46,9 +46,9 @@ class Search(object):
         return dataset_dict
 
     # The dataset list order is based on how the dataset content is relevant to the input string.
-    def get_searched_datasets(self, input):
+    def get_searched_dataset(self, input):
         keyword_list = re.findall('[a-zA-Z0-9]+', input.lower())
-        dataset_dict = self.generate_searched_datasets(keyword_list)
+        dataset_dict = self.generate_searched_dataset(keyword_list)
         dataset_list = sorted(
             dataset_dict, key=dataset_dict.get, reverse=True)
         return dataset_list
