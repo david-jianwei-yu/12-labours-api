@@ -37,7 +37,7 @@ class Filter(object):
             dataset_list = set(nested_list[0]).intersection(*nested_list)
         elif item.relation == "or":  # OR relationship
             dataset_list = set()
-            for sublist in nested_list:
-                for id in sublist:
+            for sub_list in nested_list:
+                for id in sub_list:
                     dataset_list.add(id)
         item.filter["submitter_id"] = list(dataset_list)

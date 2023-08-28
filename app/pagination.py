@@ -12,6 +12,7 @@ from app.data_schema import GraphQLQueryItem, GraphQLPaginationItem
 class Pagination(object):
     def __init__(self, fg, f, s, sgqlc):
         self.FG = fg
+        self.FILTERS = fg.get_filters()
         self.F = f
         self.S = s
         self.SGQLC = sgqlc
@@ -133,17 +134,16 @@ class Pagination(object):
         return len(displayed_dataset), match_pair
 
     def handle_pagination_item_filter(self, field, facets, private_filter):
-        FILTERS = self.FG.get_filters()
         value_list = []
         for facet in facets:
             # Use .capitalize() to make it non-case sensitive
             # Avoid mis-match
             facet_name = facet.capitalize()
-            for mapped_element in FILTERS:
+            for mapped_element in self.FILTERS:
                 if mapped_element in private_filter:
                     filter_dict = private_filter
                 else:
-                    filter_dict = FILTERS
+                    filter_dict = self.FILTERS
                 # Check if title can match with a exist filter object
                 if filter_dict[mapped_element]["field"] == field:
                     # Check if ele_name is a key under filter object element field

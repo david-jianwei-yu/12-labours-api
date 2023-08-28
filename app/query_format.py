@@ -12,14 +12,14 @@ class QueryFormat(object):
     def generate_related_mri(self, data):
         mri_path = {}
         for mri in data["mris"]:
-            file_path = mri["filename"]
-            start = file_path.rindex("/") + 1
-            end = file_path.rindex("_")
-            filename = file_path[start:end]
+            filepath = mri["filename"]
+            start = filepath.rindex("/") + 1
+            end = filepath.rindex("_")
+            filename = filepath[start:end]
             if filename not in mri_path:
-                mri_path[filename] = [file_path]
+                mri_path[filename] = [filepath]
             else:
-                mri_path[filename].append(file_path)
+                mri_path[filename].append(filepath)
         return mri_path
 
     def handle_facet_mode(self, related_facet, filter_facet, mapped_element):
@@ -91,8 +91,8 @@ class QueryFormat(object):
     def update_mri(self, data):
         mris = []
         for mri in data:
-            file_path = mri["filename"]
-            if "_c0" in file_path:
+            filepath = mri["filename"]
+            if "_c0" in filepath:
                 mri["filename"] = re.sub('_c0', '', mri["filename"])
                 mris.append(mri)
         return mris
@@ -100,10 +100,10 @@ class QueryFormat(object):
     def update_dicom_image(self, data):
         dicom_images = {}
         for dicom in data:
-            file_path = dicom["filename"]
+            filepath = dicom["filename"]
             # Find the last "/" index in the file path
-            index = file_path.rindex("/")
-            folder_path = file_path[:index]
+            index = filepath.rindex("/")
+            folder_path = filepath[:index]
             # Keep only the first dicom data each folder
             if folder_path not in dicom_images:
                 dicom_images[folder_path] = dicom
