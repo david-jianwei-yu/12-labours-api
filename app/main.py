@@ -171,21 +171,6 @@ async def revoke_gen3_access(is_revoked: bool = Depends(a.revoke_user_authority)
                             detail="Revoke access successfully")
 
 
-@ app.post("/dictionary", tags=["Gen3"], summary="Get gen3 dictionary information", responses=dictionary_responses)
-async def get_gen3_dictionary(access_scope: list = Depends(a.gain_user_authority)):
-    """
-    Return all dictionary nodes from the Gen3 Data Commons
-    """
-    program, project = split_access(access_scope)
-    dictionary = SUBMISSION.get_project_dictionary(program, project)
-    dictionary_list = {"dictionary": []}
-    for ele in dictionary["links"]:
-        ele = ele.replace(
-            f"/v0/submission/{program}/{project}/_dictionary/", "")
-        dictionary_list["dictionary"].append(ele)
-    return dictionary_list
-
-
 @ app.get("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", responses=record_responses)
 async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_authority)):
     """
