@@ -82,7 +82,7 @@ class QueryFormat(object):
             if key in data and data[key] != []:
                 for ele in data[key]:
                     self.handle_facet(related_facet, field, ele[field], mode)
-        if mode == "deatil":
+        if mode == "detail":
             return related_facet
         elif mode == "facet":
             return list(related_facet.values())
@@ -107,7 +107,7 @@ class QueryFormat(object):
                 dicom_images[folder_path] = dicom
         return list(dicom_images.values())
 
-    def modify_data_content(self, data):
+    def update_detail_content(self, data):
         if data["dicomImages"] != []:
             dicom_images = self.update_dicom_images(data["dicomImages"])
             data["dicomImages"] = dicom_images
@@ -121,12 +121,12 @@ class QueryFormat(object):
         if mode == "data":
             result["data"] = data
         elif mode == "detail":
-            result["data"] = self.modify_data_content(data)
+            result["detail"] = self.update_detail_content(data)
             result["facet"] = self.generate_related_facet(data, mode)
         elif mode == "facet":
-            result["facets"] = self.generate_related_facet(data, mode)
+            result["facet"] = self.generate_related_facet(data, mode)
         elif mode == "mri":
-            result["mris"] = self.generate_related_mri(data)
+            result["mri"] = self.generate_related_mri(data)
         else:
             raise HTTPException(
                 status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail=f"Invalid query mode {mode}")

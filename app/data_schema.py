@@ -102,14 +102,6 @@ access_revoke_responses = {
 }
 
 
-dictionary_responses = {
-    200: {
-        "description": "Successfully return a list of Gen3 dictionary name",
-        "content": {"application/json": {"example": {"dictionary": []}}}
-    }
-}
-
-
 record_responses = {
     200: {
         "description": "Successfully return a json object contains gen3 record metadata",
@@ -156,11 +148,15 @@ class GraphQLQueryItem(BaseModel):
 query_responses = {
     200: {
         "description": "Successfully return a list of queried datasets",
-        "content": {"application/json": {"example": [{
-            "cases": [], "dataset_descriptions": [],  "id": "", "plots": [],
-            "scaffoldViews": [], "scaffolds": [], "submitter_id": "", "thumbnails": []
-        }]}}
-    }
+        "content": {"application/json": {"example": {
+            "data mode": {"data": {"cases": [], "dataset_descriptions": [],  "id": "", "plots": [],
+                                   "scaffoldViews": [], "scaffolds": [], "submitter_id": "", "thumbnails": []}},
+            "detail mode": {"detail": {}, "facet": {}},
+            "facet mode": {"facet": [{"facet": "", "term": "", "facetPropPath": ""}]},
+            "mri mode": {"mri": {"filename": ["filepath"]}}
+        }}}
+    },
+    400: {"content": {"application/json": {"example": {"detail": "Mode detail/facet/mri only available when query exact one dataset with node experiment_query"}}}}
 }
 
 
