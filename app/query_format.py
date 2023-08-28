@@ -1,6 +1,3 @@
-from fastapi import HTTPException, status
-
-
 class QueryFormat(object):
     def __init__(self, fg, f):
         self.FILTERS = fg.get_filters()
@@ -127,7 +124,4 @@ class QueryFormat(object):
             result["facet"] = self.generate_related_facet(data, mode)
         elif mode == "mri":
             result["mri"] = self.generate_related_mri(data)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail=f"Invalid query mode {mode}")
         return result
