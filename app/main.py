@@ -33,12 +33,12 @@ app = FastAPI(
     #     "name": "",
     #     "url": "",
     # }
-    openapi_tags=tags_metadata,
+    openapi_tags=tags_metadata
 )
 
 # Cross orgins, allow any for now
 origins = [
-    '*',
+    '*'
 ]
 
 # Add CORS
@@ -48,6 +48,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-File-Name"]
 )
 
 SUBMISSION = None
@@ -408,7 +409,8 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
     def handle_header():
         header = None
         if action == "download":
-            header = {"Content-Disposition": f"attachment;filename={file.name}"}
+            header = {"X-File-Name": file.name,
+                      "Content-Disposition": f"attachment;filename={file.name}"}
         return header
 
     def handle_mimetype():
