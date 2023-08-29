@@ -6,7 +6,7 @@ import mimetypes
 from fastapi_utils.tasks import repeat_every
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, StreamingResponse, JSONResponse, Response
+from fastapi.responses import StreamingResponse, Response
 from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
 from irods.session import iRODSSession
@@ -66,12 +66,27 @@ a = Authenticator()
 
 
 def check_external_service():
+    service = {
+        "gen3": False,
+        "irods": False,
+        "orthanc": False
+    }
+    try:
+        service["gen3"] = True
+    except Exception:
+        print("Encounter an error while using the gen3 submission.")
+
     try:
         SESSION.collections.get(iRODSConfig.IRODS_ROOT_PATH)
-        return True
+        service["irods"] = True
     except Exception:
-        print("Encounter an error while creating or using the session connection.")
-        return False
+        print("Encounter an error while using the session connection.")
+
+    try:
+        service["orthanc"] = True
+    except Exception:
+        print("Encounter an error while using the orthanc client.")
+    return service
 
 
 @ app.on_event("startup")
@@ -97,7 +112,6 @@ async def start_up():
                                password=iRODSConfig.IRODS_PASSWORD,
                                zone=iRODSConfig.IRODS_ZONE)
         # SESSION.connection_timeout =
-        check_external_service()
     except Exception:
         print("Encounter an error while creating the iRODS session.")
 
@@ -108,6 +122,8 @@ async def start_up():
                           password=OrthancConfig.ORTHANC_PASSWORD)
     except Exception:
         print("Encounter an error while creating the Orthanc client.")
+
+    check_external_service()
 
     global s, sgqlc, fg, pf, f, p, qf
     s = Search(SESSION)
@@ -132,7 +148,7 @@ def periodic_execution():
     a.cleanup_authorized_user()
 
 
-@ app.get("/", tags=["Root"], response_class=PlainTextResponse)
+@ app.get("/", tags=["Root"])
 async def root():
     return "This is the fastapi backend."
 
@@ -143,11 +159,12 @@ async def root():
 
 
 @ app.post("/access/token", tags=["Access"], summary="Create gen3 access token for authorized user", responses=access_token_responses)
-async def create_gen3_access(item: IdentityItem, connected: bool = Depends(check_external_service)):
+async def create_gen3_access(item: IdentityItem, connect_with: dict = Depends(check_external_service)):
     if item.identity == None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Missing field in the request body")
-    if not connected:
+
+    if not connect_with["irods"]:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the irods server status or environment variables")
 
@@ -166,7 +183,6 @@ async def revoke_gen3_access(is_revoked: bool = Depends(a.revoke_user_authority)
 
 
 #########################
-### Gen3              ###
 ### Gen3 Data Commons ###
 #########################
 
@@ -302,13 +318,12 @@ async def get_gen3_filter(sidebar: bool, access_scope: list = Depends(a.gain_use
 
 
 ############################################
-### iRODS                                ###
 ### Integrated Rule-Oriented Data System ###
 ############################################
 
 
 @ app.post("/collection", tags=["iRODS"], summary="Get folder information", responses=collection_responses)
-async def get_irods_collection(item: CollectionItem, connected: bool = Depends(check_external_service)):
+async def get_irods_collection(item: CollectionItem, connect_with: dict = Depends(check_external_service)):
     """
     Return all collections from the required folder.
 
@@ -317,7 +332,7 @@ async def get_irods_collection(item: CollectionItem, connected: bool = Depends(c
     if not re.match("(/(.)*)+", item.path):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid path format is used")
-    if not connected:
+    if not connect_with["irods"]:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the irods server status or environment variables")
 
@@ -345,7 +360,7 @@ async def get_irods_collection(item: CollectionItem, connected: bool = Depends(c
 
 
 @ app.get("/data/{action}/{filepath:path}", tags=["iRODS"], summary="Download irods file", response_description="Successfully return a file with data")
-async def get_irods_data_file(action: ActionParam, filepath: str, connected: bool = Depends(check_external_service)):
+async def get_irods_data_file(action: ActionParam, filepath: str, connect_with: dict = Depends(check_external_service)):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
     OR
@@ -360,7 +375,7 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
         raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
                             detail=f"The action ({action}) is not provided in this API")
 
-    if not connected:
+    if not connect_with["irods"]:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the irods server status or environment variables")
 
@@ -390,10 +405,9 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
     return StreamingResponse(iterate_file(), media_type=handle_mimetype(), headers=handle_header())
 
 
-####################
-### Orthanc      ###
-### DICOM server ###
-####################
+##############################
+### Orthanc - DICOM server ###
+##############################
 
 
 @ app.post("/instance", tags=["Orthanc"], summary="Get instance ids", responses=instance_responses)
