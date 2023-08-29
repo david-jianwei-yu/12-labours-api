@@ -212,11 +212,6 @@ filter_responses = {
 }
 
 
-class FormatParam(str, Enum):
-    json = "json"
-    tsv = "tsv"
-
-
 class CollectionItem(BaseModel):
     path: Union[str, None] = "/"
 

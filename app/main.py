@@ -137,15 +137,9 @@ async def root():
     return "This is the fastapi backend."
 
 
-#########################
-### Gen3              ###
-### Gen3 Data Commons ###
-#########################
-
-
-def split_access(access):
-    access_list = access[0].split("-")
-    return access_list[0], access_list[1]
+######################
+### Access Control ###
+######################
 
 
 @ app.post("/access/token", tags=["Access"], summary="Create gen3 access token for authorized user", responses=access_token_responses)
@@ -171,6 +165,12 @@ async def revoke_gen3_access(is_revoked: bool = Depends(a.revoke_user_authority)
                             detail="Revoke access successfully")
 
 
+#########################
+### Gen3              ###
+### Gen3 Data Commons ###
+#########################
+
+
 @ app.get("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", responses=record_responses)
 async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_authority)):
     """
@@ -178,7 +178,10 @@ async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_au
 
     - **uuid**: uuid of the record.
     """
-    program, project = split_access(access_scope)
+    def handle_access(access):
+        access_list = access[0].split("-")
+        return access_list[0], access_list[1]
+    program, project = handle_access(access_scope)
     record = SUBMISSION.export_record(program, project, uuid, "json")
     if "message" in record:
         raise HTTPException(
@@ -296,37 +299,6 @@ async def get_gen3_filter(sidebar: bool, access_scope: list = Depends(a.gain_use
         return fg.generate_sidebar_filter_information(access_scope)
     else:
         return fg.generate_filter_information(access_scope)
-
-
-@ app.get("/metadata/download/{uuid}/{format}", tags=["Gen3"], summary="Download gen3 record information", response_description="Successfully return a JSON or CSV file contains the metadata")
-async def get_gen3_metadata_file(uuid: str, format: FormatParam, access_scope: list = Depends(a.gain_user_authority)):
-    """
-    Return a single metadata file for a given uuid.
-
-    - **uuid**: uuid of the file.
-    - **format**: file format (must be one of the following: json, tsv).
-    """
-    program, project = split_access(access_scope)
-    try:
-        metadata = SUBMISSION.export_record(program, project, uuid, format)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
-    if "message" in metadata:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"{metadata['message']} and check if the correct project or uuid is used")
-
-    if format == "json":
-        return JSONResponse(content=metadata[0],
-                            media_type="application/json",
-                            headers={"Content-Disposition":
-                                     f"attachment;filename={uuid}.json"})
-    elif format == "tsv":
-        return Response(content=metadata,
-                        media_type="text/csv",
-                        headers={"Content-Disposition":
-                                 f"attachment;filename={uuid}.csv"})
 
 
 ############################################

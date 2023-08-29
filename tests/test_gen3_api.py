@@ -238,28 +238,3 @@ def test_get_gen3_filter(client):
     assert bool(FILTERS["MAPPED_ADDITIONAL_TYPES"]["facets"]) == True
     assert bool(FILTERS["MAPPED_SPECIES"]["facets"]) == True
     assert bool(FILTERS["MAPPED_PROJECT_ID"]["facets"]) == True
-
-
-def test_get_gen3_metadata_file(client):
-    dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
-    }
-    response = client.post("/access/token", json=dummy_data)
-    dummy_token = response.json()
-
-    UUID = "22c4459b-5f4f-4e62-abd2-2aa205fe838b"
-    FORM = "json"
-    response = client.get(f"/metadata/download/{UUID}/{FORM}",
-                          headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
-    result = response.json()
-    assert response.status_code == 200
-    assert len(result) == 18
-    assert result["submitter_id"] == "dataset-217-version-2"
-
-    UUID = "22c4459b-5f4f-4e62-abd2-fakeuuidsuffix"
-    FORM = "json"
-    response = client.get(f"/metadata/download/{UUID}/{FORM}",
-                          headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
-    result = response.json()
-    assert response.status_code == 404
-    assert result["detail"] == f"Unable to find {UUID} and check if the correct project or uuid is used"
