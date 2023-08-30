@@ -135,7 +135,7 @@ def test_get_gen3_graphql_query(client):
                            headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
     assert response.status_code == 400
-    assert result["detail"] == "Mode detail only available when query exact one dataset with node experiment_query"
+    assert result["detail"] == "Mode detail only available when query one dataset in experiment node"
 
 
 def test_get_gen3_graphql_pagination(client):

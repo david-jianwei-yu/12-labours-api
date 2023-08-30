@@ -49,11 +49,21 @@ class SimpleGraphQLClient(object):
     def convert_query(self, item, query):
         # Convert camel case to snake case
         snake_case_query = re.sub(
-            '_[A-Z]', lambda x:  x.group(0).lower(), re.sub('([a-z])([A-Z])', r'\1_\2', str(query)))
+            '_[A-Z]',
+            lambda x:  x.group(0).lower(),
+            re.sub(
+                '([a-z])([A-Z])',
+                r'\1_\2',
+                str(query)
+            )
+        )
         # Remove all null filter arguments, this can simplify the generate_query function
         if "null" in snake_case_query:
             snake_case_query = re.sub(
-                '[,]? [_a-z]+: null', '', snake_case_query)
+                '[,]? [_a-z]+: null',
+                '',
+                snake_case_query
+            )
         # Either pagination or experiment node query
         if "experiment" in item.node and "count" not in item.node:
             snake_case_query = self.update_manifests_information(
@@ -210,5 +220,5 @@ class SimpleGraphQLClient(object):
                 queue.put({key: result[item.node]})
             return result
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=str(e))

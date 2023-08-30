@@ -26,8 +26,8 @@ class Search(object):
                     In(DataObjectMeta.name, SEARCHFIELD)).filter(
                     Like(DataObjectMeta.value, f"%{keyword}%"))
             except Exception as e:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=str(e))
             # Any keyword that does not match with the database content will cause a search no result
             if len(query.all()) == 0:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -35,10 +35,15 @@ class Search(object):
 
             for result in query:
                 content_list = re.findall(
-                    fr'(\s{keyword}|{keyword}\s)', result[DataObjectMeta.value])
+                    fr'(\s{keyword}|{keyword}\s)',
+                    result[DataObjectMeta.value]
+                )
                 if content_list != []:
                     dataset = re.sub(
-                        f'{iRODSConfig.IRODS_ROOT_PATH}/', '', result[Collection.name])
+                        f'{iRODSConfig.IRODS_ROOT_PATH}/',
+                        '',
+                        result[Collection.name]
+                    )
                     if dataset not in dataset_dict:
                         dataset_dict[dataset] = 1
                     else:

@@ -156,7 +156,7 @@ query_responses = {
             "mri mode": {"mri": {"filename": ["filepath"]}}
         }}}
     },
-    400: {"content": {"application/json": {"example": {"detail": "Mode detail/facet/mri only available when query exact one dataset with node experiment_query"}}}}
+    400: {"content": {"application/json": {"example": {"detail": "Mode detail/facet/mri only available when query one dataset in experiment node"}}}}
 }
 
 

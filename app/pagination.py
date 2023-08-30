@@ -54,7 +54,14 @@ class Pagination(object):
         filter_dict = self.handle_order_by_dataset_description_filter(
             item.filter)
         query_item = GraphQLQueryItem(
-            node="pagination_order_by_dataset_description", limit=item.limit, page=item.page, filter=filter_dict, access=item.access, asc=item.asc, desc=item.desc)
+            node="pagination_order_by_dataset_description",
+            limit=item.limit,
+            page=item.page,
+            filter=filter_dict,
+            access=item.access,
+            asc=item.asc,
+            desc=item.desc
+        )
         if "asc" in item.order:
             query_item.asc = "title"
         elif "desc" in item.order:
@@ -76,7 +83,14 @@ class Pagination(object):
             item.page = 1
 
         query_item = GraphQLPaginationItem(
-            limit=item.limit, page=item.page, filter=item.filter, access=item.access, order=item.order, asc=item.asc, desc=item.desc)
+            limit=item.limit,
+            page=item.page,
+            filter=item.filter,
+            access=item.access,
+            order=item.order,
+            asc=item.asc,
+            desc=item.desc
+        )
         query_result = self.SGQLC.get_queried_result(query_item)
         displayed_dataset = self.generate_dictionary(
             query_result[query_item.node])
@@ -87,8 +101,11 @@ class Pagination(object):
         if match_pair != []:
             for dataset in match_pair:
                 if dataset in displayed_dataset:
-                    query_item = GraphQLQueryItem(node="experiment_query", filter={
-                        "submitter_id": [dataset]}, access=item.access)
+                    query_item = GraphQLQueryItem(
+                        node="experiment_query",
+                        filter={"submitter_id": [dataset]},
+                        access=item.access
+                    )
                     items.append((query_item, dataset))
 
         private_replacement = self.threading_fetch(items)
@@ -112,7 +129,10 @@ class Pagination(object):
         items = []
         for key, value in user_access.items():
             pagination_count_item = GraphQLPaginationItem(
-                node="experiment_pagination_count", filter=item.filter, access=value)
+                node="experiment_pagination_count",
+                filter=item.filter,
+                access=value
+            )
             items.append((pagination_count_item, key))
 
         fetched_data = self.threading_fetch(items)
@@ -148,8 +168,8 @@ class Pagination(object):
                 if filter_dict[mapped_element]["field"] == field:
                     # Check if ele_name is a key under filter object element field
                     if facet_name not in filter_dict[mapped_element]["facets"]:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or unauthorized facet passed in")
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                            detail="Invalid or unauthorized facet passed in")
 
                     facet_value = filter_dict[mapped_element]["facets"][facet_name]
                     if type(facet_value) == list:
@@ -179,7 +199,9 @@ class Pagination(object):
                 valid_filter = self.handle_pagination_item_filter(
                     filter_field, facet_name, private_filter)
                 query_item = GraphQLQueryItem(
-                    node=filter_node, filter=valid_filter)
+                    node=filter_node,
+                    filter=valid_filter
+                )
                 if filter_node == "experiment_filter":
                     query_item.access = valid_filter["project_id"]
                     if Gen3Config.GEN3_PUBLIC_ACCESS in query_item.access:
@@ -224,7 +246,7 @@ class Pagination(object):
             if not has_search_result:
                 item.asc = "created_datetime"
         else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=f"{item.order} order option not provided")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"{item.order} order option not provided")
 
         return is_public_access_filtered

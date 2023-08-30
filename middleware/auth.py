@@ -21,7 +21,10 @@ class Authenticator(object):
     def __init__(self):
         self.authorized_user = manager.dict()
         self.authorized_user["public"] = User(
-            "public", [Gen3Config.GEN3_PUBLIC_ACCESS], None)
+            "public",
+            [Gen3Config.GEN3_PUBLIC_ACCESS],
+            None
+        )
         self.expire = 2
 
     def delete_expired_user(self, user):
@@ -50,11 +53,9 @@ class Authenticator(object):
                     self.delete_expired_user(decrypt_identity)
                 return self.authorized_user[decrypt_identity]
         except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication credentials",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Invalid authentication credentials",
+                                headers={"WWW-Authenticate": "Bearer"})
 
     async def revoke_user_authority(self, token: HTTPAuthorizationCredentials = Depends(security)):
         verify_user = self.authenticate_token(token.credentials, "revoke")
@@ -86,8 +87,8 @@ class Authenticator(object):
             restrict_program = list(
                 set(policies).intersection(program_list))
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=str(e))
 
         project = {"links": []}
         for prog in restrict_program:
