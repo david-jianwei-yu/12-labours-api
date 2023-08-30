@@ -129,11 +129,9 @@ class PaginationFormat(object):
         result = []
         for ele in data:
             dataset_id = ele["submitter_id"]
-            access = ele["project_id"]
             image_url_middle = f"/data/preview/{dataset_id}/"
             dataset_item = {
-                "belong_to": access,
-                "data_url_suffix": f"/data/browser/dataset/{dataset_id}?datasetTab=abstract&access={access}",
+                "data_url_suffix": f"/data/browser/dataset/{dataset_id}?datasetTab=abstract",
                 "source_url_middle": f"/data/download/{dataset_id}/",
                 "contributors": self.update_contributor(ele["dataset_descriptions"][0]["contributor_name"]),
                 "keywords": ele["dataset_descriptions"][0]["keywords"],

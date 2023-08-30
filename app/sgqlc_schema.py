@@ -30,7 +30,6 @@ class CaseFilter(Node):
 
 # QUERY USE ONLY
 class DatasetDescriptionQuery(Node):
-    project_id = String
     type = String
     title = String
     subtitle = String
@@ -60,7 +59,6 @@ class DatasetDescriptionQuery(Node):
 
 
 class ManifestQuery(Node):
-    project_id = String
     type = String
     timestamp = String
     submitter_id = String
@@ -76,7 +74,6 @@ class ManifestQuery(Node):
 
 
 class CaseQuery(Node):
-    project_id = String
     type = String
     submitter_id = String
     subject_id = String
@@ -108,7 +105,6 @@ class CaseQuery(Node):
 
 
 class ExperimentQuery(Node):
-    project_id = String
     submitter_id = String
     dataset_descriptions = list_of(DatasetDescriptionQuery)
     manifests1 = list_of(ManifestQuery)
@@ -146,7 +142,6 @@ class SubCase(Node):
 
 
 class ExperimentPagination(Node):
-    project_id = String
     submitter_id = String
     dataset_descriptions = list_of(SubDatasetDescription)
     manifests1 = list_of(SubManifest)
@@ -159,7 +154,6 @@ class ExperimentPagination(Node):
 
 
 class ExperimentPaginationCount(Node):
-    project_id = String
     submitter_id = String
 
 
