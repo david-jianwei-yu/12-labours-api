@@ -176,14 +176,9 @@ class Pagination(object):
                         value_list.append(facet_value)
         return {filter_field: value_list}
 
-    def update_pagination_item(self, item, input, scope):
+    def update_pagination_item(self, item, input):
         is_public_access_filtered = False
         has_search_result = False
-
-        # ACCESS
-        item.access = scope
-        if Gen3Config.GEN3_PUBLIC_ACCESS not in item.access:
-            item.access.append(Gen3Config.GEN3_PUBLIC_ACCESS)
 
         # FILTER
         if item.filter != {}:

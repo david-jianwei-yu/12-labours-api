@@ -319,8 +319,8 @@ async def get_gen3_graphql_pagination(
                             detail="Please check the service (Gen3/iRODS) status")
 
     fg.set_access(access_scope)
-    is_public_access_filtered = p.update_pagination_item(
-        item, search, access_scope)
+    item.access = access_scope
+    is_public_access_filtered = p.update_pagination_item(item, search)
     data_count, match_pair = p.get_pagination_count(item)
     query_result = p.get_pagination_data(
         item, match_pair, is_public_access_filtered)
@@ -503,7 +503,6 @@ async def get_orthanc_instance(
         if "401" in str(e):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Invalid orthanc username or password are used")
-
     if patients == []:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Resource is not found in the orthanc server")

@@ -10,17 +10,17 @@ class QueryFormat(object):
         self.mode = mode
 
     def generate_related_mri(self, data):
-        mri_path = {}
+        mri_paths = {}
         for mri in data["mris"]:
             filepath = mri["filename"]
             start = filepath.rindex("/") + 1
             end = filepath.rindex("_")
             filename = filepath[start:end]
-            if filename not in mri_path:
-                mri_path[filename] = [filepath]
+            if filename not in mri_paths:
+                mri_paths[filename] = [filepath]
             else:
-                mri_path[filename].append(filepath)
-        return mri_path
+                mri_paths[filename].append(filepath)
+        return mri_paths
 
     def handle_facet_mode(self, related_facet, filter_facet, mapped_element):
         if filter_facet not in related_facet:
@@ -69,7 +69,7 @@ class QueryFormat(object):
                             related_facet, filter_facet, mapped_element)
 
     def generate_related_facet(self, data):
-        related_facet = {}
+        related_facets = {}
         facet_source = [
             "dataset_descriptions>study_organ_system",
             "scaffolds>additional_types",
@@ -82,11 +82,11 @@ class QueryFormat(object):
             key = info.split(">")[0]
             field = info.split(">")[1]
             if key in data and data[key] != []:
-                self.handle_facet_structure(related_facet, field, data[key])
+                self.handle_facet_structure(related_facets, field, data[key])
         if self.mode == "detail":
-            return related_facet
+            return related_facets
         elif self.mode == "facet":
-            return list(related_facet.values())
+            return list(related_facets.values())
 
     def update_mri(self, data):
         mris = []
