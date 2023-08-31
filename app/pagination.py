@@ -42,7 +42,7 @@ class Pagination(object):
             result.update(data)
         return result
 
-    def handle_order_by_dataset_description_filter(self, filter):
+    def handle_order_by_dataset_description(self, filter):
         result = {}
         if "submitter_id" in filter:
             result["submitter_id"] = []
@@ -51,8 +51,7 @@ class Pagination(object):
         return result
 
     def get_pagination_order(self, item):
-        filter_dict = self.handle_order_by_dataset_description_filter(
-            item.filter)
+        filter_dict = self.handle_order_by_dataset_description(item.filter)
         query_item = GraphQLQueryItem(
             node="pagination_order_by_dataset_description",
             limit=item.limit,
@@ -152,9 +151,9 @@ class Pagination(object):
                 match_pair.append(id)
         return len(displayed_dataset), match_pair
 
-    def handle_pagination_item_filter(self, field, facets, private_filter):
+    def handle_pagination_item_filter(self, filter_field, facet_name, private_filter):
         value_list = []
-        for facet in facets:
+        for facet in facet_name:
             # Use .capitalize() to make it non-case sensitive
             # Avoid mis-match
             facet_name = facet.capitalize()
@@ -164,7 +163,7 @@ class Pagination(object):
                 else:
                     filter_dict = self.FILTERS
                 # Check if title can match with a exist filter object
-                if filter_dict[mapped_element]["field"] == field:
+                if filter_dict[mapped_element]["field"] == filter_field:
                     # Check if ele_name is a key under filter object element field
                     if facet_name not in filter_dict[mapped_element]["facets"]:
                         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -175,7 +174,7 @@ class Pagination(object):
                         value_list.extend(facet_value)
                     else:
                         value_list.append(facet_value)
-        return {field: value_list}
+        return {filter_field: value_list}
 
     def update_pagination_item(self, item, input, scope):
         is_public_access_filtered = False
@@ -247,5 +246,4 @@ class Pagination(object):
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail=f"{item.order} order option not provided")
-
         return is_public_access_filtered
