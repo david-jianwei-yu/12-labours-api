@@ -14,6 +14,7 @@ from pyorthanc import find, Orthanc
 
 from app.config import *
 from app.data_schema import *
+from app.filter_format import FilterFormat
 from app.filter_generator import FilterGenerator
 from app.filter import Filter
 from app.pagination_format import PaginationFormat
@@ -55,6 +56,7 @@ SUBMISSION = None
 SESSION = None
 ORTHANC = None
 FILTER_GENERATED = False
+ff = None
 fg = None
 f = None
 pf = None
@@ -127,10 +129,11 @@ async def start_up():
 
     check_external_service()
 
-    global s, sgqlc, fg, pf, f, p, qf
+    global s, sgqlc, fg, ff, pf, f, p, qf
     s = Search(SESSION)
     sgqlc = SimpleGraphQLClient(SUBMISSION)
     fg = FilterGenerator(sgqlc)
+    ff = FilterFormat(fg)
     pf = PaginationFormat(fg)
     f = Filter(fg)
     p = Pagination(fg, f, s, sgqlc)
@@ -365,9 +368,9 @@ async def get_gen3_filter(
 
     fg.set_access(access_scope)
     if sidebar == True:
-        return fg.generate_sidebar_filter_information()
+        return ff.generate_sidebar_filter_information()
     else:
-        return fg.generate_filter_information()
+        return ff.generate_filter_information()
 
 
 ############################################

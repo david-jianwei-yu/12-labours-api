@@ -74,13 +74,13 @@ class FilterGenerator(object):
         self.SGQLC = sgqlc
         self.private_access = []
 
+    def get_filters(self):
+        return FILTERS
+
     def set_access(self, access_scope):
         for scope in access_scope:
             if scope != Gen3Config.GEN3_PUBLIC_ACCESS:
                 self.private_access.append(scope)
-
-    def get_filters(self):
-        return FILTERS
 
     def add_facet(self, filter_facets, exist_facets, value):
         name = value.capitalize()
@@ -133,6 +133,13 @@ class FilterGenerator(object):
                             sorted(updated_element.items()))
         return private_filter
 
+    def set_filter(self, mapped_element):
+        private_filter = self.generate_private_filter()
+        if mapped_element in private_filter:
+            return private_filter
+        else:
+            return FILTERS
+
     def generate_public_filter(self):
         temp_data = {}
         for mapped_element in FILTERS:
@@ -147,50 +154,3 @@ class FilterGenerator(object):
                 FILTERS[mapped_element]["facets"] = dict(
                     sorted(filter_facets.items()))
         return True
-
-    def set_filter_dict(self, mapped_element):
-        private_filter = self.generate_private_filter()
-        if mapped_element in private_filter:
-            return private_filter
-        else:
-            return FILTERS
-
-    def generate_sidebar_filter_information(self):
-        sidebar_filter_information = []
-        for mapped_element in FILTERS:
-            filter_dict = self.set_filter_dict(mapped_element)
-            filter_parent = {
-                "key": "",
-                "label": "",
-                "children": [],
-            }
-            filter_parent["key"] = filter_dict[mapped_element]["node"] + \
-                ">" + filter_dict[mapped_element]["field"]
-            filter_parent["label"] = filter_dict[mapped_element]["title"].capitalize()
-            for facet_name in filter_dict[mapped_element]["facets"]:
-                filter_children = {
-                    "facetPropPath": "",
-                    "label": "",
-                }
-                filter_children["facetPropPath"] = filter_parent["key"]
-                filter_children["label"] = facet_name
-                filter_parent["children"].append(filter_children)
-            sidebar_filter_information.append(filter_parent)
-        return sidebar_filter_information
-
-    def generate_filter_information(self):
-        filter_information = {
-            "size": len(FILTERS),
-            "titles": [],
-            "nodes>fields": [],
-            "elements": []
-        }
-        for mapped_element in FILTERS:
-            filter_dict = self.set_filter_dict(mapped_element)
-            filter_information["titles"].append(
-                filter_dict[mapped_element]["title"].capitalize())
-            filter_information["nodes>fields"].append(
-                filter_dict[mapped_element]["node"] + ">" + filter_dict[mapped_element]["field"])
-            filter_information["elements"].append(
-                list(filter_dict[mapped_element]["facets"].keys()))
-        return filter_information
