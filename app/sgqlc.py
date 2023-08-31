@@ -3,7 +3,6 @@ import re
 from fastapi import HTTPException, status
 from sgqlc.operation import Operation
 
-from app.data_schema import *
 from app.sgqlc_schema import Query
 
 

@@ -58,7 +58,7 @@ ORTHANC = None
 FILTER_GENERATED = False
 ff = None
 fg = None
-f = None
+f = Filter()
 pf = None
 p = None
 qf = None
@@ -129,13 +129,12 @@ async def start_up():
 
     check_external_service()
 
-    global s, sgqlc, fg, ff, pf, f, p, qf
+    global s, sgqlc, fg, ff, pf, p, qf
     s = Search(SESSION)
     sgqlc = SimpleGraphQLClient(SUBMISSION)
     fg = FilterGenerator(sgqlc)
     ff = FilterFormat(fg)
     pf = PaginationFormat(fg)
-    f = Filter(fg)
     p = Pagination(fg, f, s, sgqlc)
     qf = QueryFormat(fg)
 
@@ -319,6 +318,7 @@ async def get_gen3_graphql_pagination(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the service (Gen3/iRODS) status")
 
+    fg.set_access(access_scope)
     is_public_access_filtered = p.update_pagination_item(
         item, search, access_scope)
     data_count, match_pair = p.get_pagination_count(item)

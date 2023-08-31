@@ -1,5 +1,3 @@
-from app.data_schema import *
-
 # This list contains all the "Array" type fields that used as a filter
 FIELDS = [
     "study_organ_system"
@@ -7,9 +5,6 @@ FIELDS = [
 
 
 class Filter(object):
-    def __init__(self, fg):
-        self.FG = fg
-
     def handle_filtered_dataset(self, filter, data):
         field = list(filter.keys())[0]
         if field in FIELDS:

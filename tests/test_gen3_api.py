@@ -2,8 +2,7 @@ import pytest
 from app import app
 from fastapi.testclient import TestClient
 
-from app.config import Gen3Config
-from app.filter_generator import FILTERS
+from app.filter_generator import FILTER_MAP
 
 
 @pytest.fixture
@@ -222,19 +221,19 @@ def test_get_gen3_filter(client):
     response = client.get("/filter/?sidebar=true",
                           headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     assert response.status_code == 200
-    assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_STUDY_ORGAN_SYSTEM"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_SEX"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_ADDITIONAL_TYPES"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_SPECIES"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_PROJECT_ID"]["facets"]) == True
+    assert bool(FILTER_MAP["MAPPED_AGE_CATEGORY"]["facets"]) == True
+    assert bool(FILTER_MAP["MAPPED_STUDY_ORGAN_SYSTEM"]["facets"]) == True
+    assert bool(FILTER_MAP["MAPPED_SEX"]["facets"]) == True
+    assert bool(FILTER_MAP["MAPPED_ADDITIONAL_TYPES"]["facets"]) == True
+    assert bool(FILTER_MAP["MAPPED_SPECIES"]["facets"]) == True
+    assert bool(FILTER_MAP["MAPPED_PROJECT_ID"]["facets"]) == True
 
     response = client.get("/filter/?sidebar=false",
                           headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     assert response.status_code == 200
-    assert bool(FILTERS["MAPPED_AGE_CATEGORY"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_STUDY_ORGAN_SYSTEM"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_SEX"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_ADDITIONAL_TYPES"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_SPECIES"]["facets"]) == True
-    assert bool(FILTERS["MAPPED_PROJECT_ID"]["facets"]) == True
+    assert bool(FILTER_MAP["MAPPED_AGE_CATEGORY"]["facets"]) == True
+    assert bool(FILTER_MAP["MAPPED_STUDY_ORGAN_SYSTEM"]["facets"]) == True
+    assert bool(FILTER_MAP["MAPPED_SEX"]["facets"]) == True
+    assert bool(FILTER_MAP["MAPPED_ADDITIONAL_TYPES"]["facets"]) == True
+    assert bool(FILTER_MAP["MAPPED_SPECIES"]["facets"]) == True
+    assert bool(FILTER_MAP["MAPPED_PROJECT_ID"]["facets"]) == True
