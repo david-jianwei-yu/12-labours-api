@@ -5,7 +5,6 @@ from irods.column import Like, In
 from irods.models import Collection, DataObjectMeta
 
 from app.config import iRODSConfig
-from app.data_schema import *
 
 SEARCHFIELD = [
     "TITLE",
@@ -54,8 +53,7 @@ class Search(object):
     def get_searched_dataset(self, input):
         keyword_list = re.findall('[a-zA-Z0-9]+', input.lower())
         dataset_dict = self.generate_searched_dataset(keyword_list)
-        dataset_list = sorted(
-            dataset_dict, key=dataset_dict.get, reverse=True)
+        dataset_list = sorted(dataset_dict, key=dataset_dict.get, reverse=True)
         return dataset_list
 
     def search_filter_relation(self, item):
