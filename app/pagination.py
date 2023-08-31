@@ -70,7 +70,7 @@ class Pagination(object):
 
         # Include both public and private if have the access
         ordered_dataset = []
-        for ele in query_result[query_item.node]:
+        for ele in query_result:
             dataset_id = ele["experiments"][0]["submitter_id"]
             if dataset_id not in ordered_dataset:
                 ordered_dataset.append(dataset_id)
@@ -92,8 +92,7 @@ class Pagination(object):
             desc=item.desc
         )
         query_result = self.SGQLC.get_queried_result(query_item)
-        displayed_dataset = self.generate_dictionary(
-            query_result[query_item.node])
+        displayed_dataset = self.generate_dictionary(query_result)
 
         item.access.remove(Gen3Config.GEN3_PUBLIC_ACCESS)
         items = []

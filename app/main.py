@@ -274,11 +274,10 @@ async def get_gen3_graphql_query(
     query_result = sgqlc.get_queried_result(item)
 
     def handle_result():
-        data = query_result[item.node]
-        if len(data) == 1:
-            return data[0]
+        if len(query_result) == 1:
+            return query_result[0]
         else:
-            return data
+            return query_result
     return qf.process_data_output(handle_result())
 
 

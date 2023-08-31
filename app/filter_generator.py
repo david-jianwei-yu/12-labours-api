@@ -1,5 +1,3 @@
-import re
-
 from app.config import Gen3Config
 from app.data_schema import *
 
@@ -78,21 +76,20 @@ class FilterGenerator(object):
     def get_filters(self):
         return FILTERS
 
-    def add_facet(self, facets, exist, value):
+    def add_facet(self, filter_facets, exist_facets, value):
         name = value.capitalize()
-        if name not in exist:
-            facets[name] = value
+        if name not in exist_facets:
+            filter_facets[name] = value
 
-    def update_filter_facet(self, temp_data, element, is_private=False):
+    def update_filter_facet(self, temp_data, mapped_element, is_private=False):
         filter_facets = {}
         if is_private:
-            exist_facets = FILTERS[element]["facets"]
+            exist_facets = FILTERS[mapped_element]["facets"]
         else:
             exist_facets = filter_facets
-        filter_node = FILTERS[element]["node"]
-        node_name = re.sub('_filter', '', filter_node)
-        field = FILTERS[element]["field"]
-        for ele in temp_data[filter_node][node_name]:
+        filter_node = FILTERS[mapped_element]["node"]
+        field = FILTERS[mapped_element]["field"]
+        for ele in temp_data[filter_node]:
             field_value = ele[field]
             if type(field_value) == list and field_value != []:
                 for sub_value in field_value:
@@ -101,59 +98,55 @@ class FilterGenerator(object):
                 self.add_facet(filter_facets, exist_facets, field_value)
         return filter_facets
 
-    def update_temp_node_dict(self, temp_dict, element, access=None):
-        filter_node = FILTERS[element]["node"]
+    def update_temp_data(self, temp_data, mapped_element, access=None):
+        filter_node = FILTERS[mapped_element]["node"]
         query_item = GraphQLQueryItem(node=filter_node)
         if access != None:
             query_item.access = access
-        if filter_node not in temp_dict:
-            temp_dict[filter_node] = self.SGQLC.get_queried_result(query_item)
+        if filter_node not in temp_data:
+            temp_data[filter_node] = self.SGQLC.get_queried_result(query_item)
 
     def generate_private_filter(self, access):
-        is_private = True
         access_scope = []
         for ele in access:
             if ele != Gen3Config.GEN3_PUBLIC_ACCESS:
                 access_scope.append(ele)
 
-        private_filter_dict = {}
+        private_filter = {}
         if access_scope != []:
-            temp_node_dict = {}
+            temp_data = {}
             for mapped_element in FILTERS:
                 if mapped_element in DYNAMIC_FILTERS:
-                    self.update_temp_node_dict(
-                        temp_node_dict, mapped_element, access_scope)
-
+                    self.update_temp_data(
+                        temp_data, mapped_element, access_scope)
                     filter_facets = self.update_filter_facet(
-                        temp_node_dict, mapped_element, is_private)
+                        temp_data, mapped_element, True)
                     if filter_facets != {}:
                         updated_element = FILTERS[mapped_element]["facets"] | filter_facets
-                        private_filter_dict[mapped_element] = {
+                        private_filter[mapped_element] = {
                             "title": FILTERS[mapped_element]["title"].capitalize(),
                             "node": FILTERS[mapped_element]["node"],
                             "field": FILTERS[mapped_element]["field"],
                             "facets": {}
                         }
-                        private_filter_dict[mapped_element]["facets"] = dict(
+                        private_filter[mapped_element]["facets"] = dict(
                             sorted(updated_element.items()))
-        return private_filter_dict
+        return private_filter
 
     def generate_filter_dictionary(self):
-        is_generated = True
-        temp_node_dict = {}
+        temp_data = {}
         for mapped_element in FILTERS:
             if FILTERS[mapped_element]["facets"] == {}:
-                # Add to temp_node_dict, avoid node data duplicate fetch
-                self.update_temp_node_dict(temp_node_dict, mapped_element)
-
+                # Add to temp_data, avoid node data duplicate fetch
+                self.update_temp_data(temp_data, mapped_element)
                 filter_facets = self.update_filter_facet(
-                    temp_node_dict, mapped_element)
+                    temp_data, mapped_element)
                 if filter_facets == {}:
-                    return not is_generated
+                    return False
 
                 FILTERS[mapped_element]["facets"] = dict(
                     sorted(filter_facets.items()))
-        return is_generated
+        return True
 
     def set_filter_dict(self, mapped_element, access):
         private_filter = self.generate_private_filter(access)

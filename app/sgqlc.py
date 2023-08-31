@@ -215,9 +215,9 @@ class SimpleGraphQLClient(object):
 
         query = self.generate_query(item)
         try:
-            result = self.SUBMISSION.query(query)["data"]
+            result = self.SUBMISSION.query(query)["data"][item.node]
             if key != None and queue != None:
-                queue.put({key: result[item.node]})
+                queue.put({key: result})
             return result
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
