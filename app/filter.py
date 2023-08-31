@@ -10,25 +10,26 @@ class Filter(object):
     def __init__(self, fg):
         self.FG = fg
 
-    def generate_filtered_dataset(self, filter, field, data):
-        result = []
-        for dataset in data:
-            for kwd in filter[field]:
-                if kwd in dataset[field]:
-                    result.append(dataset)
-        return result
-
-    def get_filtered_dataset(self, filter, data):
+    def handle_filtered_dataset(self, filter, data):
         field = list(filter.keys())[0]
         if field in FIELDS:
-            data = self.generate_filtered_dataset(filter, field, data)
+            dataset = []
+            for ele in data:
+                for value in filter[field]:
+                    if value in ele[field]:
+                        dataset.append(ele)
+            data = dataset
+        return data
+
+    def get_filtered_dataset(self, filter, data):
+        data = self.handle_filtered_dataset(filter, data)
         dataset_list = []
-        for record in data:
-            if "experiments" in record:
-                dataset_list.append(record["experiments"][0]["submitter_id"])
+        for ele in data:
+            if "experiments" in ele:
+                dataset_list.append(ele["experiments"][0]["submitter_id"])
             else:
                 # Implement filter in experiment node
-                dataset_list.append(record["submitter_id"])
+                dataset_list.append(ele["submitter_id"])
         return dataset_list
 
     def filter_relation(self, item):
@@ -37,7 +38,7 @@ class Filter(object):
             dataset_list = set(nested_list[0]).intersection(*nested_list)
         elif item.relation == "or":  # OR relationship
             dataset_list = set()
-            for sub_list in nested_list:
-                for id in sub_list:
-                    dataset_list.add(id)
+            for ids_list in nested_list:
+                for dataset_id in ids_list:
+                    dataset_list.add(dataset_id)
         item.filter["submitter_id"] = list(dataset_list)
