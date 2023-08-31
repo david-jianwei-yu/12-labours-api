@@ -72,6 +72,7 @@ DYNAMIC_FILTER = [
 class FilterGenerator(object):
     def __init__(self, sgqlc):
         self.SGQLC = sgqlc
+        self.public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
         self.private_access = []
 
     def get_filter_map(self):
@@ -79,7 +80,7 @@ class FilterGenerator(object):
 
     def set_access(self, access_scope):
         for scope in access_scope:
-            if scope != Gen3Config.GEN3_PUBLIC_ACCESS:
+            if scope != self.public_access[0]:
                 self.private_access.append(scope)
 
     def add_facet(self, filter_facets, exist_facets, value):
@@ -106,7 +107,10 @@ class FilterGenerator(object):
 
     def update_temp_data(self, temp_data, mapped_element):
         filter_node = FILTER_MAP[mapped_element]["node"]
-        query_item = GraphQLQueryItem(node=filter_node)
+        query_item = GraphQLQueryItem(
+            node=filter_node,
+            access=self.public_access
+        )
         if self.private_access != []:
             query_item.access = self.private_access
         if filter_node not in temp_data:

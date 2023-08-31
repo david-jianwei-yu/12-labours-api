@@ -16,6 +16,7 @@ class Pagination(object):
         self.F = f
         self.S = s
         self.SGQLC = sgqlc
+        self.public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
 
     def generate_dictionary(self, data):
         dataset_dict = {}
@@ -93,7 +94,7 @@ class Pagination(object):
         query_result = self.SGQLC.get_queried_result(query_item)
         displayed_dataset = self.generate_dictionary(query_result)
 
-        item.access.remove(Gen3Config.GEN3_PUBLIC_ACCESS)
+        item.access.remove(self.public_access[0])
         items = []
         # Query displayed datasets which have private version
         if match_pair != []:
@@ -115,11 +116,10 @@ class Pagination(object):
         return list(displayed_dataset.values())
 
     def get_pagination_count(self, item):
-        public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
         private_access = copy.deepcopy(item.access)
-        private_access.remove(public_access[0])
+        private_access.remove(self.public_access[0])
         user_access = {
-            "public_access": public_access,
+            "public_access": self.public_access,
             "private_access": private_access
         }
         # Used to get the total count for either public or private datasets
@@ -193,11 +193,12 @@ class Pagination(object):
                     filter_field, facet_name, private_filter)
                 query_item = GraphQLQueryItem(
                     node=filter_node,
-                    filter=valid_filter
+                    filter=valid_filter,
+                    access=self.public_access
                 )
                 if filter_node == "experiment_filter":
                     query_item.access = valid_filter["project_id"]
-                    if Gen3Config.GEN3_PUBLIC_ACCESS in query_item.access:
+                    if self.public_access[0] in query_item.access:
                         is_public_access_filtered = True
                 else:
                     query_item.access = item.access
