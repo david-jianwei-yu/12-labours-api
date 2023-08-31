@@ -139,8 +139,7 @@ class GraphQLQueryItem(BaseModel):
             "example": {
                 "node": "experiment_query",
                 "filter": {"submitter_id": ["dataset-102-version-4"]},
-                "search": "",
-                "access": [Gen3Config.GEN3_PUBLIC_ACCESS]
+                "search": ""
             }
         }
 
@@ -178,7 +177,6 @@ class GraphQLPaginationItem(BaseModel):
                 "page": 1,
                 "limit": 50,
                 "filter": {},
-                "access": [Gen3Config.GEN3_PUBLIC_ACCESS]
             }
         }
 

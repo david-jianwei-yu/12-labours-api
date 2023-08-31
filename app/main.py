@@ -144,7 +144,7 @@ def periodic_execution():
         global FILTER_GENERATED
         FILTER_GENERATED = False
         while not FILTER_GENERATED:
-            FILTER_GENERATED = fg.generate_filter_dictionary()
+            FILTER_GENERATED = fg.generate_public_filter()
             if FILTER_GENERATED:
                 print("Default filter dictionary has been updated.")
     except Exception:
@@ -363,10 +363,11 @@ async def get_gen3_filter(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Failed to generate filter or the maximum retry limit was reached")
 
+    fg.set_access(access_scope)
     if sidebar == True:
-        return fg.generate_sidebar_filter_information(access_scope)
+        return fg.generate_sidebar_filter_information()
     else:
-        return fg.generate_filter_information(access_scope)
+        return fg.generate_filter_information()
 
 
 ############################################

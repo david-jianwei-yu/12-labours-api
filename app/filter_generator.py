@@ -72,6 +72,12 @@ DYNAMIC_FILTERS = [
 class FilterGenerator(object):
     def __init__(self, sgqlc):
         self.SGQLC = sgqlc
+        self.private_access = []
+
+    def set_access(self, access_scope):
+        for scope in access_scope:
+            if scope != Gen3Config.GEN3_PUBLIC_ACCESS:
+                self.private_access.append(scope)
 
     def get_filters(self):
         return FILTERS
@@ -81,9 +87,9 @@ class FilterGenerator(object):
         if name not in exist_facets:
             filter_facets[name] = value
 
-    def update_filter_facet(self, temp_data, mapped_element, is_private=False):
+    def update_filter_facet(self, temp_data, mapped_element):
         filter_facets = {}
-        if is_private:
+        if self.private_access != []:
             exist_facets = FILTERS[mapped_element]["facets"]
         else:
             exist_facets = filter_facets
@@ -98,29 +104,23 @@ class FilterGenerator(object):
                 self.add_facet(filter_facets, exist_facets, field_value)
         return filter_facets
 
-    def update_temp_data(self, temp_data, mapped_element, access=None):
+    def update_temp_data(self, temp_data, mapped_element):
         filter_node = FILTERS[mapped_element]["node"]
         query_item = GraphQLQueryItem(node=filter_node)
-        if access != None:
-            query_item.access = access
+        if self.private_access != []:
+            query_item.access = self.private_access
         if filter_node not in temp_data:
             temp_data[filter_node] = self.SGQLC.get_queried_result(query_item)
 
-    def generate_private_filter(self, access):
-        access_scope = []
-        for ele in access:
-            if ele != Gen3Config.GEN3_PUBLIC_ACCESS:
-                access_scope.append(ele)
-
+    def generate_private_filter(self):
         private_filter = {}
-        if access_scope != []:
+        if self.private_access != []:
             temp_data = {}
             for mapped_element in FILTERS:
                 if mapped_element in DYNAMIC_FILTERS:
-                    self.update_temp_data(
-                        temp_data, mapped_element, access_scope)
+                    self.update_temp_data(temp_data, mapped_element)
                     filter_facets = self.update_filter_facet(
-                        temp_data, mapped_element, True)
+                        temp_data, mapped_element)
                     if filter_facets != {}:
                         updated_element = FILTERS[mapped_element]["facets"] | filter_facets
                         private_filter[mapped_element] = {
@@ -133,7 +133,7 @@ class FilterGenerator(object):
                             sorted(updated_element.items()))
         return private_filter
 
-    def generate_filter_dictionary(self):
+    def generate_public_filter(self):
         temp_data = {}
         for mapped_element in FILTERS:
             if FILTERS[mapped_element]["facets"] == {}:
@@ -148,17 +148,17 @@ class FilterGenerator(object):
                     sorted(filter_facets.items()))
         return True
 
-    def set_filter_dict(self, mapped_element, access):
-        private_filter = self.generate_private_filter(access)
+    def set_filter_dict(self, mapped_element):
+        private_filter = self.generate_private_filter()
         if mapped_element in private_filter:
             return private_filter
         else:
             return FILTERS
 
-    def generate_sidebar_filter_information(self, access):
+    def generate_sidebar_filter_information(self):
         sidebar_filter_information = []
         for mapped_element in FILTERS:
-            filter_dict = self.set_filter_dict(mapped_element, access)
+            filter_dict = self.set_filter_dict(mapped_element)
             filter_parent = {
                 "key": "",
                 "label": "",
@@ -178,7 +178,7 @@ class FilterGenerator(object):
             sidebar_filter_information.append(filter_parent)
         return sidebar_filter_information
 
-    def generate_filter_information(self, access):
+    def generate_filter_information(self):
         filter_information = {
             "size": len(FILTERS),
             "titles": [],
@@ -186,7 +186,7 @@ class FilterGenerator(object):
             "elements": []
         }
         for mapped_element in FILTERS:
-            filter_dict = self.set_filter_dict(mapped_element, access)
+            filter_dict = self.set_filter_dict(mapped_element)
             filter_information["titles"].append(
                 filter_dict[mapped_element]["title"].capitalize())
             filter_information["nodes>fields"].append(
