@@ -366,11 +366,10 @@ async def get_gen3_filter(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Failed to generate filter or the maximum retry limit was reached")
 
-    fg.set_access(access_scope)
     if sidebar == True:
-        return ff.generate_sidebar_filter_information()
+        return ff.generate_sidebar_filter_information(access_scope)
     else:
-        return ff.generate_filter_information()
+        return ff.generate_filter_information(access_scope)
 
 
 ############################################

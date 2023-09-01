@@ -3,10 +3,10 @@ class FilterFormat(object):
         self.FG = fg
         self.FILTER_MAP = fg.get_filter_map()
 
-    def generate_sidebar_filter_information(self):
+    def generate_sidebar_filter_information(self, access_scope):
         sidebar_filter_information = []
         for mapped_element in self.FILTER_MAP:
-            used_filter = self.FG.set_filter(mapped_element)
+            used_filter = self.FG.set_filter(mapped_element, access_scope)
             filter_parent = {
                 "key": "",
                 "label": "",
@@ -26,7 +26,7 @@ class FilterFormat(object):
             sidebar_filter_information.append(filter_parent)
         return sidebar_filter_information
 
-    def generate_filter_information(self):
+    def generate_filter_information(self, access_scope):
         filter_information = {
             "size": len(self.FILTER_MAP),
             "titles": [],
@@ -34,7 +34,7 @@ class FilterFormat(object):
             "elements": []
         }
         for mapped_element in self.FILTER_MAP:
-            used_filter = self.FG.set_filter(mapped_element)
+            used_filter = self.FG.set_filter(mapped_element, access_scope)
             filter_information["titles"].append(
                 used_filter[mapped_element]["title"].capitalize())
             filter_information["nodes>fields"].append(

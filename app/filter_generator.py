@@ -73,24 +73,18 @@ class FilterGenerator(object):
     def __init__(self, sgqlc):
         self.SGQLC = sgqlc
         self.public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
-        self.private_access = []
 
     def get_filter_map(self):
         return FILTER_MAP
-
-    def set_access(self, access_scope):
-        for scope in access_scope:
-            if scope != self.public_access[0]:
-                self.private_access.append(scope)
 
     def add_facet(self, filter_facets, exist_facets, value):
         name = value.capitalize()
         if name not in exist_facets:
             filter_facets[name] = value
 
-    def update_filter_facet(self, temp_data, mapped_element):
+    def update_filter_facet(self, temp_data, mapped_element, private_access=None):
         filter_facets = {}
-        if self.private_access != []:
+        if private_access != None:
             exist_facets = FILTER_MAP[mapped_element]["facets"]
         else:
             exist_facets = filter_facets
@@ -105,26 +99,35 @@ class FilterGenerator(object):
                 self.add_facet(filter_facets, exist_facets, field_value)
         return filter_facets
 
-    def update_temp_data(self, temp_data, mapped_element):
+    def update_temp_data(self, temp_data, mapped_element, private_access=None):
         filter_node = FILTER_MAP[mapped_element]["node"]
         query_item = GraphQLQueryItem(
             node=filter_node,
             access=self.public_access
         )
-        if self.private_access != []:
-            query_item.access = self.private_access
+        if private_access != None:
+            query_item.access = private_access
         if filter_node not in temp_data:
             temp_data[filter_node] = self.SGQLC.get_queried_result(query_item)
 
-    def generate_private_filter(self):
+    def handle_access(self, access_scope):
+        private_access = []
+        for scope in access_scope:
+            if scope != self.public_access[0]:
+                private_access.append(scope)
+        return private_access
+
+    def generate_private_filter(self, access_scope):
+        private_access = self.handle_access(access_scope)
         private_filter = {}
-        if self.private_access != []:
+        if private_access != []:
             temp_data = {}
             for mapped_element in FILTER_MAP:
                 if mapped_element in DYNAMIC_FILTER:
-                    self.update_temp_data(temp_data, mapped_element)
+                    self.update_temp_data(
+                        temp_data, mapped_element, private_access)
                     filter_facets = self.update_filter_facet(
-                        temp_data, mapped_element)
+                        temp_data, mapped_element, private_access)
                     if filter_facets != {}:
                         updated_element = FILTER_MAP[mapped_element]["facets"] | filter_facets
                         private_filter[mapped_element] = {
@@ -137,8 +140,8 @@ class FilterGenerator(object):
                             sorted(updated_element.items()))
         return private_filter
 
-    def set_filter(self, mapped_element):
-        private_filter = self.generate_private_filter()
+    def set_filter(self, mapped_element, access_scope):
+        private_filter = self.generate_private_filter(access_scope)
         if mapped_element in private_filter:
             return private_filter
         else:

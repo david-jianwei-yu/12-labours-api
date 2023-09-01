@@ -176,13 +176,21 @@ class Pagination(object):
                         value_list.append(facet_value)
         return {filter_field: value_list}
 
+    def handle_access(self, access_scope):
+        private_access = []
+        for scope in access_scope:
+            if scope != self.public_access[0]:
+                private_access.append(scope)
+        return private_access
+
     def update_pagination_item(self, item, input):
         is_public_access_filtered = False
         has_search_result = False
 
         # FILTER
         if item.filter != {}:
-            private_filter = self.FG.generate_private_filter()
+            private_access = self.handle_access(item.access)
+            private_filter = self.FG.generate_private_filter(private_access)
             items = []
             filter_dict = {"submitter_id": []}
             for node_filed, facet_name in item.filter.items():
