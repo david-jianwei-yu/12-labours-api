@@ -318,7 +318,6 @@ async def get_gen3_graphql_pagination(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Please check the service (Gen3/iRODS) status")
 
-    fg.set_access(access_scope)
     item.access = access_scope
     is_public_access_filtered = p.update_pagination_item(item, search)
     data_count, match_pair = p.get_pagination_count(item)
