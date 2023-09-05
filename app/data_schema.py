@@ -11,7 +11,7 @@ class IdentityItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "identity": "fakeemail@gmail.com>machine_id",
+                "identity": "dummyemail@gmail.com>machine_id>expiration",
             }
         }
 

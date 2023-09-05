@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from yaml import SafeLoader
 from multiprocessing import Manager
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from app.config import Gen3Config, iRODSConfig
 from middleware.jwt import JWT
@@ -22,11 +22,10 @@ class Authenticator(object):
         self.authorized_user = manager.dict()
         self.authorized_user["public"] = User(
             "public", [Gen3Config.GEN3_PUBLIC_ACCESS], None)
-        self.expire = 2
 
     def delete_expired_user(self, user):
         if user in self.authorized_user and user != "public":
-            current_time = datetime.utcnow()
+            current_time = datetime.now()
             expire_time = self.authorized_user[user].get_user_expire_time()
             if current_time >= expire_time:
                 del self.authorized_user[user]
@@ -98,7 +97,8 @@ class Authenticator(object):
 
     def create_user_authority(self, identity, userinfo, SUBMISSION):
         email = identity.split(">")[0]
-        if email in userinfo:
+        expiration = identity.split(">")[2]
+        if email in userinfo and expiration != "false":
             # Avoid user object expired but not removed
             # Provide auto renew ability when user request access
             # Always return valid user object
@@ -108,7 +108,7 @@ class Authenticator(object):
             else:
                 policies = userinfo[email]["policies"]
                 scope = self.generate_access_scope(policies, SUBMISSION)
-                expire_time = datetime.utcnow() + timedelta(hours=self.expire)
+                expire_time = datetime.fromtimestamp(int(expiration) / 1000)
                 user = User(identity, scope, expire_time)
                 self.authorized_user[identity] = user
                 return user
@@ -131,7 +131,7 @@ class Authenticator(object):
 
         user = self.create_user_authority(identity, yaml_json, SUBMISSION)
         payload = {
-            "nbf": datetime.utcnow(),
+            "nbf": datetime.now(),
             "identity": user.get_user_identity(),
             "scope": user.get_user_scope(),
         }

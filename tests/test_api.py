@@ -20,7 +20,7 @@ def test_create_gen3_access(client):
     assert result["detail"] == "Missing field in the request body"
 
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
+        "identity": "dummyemail@gmail.com>machine_id>expiration"
     }
     response = client.post("/access/token", json=dummy_data)
     result = response.json()
@@ -30,7 +30,7 @@ def test_create_gen3_access(client):
 
 def test_revoke_gen3_access(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
+        "identity": "dummyemail@gmail.com>machine_id>expiration"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
@@ -156,7 +156,7 @@ def test_graphql_query(client):
 
 def test_graphql_pagination(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
+        "identity": "dummyemail@gmail.com>machine_id>expiration"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
@@ -230,7 +230,7 @@ def test_graphql_pagination(client):
 
 def test_get_filter(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
+        "identity": "dummyemail@gmail.com>machine_id>expiration"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
