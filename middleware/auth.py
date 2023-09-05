@@ -131,7 +131,6 @@ class Authenticator(object):
 
         user = self.create_user_authority(identity, yaml_json, SUBMISSION)
         payload = {
-            "nbf": datetime.now(),
             "identity": user.get_user_identity(),
             "scope": user.get_user_scope(),
         }
