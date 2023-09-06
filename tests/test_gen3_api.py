@@ -130,6 +130,9 @@ def test_get_gen3_graphql_pagination(client):
 
     filter_pass_case = {
         "filter": {
+            "dataset_description_filter>study_organ_system": [
+                "Stomach", "Vagus nerve"
+            ],
             "manifest_filter>additional_types": [
                 "Plot"
             ],
