@@ -20,7 +20,7 @@ def test_create_gen3_access(client):
     assert result["detail"] == "Missing field in the request body"
 
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id>expiration"
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
     }
     response = client.post("/access/token", json=dummy_data)
     result = response.json()
@@ -30,7 +30,7 @@ def test_create_gen3_access(client):
 
 def test_revoke_gen3_access(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id>expiration"
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
@@ -44,7 +44,7 @@ def test_revoke_gen3_access(client):
 
 def test_get_gen3_dictionary(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
@@ -56,7 +56,7 @@ def test_get_gen3_dictionary(client):
 
 def test_get_gen3_record(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
@@ -79,7 +79,7 @@ def test_get_gen3_record(client):
 
 def test_get_gen3_graphql_query(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
@@ -123,7 +123,7 @@ def test_get_gen3_graphql_query(client):
 
 def test_get_gen3_graphql_pagination(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id>expiration"
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
@@ -197,7 +197,7 @@ def test_get_gen3_graphql_pagination(client):
 
 def test_get_gen3_filter(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id>expiration"
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
@@ -225,7 +225,7 @@ def test_get_gen3_filter(client):
 
 def test_get_gen3_metadata_file(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
