@@ -22,4 +22,9 @@ class iRODSConfig(object):
     IRODS_USER = os.environ.get("IRODS_USER")
     IRODS_PASSWORD = os.environ.get("IRODS_PASSWORD")
     IRODS_ZONE = os.environ.get("IRODS_ZONE")
-    IRODS_ENDPOINT_URL = os.environ.get("IRODS_ENDPOINT_URL")
+    IRODS_ROOT_PATH = os.environ.get("IRODS_ROOT_PATH")
+
+class OrthancConfig(object):
+    ORTHANC_ENDPOINT_URL = os.environ.get("ORTHANC_ENDPOINT_URL")
+    ORTHANC_USERNAME = os.environ.get("ORTHANC_USERNAME")
+    ORTHANC_PASSWORD = os.environ.get("ORTHANC_PASSWORD")

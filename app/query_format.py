@@ -1,7 +1,10 @@
+import re
+
+
 class QueryFormat(object):
-    def __init__(self, f, fg):
-        self.FIELDS = f.get_fields()
+    def __init__(self, fg, f):
         self.FILTERS = fg.get_filters()
+        self.FIELDS = f.get_fields()
 
     def generate_facet_object(self, filter_facet, mapped_element):
         # Based on mapintergratedvuer map sidebar required filter format
@@ -52,3 +55,40 @@ class QueryFormat(object):
                 for ele in data[key]:
                     self.handle_matched_facet(related_facet, field, ele[field])
         return list(related_facet.values())
+
+    def update_mris(self, data):
+        mris = []
+        mri_path = {}
+        for mri in data:
+            filename = mri["filename"]
+            if "c0" in filename:
+                mris.append(mri)
+            start = filename.rindex("/") + 1
+            end = filename.rindex("_")
+            instance = filename[start:end]
+            if instance not in mri_path:
+                mri_path[instance] = [filename]
+            else:
+                mri_path[instance].append(filename)
+        return mris, mri_path
+
+    def update_dicom_images(self, data):
+        dicom_images = {}
+        for dicom in data:
+            file_path = dicom["filename"]
+            # Find the last "/" index in the file path
+            index = file_path.rindex("/")
+            folder_path = file_path[:index]
+            # Keep only the first dicom data each folder
+            if folder_path not in dicom_images:
+                dicom_images[folder_path] = dicom
+        return list(dicom_images.values())
+
+    def modify_output_data(self, data):
+        if data["dicomImages"] != []:
+            dicom_images = self.update_dicom_images(data["dicomImages"])
+            data["dicomImages"] = dicom_images
+        if data["mris"] != []:
+            mris, mri_path = self.update_mris(data["mris"])
+            data["mris"] = mris
+        return data

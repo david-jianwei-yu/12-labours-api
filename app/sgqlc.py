@@ -29,16 +29,21 @@ class SimpleGraphQLClient(object):
         query_with_classification = query
         access_scope = re.sub('\'', '\"', f"{item.access}")
         data = {
+            # Choose the number of data to display, 0 here means display everything
             'manifests1': ['scaffolds', 'additional_types', '["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"]'],
             'manifests2': ['scaffoldViews', 'additional_types', '["application/x.vnd.abi.scaffold.view+json"]'],
             'manifests3': ['plots', 'additional_types', '["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"]'],
             'manifests4': ['thumbnails', 'file_type', '[".jpg", ".png"]'],
-            'manifests5': ['segmentations', 'file_type', '[".nrrd"]'],
+            'manifests5': ['mris', 'file_type', '[".nrrd"]'],
             'manifests6': ['dicomImages', 'file_type', '[".dcm"]']
         }
+
         for key in data:
             query_with_classification = re.sub(
-                key, f'{data[key][0]}: manifests(first:0, offset:0, {data[key][1]}: {data[key][2]}, project_id: {access_scope}, order_by_asc:"submitter_id")', query_with_classification)
+                key,
+                f'{data[key][0]}: manifests(first:0, offset:0, {data[key][1]}: {data[key][2]}, project_id: {access_scope}, order_by_asc:"submitter_id")',
+                query_with_classification
+            )
         return query_with_classification
 
     def convert_query(self, item, query):
