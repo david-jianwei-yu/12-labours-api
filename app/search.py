@@ -38,7 +38,7 @@ class Search(object):
                     fr'(\s{keyword}|{keyword}\s)', result[DataObjectMeta.value])
                 if content_list != []:
                     dataset = re.sub(
-                        f'{iRODSConfig.IRODS_ENDPOINT_URL}/', '', result[Collection.name])
+                        f'{iRODSConfig.IRODS_ROOT_PATH}/', '', result[Collection.name])
                     if dataset not in dataset_dict:
                         dataset_dict[dataset] = 1
                     else:

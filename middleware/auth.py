@@ -119,7 +119,7 @@ class Authenticator(object):
         try:
             yaml_string = ""
             user_obj = SESSION.data_objects.get(
-                f"{iRODSConfig.IRODS_ENDPOINT_URL}/user.yaml")
+                f"{iRODSConfig.IRODS_ROOT_PATH}/user.yaml")
             with user_obj.open("r") as f:
                 for line in f:
                     yaml_string += str(line, encoding='utf-8')

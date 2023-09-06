@@ -65,9 +65,9 @@ FILTERS = {
 
 DYNAMIC_FILTERS = [
     "MAPPED_AGE_CATEGORY",
-    "MAPPED_ANATOMICAL_STRUCTURE",
+    "MAPPED_STUDY_ORGAN_SYSTEM",
     "MAPPED_SEX",
-    "MAPPED_ACCESS_SCOPE"
+    "MAPPED_PROJECT_ID"
 ]
 
 
@@ -199,7 +199,5 @@ class FilterGenerator(object):
             filter_information["nodes>fields"].append(
                 filter_dict[mapped_element]["node"] + ">" + filter_dict[mapped_element]["field"])
             filter_information["elements"].append(
-                filter_dict[mapped_element]["facets"])
-            # filter_information["elements"].append(
-            #     list(filter_dict[mapped_element]["facets"].keys()))
+                list(filter_dict[mapped_element]["facets"].keys()))
         return filter_information
