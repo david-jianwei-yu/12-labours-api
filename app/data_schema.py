@@ -79,7 +79,7 @@ class IdentityItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "identity": "fakeemail@gmail.com>machine_id",
+                "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time",
             }
         }
 
