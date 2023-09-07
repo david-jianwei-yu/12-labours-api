@@ -1,11 +1,11 @@
 class FilterFormat(object):
     def __init__(self, fg):
         self.FG = fg
-        self.FILTER_MAP = fg.get_filter_map()
+        self.MAPPED_FILTERS = fg.get_mapped_filter()
 
     def generate_sidebar_filter_information(self, access_scope):
         sidebar_filter_information = []
-        for mapped_element in self.FILTER_MAP:
+        for mapped_element in self.MAPPED_FILTERS:
             used_filter = self.FG.set_filter(mapped_element, access_scope)
             filter_parent = {
                 "key": "",
@@ -28,12 +28,12 @@ class FilterFormat(object):
 
     def generate_filter_information(self, access_scope):
         filter_information = {
-            "size": len(self.FILTER_MAP),
+            "size": len(self.MAPPED_FILTERS),
             "titles": [],
             "nodes>fields": [],
             "elements": []
         }
-        for mapped_element in self.FILTER_MAP:
+        for mapped_element in self.MAPPED_FILTERS:
             used_filter = self.FG.set_filter(mapped_element, access_scope)
             filter_information["titles"].append(
                 used_filter[mapped_element]["title"].capitalize())

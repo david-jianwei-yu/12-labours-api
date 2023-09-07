@@ -2,7 +2,7 @@ import pytest
 from app import app
 from fastapi.testclient import TestClient
 
-from app.filter_generator import FILTER_MAP
+from app.filter_generator import MAPPED_FILTERS
 
 
 @pytest.fixture
@@ -92,7 +92,7 @@ def test_get_gen3_graphql_query(client):
     assert result["detail"]["submitter_id"] == DATASET_ID
     assert result["facet"] == {
         "Anatomical structure": ["Brainstem"],
-        "Mime type": ["Scaffold"]
+        "Data type": ["Scaffold"]
     }
 
     response = client.post("/graphql/query/?mode=facet", json=pass_case,
@@ -174,7 +174,7 @@ def test_get_gen3_graphql_pagination(client):
                            headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
     assert response.status_code == 200
-    assert result["items"][13]["datasetId"] == "dataset-46-version-2"
+    assert result["items"][14]["datasetId"] == "dataset-46-version-2"
 
     search_pass_case = {}
     response = client.post("/graphql/pagination/?search=rats", json=search_pass_case,
@@ -224,19 +224,19 @@ def test_get_gen3_filter(client):
     response = client.get("/filter/?sidebar=true",
                           headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     assert response.status_code == 200
-    assert bool(FILTER_MAP["MAPPED_AGE_CATEGORY"]["facets"]) == True
-    assert bool(FILTER_MAP["MAPPED_STUDY_ORGAN_SYSTEM"]["facets"]) == True
-    assert bool(FILTER_MAP["MAPPED_SEX"]["facets"]) == True
-    assert bool(FILTER_MAP["MAPPED_ADDITIONAL_TYPES"]["facets"]) == True
-    assert bool(FILTER_MAP["MAPPED_SPECIES"]["facets"]) == True
-    assert bool(FILTER_MAP["MAPPED_PROJECT_ID"]["facets"]) == True
+    assert bool(MAPPED_FILTERS["MAPPED_AGE_CATEGORY"]["facets"]) == True
+    assert bool(MAPPED_FILTERS["MAPPED_STUDY_ORGAN_SYSTEM"]["facets"]) == True
+    assert bool(MAPPED_FILTERS["MAPPED_SEX"]["facets"]) == True
+    assert bool(MAPPED_FILTERS["MAPPED_ADDITIONAL_TYPES"]["facets"]) == True
+    assert bool(MAPPED_FILTERS["MAPPED_SPECIES"]["facets"]) == True
+    assert bool(MAPPED_FILTERS["MAPPED_PROJECT_ID"]["facets"]) == True
 
     response = client.get("/filter/?sidebar=false",
                           headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     assert response.status_code == 200
-    assert bool(FILTER_MAP["MAPPED_AGE_CATEGORY"]["facets"]) == True
-    assert bool(FILTER_MAP["MAPPED_STUDY_ORGAN_SYSTEM"]["facets"]) == True
-    assert bool(FILTER_MAP["MAPPED_SEX"]["facets"]) == True
-    assert bool(FILTER_MAP["MAPPED_ADDITIONAL_TYPES"]["facets"]) == True
-    assert bool(FILTER_MAP["MAPPED_SPECIES"]["facets"]) == True
-    assert bool(FILTER_MAP["MAPPED_PROJECT_ID"]["facets"]) == True
+    assert bool(MAPPED_FILTERS["MAPPED_AGE_CATEGORY"]["facets"]) == True
+    assert bool(MAPPED_FILTERS["MAPPED_STUDY_ORGAN_SYSTEM"]["facets"]) == True
+    assert bool(MAPPED_FILTERS["MAPPED_SEX"]["facets"]) == True
+    assert bool(MAPPED_FILTERS["MAPPED_ADDITIONAL_TYPES"]["facets"]) == True
+    assert bool(MAPPED_FILTERS["MAPPED_SPECIES"]["facets"]) == True
+    assert bool(MAPPED_FILTERS["MAPPED_PROJECT_ID"]["facets"]) == True

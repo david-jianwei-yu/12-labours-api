@@ -1,7 +1,7 @@
 from app.config import Gen3Config
 from app.data_schema import GraphQLQueryItem
 
-FILTER_MAP = {
+MAPPED_FILTERS = {
     "MAPPED_AGE_CATEGORY": {
         "title": "age category",
         "node": "case_filter",
@@ -62,7 +62,7 @@ FILTER_MAP = {
     }
 }
 
-DYNAMIC_FILTER = [
+DYNAMIC_FILTERS = [
     "MAPPED_AGE_CATEGORY",
     "MAPPED_STUDY_ORGAN_SYSTEM",
     "MAPPED_SEX",
@@ -75,8 +75,8 @@ class FilterGenerator(object):
         self.SGQLC = sgqlc
         self.public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
 
-    def get_filter_map(self):
-        return FILTER_MAP
+    def get_mapped_filter(self):
+        return MAPPED_FILTERS
 
     def add_facet(self, filter_facets, exist_facets, value):
         name = value.capitalize()
@@ -86,11 +86,11 @@ class FilterGenerator(object):
     def update_filter_facet(self, temp_data, mapped_element, private_access=None):
         filter_facets = {}
         if private_access != None:
-            exist_facets = FILTER_MAP[mapped_element]["facets"]
+            exist_facets = MAPPED_FILTERS[mapped_element]["facets"]
         else:
             exist_facets = filter_facets
-        filter_node = FILTER_MAP[mapped_element]["node"]
-        field = FILTER_MAP[mapped_element]["field"]
+        filter_node = MAPPED_FILTERS[mapped_element]["node"]
+        field = MAPPED_FILTERS[mapped_element]["field"]
         for ele in temp_data[filter_node]:
             field_value = ele[field]
             if type(field_value) == list and field_value != []:
@@ -101,7 +101,7 @@ class FilterGenerator(object):
         return filter_facets
 
     def update_temp_data(self, temp_data, mapped_element, private_access=None):
-        filter_node = FILTER_MAP[mapped_element]["node"]
+        filter_node = MAPPED_FILTERS[mapped_element]["node"]
         query_item = GraphQLQueryItem(
             node=filter_node,
             access=self.public_access
@@ -123,18 +123,18 @@ class FilterGenerator(object):
         private_filter = {}
         if private_access != []:
             temp_data = {}
-            for mapped_element in FILTER_MAP:
-                if mapped_element in DYNAMIC_FILTER:
+            for mapped_element in MAPPED_FILTERS:
+                if mapped_element in DYNAMIC_FILTERS:
                     self.update_temp_data(
                         temp_data, mapped_element, private_access)
                     filter_facets = self.update_filter_facet(
                         temp_data, mapped_element, private_access)
                     if filter_facets != {}:
-                        updated_element = FILTER_MAP[mapped_element]["facets"] | filter_facets
+                        updated_element = MAPPED_FILTERS[mapped_element]["facets"] | filter_facets
                         private_filter[mapped_element] = {
-                            "title": FILTER_MAP[mapped_element]["title"].capitalize(),
-                            "node": FILTER_MAP[mapped_element]["node"],
-                            "field": FILTER_MAP[mapped_element]["field"],
+                            "title": MAPPED_FILTERS[mapped_element]["title"].capitalize(),
+                            "node": MAPPED_FILTERS[mapped_element]["node"],
+                            "field": MAPPED_FILTERS[mapped_element]["field"],
                             "facets": {}
                         }
                         private_filter[mapped_element]["facets"] = dict(
@@ -146,12 +146,12 @@ class FilterGenerator(object):
         if mapped_element in private_filter:
             return private_filter
         else:
-            return FILTER_MAP
+            return MAPPED_FILTERS
 
     def generate_public_filter(self):
         temp_data = {}
-        for mapped_element in FILTER_MAP:
-            if FILTER_MAP[mapped_element]["facets"] == {}:
+        for mapped_element in MAPPED_FILTERS:
+            if MAPPED_FILTERS[mapped_element]["facets"] == {}:
                 # Add to temp_data, avoid node data duplicate fetch
                 self.update_temp_data(temp_data, mapped_element)
                 filter_facets = self.update_filter_facet(
@@ -159,6 +159,6 @@ class FilterGenerator(object):
                 if filter_facets == {}:
                     return False
 
-                FILTER_MAP[mapped_element]["facets"] = dict(
+                MAPPED_FILTERS[mapped_element]["facets"] = dict(
                     sorted(filter_facets.items()))
         return True

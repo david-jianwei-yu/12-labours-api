@@ -4,7 +4,7 @@ import json
 
 class PaginationFormat(object):
     def __init__(self, fg):
-        self.FILTER_MAP = fg.get_filter_map()
+        self.MAPPED_FILTERS = fg.get_mapped_filter()
 
     def update_thumbnail(self, data):
         result = []
@@ -106,7 +106,7 @@ class PaginationFormat(object):
             return result
         for ele in data:
             if ele["species"] != "NA":
-                species_filter = self.FILTER_MAP["MAPPED_SPECIES"]["facets"]
+                species_filter = self.MAPPED_FILTERS["MAPPED_SPECIES"]["facets"]
                 species = list(species_filter.keys())[list(
                     species_filter.values()).index(ele["species"])]
                 if species not in result:

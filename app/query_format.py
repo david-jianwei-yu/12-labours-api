@@ -3,7 +3,7 @@ import re
 
 class QueryFormat(object):
     def __init__(self, fg):
-        self.FILTER_MAP = fg.get_filter_map()
+        self.MAPPED_FILTERS = fg.get_mapped_filter()
         self.mode = None
 
     def set_mode(self, mode):
@@ -27,14 +27,14 @@ class QueryFormat(object):
             # Based on mapintergratedvuer map sidebar required filter format
             facet_object = {}
             facet_object["facet"] = filter_facet
-            facet_object["term"] = self.FILTER_MAP[mapped_element]["title"].capitalize(
+            facet_object["term"] = self.MAPPED_FILTERS[mapped_element]["title"].capitalize(
             )
-            facet_object["facetPropPath"] = self.FILTER_MAP[mapped_element]["node"] + \
-                ">" + self.FILTER_MAP[mapped_element]["field"]
+            facet_object["facetPropPath"] = self.MAPPED_FILTERS[mapped_element]["node"] + \
+                ">" + self.MAPPED_FILTERS[mapped_element]["field"]
             related_facet[filter_facet] = facet_object
 
     def handle_detail_mode(self, related_facet, filter_facet, mapped_element):
-        title = self.FILTER_MAP[mapped_element]["title"].capitalize()
+        title = self.MAPPED_FILTERS[mapped_element]["title"].capitalize()
         if title in related_facet and filter_facet not in related_facet[title]:
             related_facet[title].append(filter_facet)
         else:
@@ -57,7 +57,7 @@ class QueryFormat(object):
 
     def handle_facet_structure(self, related_facet, field, data):
         mapped_element = f"MAPPED_{field.upper()}"
-        for filter_facet, facet_value in self.FILTER_MAP[mapped_element]["facets"].items():
+        for filter_facet, facet_value in self.MAPPED_FILTERS[mapped_element]["facets"].items():
             for ele in data:
                 field_value = ele[field]
                 if self.handle_facet_check(facet_value, field_value):
