@@ -16,25 +16,26 @@ security = HTTPBearer()
 manager = Manager()
 jwt = JWT()
 
+AUTHORIZED_USERS = manager.dict()
+
 
 class Authenticator(object):
     def __init__(self):
-        self.authorized_user = manager.dict()
-        self.authorized_user["public"] = User(
+        AUTHORIZED_USERS["public"] = User(
             "public",
             [Gen3Config.GEN3_PUBLIC_ACCESS],
             None
         )
 
     def delete_expired_user(self, user):
-        if user in self.authorized_user and user != "public":
+        if user in AUTHORIZED_USERS and user != "public":
             current_time = datetime.now()
-            expire_time = self.authorized_user[user].get_user_expire_time()
+            expire_time = AUTHORIZED_USERS[user].get_user_expire_time()
             if current_time >= expire_time:
-                del self.authorized_user[user]
+                del AUTHORIZED_USERS[user]
 
     def cleanup_authorized_user(self):
-        for user in list(self.authorized_user):
+        for user in list(AUTHORIZED_USERS):
             if user != "public":
                 self.delete_expired_user(user)
         print("All expired users have been deleted.")
@@ -42,7 +43,7 @@ class Authenticator(object):
     def authenticate_token(self, token, auth_type=None):
         try:
             if token == "undefined":
-                return self.authorized_user["public"]
+                return AUTHORIZED_USERS["public"]
             else:
                 # Token will always be decoded
                 decrypt_identity = jwt.decoding_tokens(token)["identity"]
@@ -50,7 +51,7 @@ class Authenticator(object):
                     # Check and remove expired user
                     # Currently should only for self.gain_user_authority
                     self.delete_expired_user(decrypt_identity)
-                return self.authorized_user[decrypt_identity]
+                return AUTHORIZED_USERS[decrypt_identity]
         except Exception:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Invalid authentication credentials",
@@ -62,7 +63,7 @@ class Authenticator(object):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Unable to remove default access authority")
 
-        del self.authorized_user[verify_user.get_user_identity()]
+        del AUTHORIZED_USERS[verify_user.get_user_identity()]
         return True
 
     async def gain_user_authority(self, token: HTTPAuthorizationCredentials = Depends(security)):
@@ -104,17 +105,17 @@ class Authenticator(object):
             # Provide auto renew ability when user request access
             # Always return valid user object
             self.delete_expired_user(identity)
-            if identity in self.authorized_user:
-                return self.authorized_user[identity]
+            if identity in AUTHORIZED_USERS:
+                return AUTHORIZED_USERS[identity]
             else:
                 policies = userinfo[email]["policies"]
                 scope = self.generate_access_scope(policies, SUBMISSION)
                 expire_time = datetime.fromtimestamp(int(expiration) / 1000)
                 user = User(identity, scope, expire_time)
-                self.authorized_user[identity] = user
+                AUTHORIZED_USERS[identity] = user
                 return user
         else:
-            return self.authorized_user["public"]
+            return AUTHORIZED_USERS["public"]
 
     def generate_access_token(self, identity, SUBMISSION, SESSION):
         try:
