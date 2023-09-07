@@ -68,16 +68,26 @@ class QueryFormat(object):
                         self.handle_facet_mode(
                             related_facet, filter_facet, mapped_element)
 
+    def handle_facet_source(self):
+        sources = []
+        for mapped_element in self.MAPPED_FILTERS:
+            node = re.sub('_filter',
+                          's',
+                          self.MAPPED_FILTERS[mapped_element]["node"])
+            field = self.MAPPED_FILTERS[mapped_element]["field"]
+            if node == "experiments":
+                pass
+            elif node == "manifests":
+                sources.append(f"scaffolds>{field}")
+                sources.append(f"plots>{field}")
+                sources.append(f"dicomImages>{field}")
+            else:
+                sources.append(f"{node}>{field}")
+        return sources
+
     def generate_related_facet(self, data):
         related_facets = {}
-        facet_source = [
-            "dataset_descriptions>study_organ_system",
-            "scaffolds>additional_types",
-            "plots>additional_types",
-            "cases>age_category",
-            "cases>sex",
-            "cases>species"
-        ]
+        facet_source = self.handle_facet_source()
         for info in facet_source:
             key = info.split(">")[0]
             field = info.split(">")[1]
