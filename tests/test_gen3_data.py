@@ -17,7 +17,7 @@ def client():
 # Testing will based on ->//# dataset-217-version-2 #//<-
 def test_experiment_node(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
@@ -62,7 +62,7 @@ def test_experiment_node(client):
 
 def test_dataset_description_node(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
@@ -168,7 +168,7 @@ def test_dataset_description_node(client):
 
 def test_manifest_node(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()
@@ -220,7 +220,7 @@ def test_manifest_node(client):
 # Using ->//# dataset-46-version-2 #//<- instead
 def test_case_node(client):
     dummy_data = {
-        "identity": "dummyemail@gmail.com>machine_id"
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
     }
     response = client.post("/access/token", json=dummy_data)
     dummy_token = response.json()

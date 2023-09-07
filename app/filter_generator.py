@@ -21,12 +21,13 @@ FILTER_MAP = {
         "facets": {}
     },
     "MAPPED_ADDITIONAL_TYPES": {
-        "title": "mime type",
+        "title": "data type",
         "node": "manifest_filter",
         "field": "additional_types",
         "facets": {
             "Plot": ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"],
             "Scaffold": ["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"],
+            "Dicom": ["application/dicom"],
             # "CSV": ["text/csv"],
             # "SEGMENTATION_FILES": ["application/vnd.mbfbioscience.metadata+xml", "application/vnd.mbfbioscience.neurolucida+xml"],
             # "CONTEXT_FILE": ["application/x.vnd.abi.context-information+json"],
