@@ -64,17 +64,7 @@ sgqlc = None
 a = Authenticator()
 
 
-def check_external_service():
-    try:
-        SESSION.collections.get(iRODSConfig.IRODS_ROOT_PATH)
-        return True
-    except Exception:
-        print("Encounter an error while creating or using the session connection.")
-        return False
-
-
-@ app.on_event("startup")
-async def start_up():
+def connect_to_gen3():
     try:
         global SUBMISSION
         GEN3_CREDENTIALS = {
@@ -87,8 +77,11 @@ async def start_up():
     except Exception:
         print("Encounter an error while creating the GEN3 auth.")
 
+
+def connect_to_irods():
     try:
-        # This function is used to connect to the iRODS server, it requires "host", "port", "user", "password" and "zone" environment variables.
+        # This function is used to connect to the iRODS server
+        # It requires "host", "port", "user", "password" and "zone" environment variables.
         global SESSION
         SESSION = iRODSSession(host=iRODSConfig.IRODS_HOST,
                                port=iRODSConfig.IRODS_PORT,
@@ -96,10 +89,11 @@ async def start_up():
                                password=iRODSConfig.IRODS_PASSWORD,
                                zone=iRODSConfig.IRODS_ZONE)
         # SESSION.connection_timeout =
-        check_external_service()
     except Exception:
         print("Encounter an error while creating the iRODS session.")
 
+
+def connect_to_orthanc():
     try:
         global ORTHANC
         ORTHANC = Orthanc(OrthancConfig.ORTHANC_ENDPOINT_URL,
@@ -107,6 +101,42 @@ async def start_up():
                           password=OrthancConfig.ORTHANC_PASSWORD)
     except Exception:
         print("Encounter an error while creating the Orthanc client.")
+
+
+def check_external_service():
+    service = {"gen3": False, "irods": False, "orthanc": False}
+    try:
+        SUBMISSION.get_programs()
+        service["gen3"] = True
+    except Exception:
+        print("Encounter an error while using the gen3 submission.")
+
+    try:
+        SESSION.collections.get(iRODSConfig.IRODS_ROOT_PATH)
+        service["irods"] = True
+    except Exception:
+        print("Encounter an error while using the session connection.")
+
+    try:
+        if not ORTHANC.is_closed:
+            service["orthanc"] = True
+    except Exception:
+        print("Encounter an error while using the orthanc client.")
+
+    if not service["gen3"] or not service["irods"] or not service["orthanc"]:
+        print("Status:", service)
+        if not service["gen3"]:
+            connect_to_gen3()
+        check_external_service()
+    return service
+
+
+@ app.on_event("startup")
+async def start_up():
+    connect_to_gen3()
+    connect_to_irods()
+    connect_to_orthanc()
+    check_external_service()
 
     global s, sgqlc, fg, pf, f, p, qf
     s = Search(SESSION)
@@ -197,7 +227,7 @@ async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_au
     if "message" in record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
-    
+
     result = {
         "record": record[0]
     }

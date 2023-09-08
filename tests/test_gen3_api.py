@@ -158,7 +158,7 @@ def test_get_gen3_graphql_pagination(client):
                            headers={"Authorization": f"Bearer {dummy_token['access_token']}"})
     result = response.json()
     assert response.status_code == 200
-    assert result["items"][13]["datasetId"] == "dataset-46-version-2"
+    assert result["items"][14]["datasetId"] == "dataset-46-version-2"
 
     search_pass_case = {}
     response = client.post("/graphql/pagination/?search=rats", json=search_pass_case,
