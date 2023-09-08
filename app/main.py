@@ -121,8 +121,8 @@ def check_external_service():
         print("Encounter an error while using the session connection.")
 
     try:
-        if not ORTHANC.is_closed:
-            service["orthanc"] = True
+        ORTHANC.get_patients()
+        service["orthanc"] = True
     except Exception:
         print("Encounter an error while using the orthanc client.")
 
@@ -153,14 +153,15 @@ async def start_up():
 
 @ app.on_event("startup")
 @repeat_every(seconds=60*60*24)
-def periodic_execution():
+async def periodic_execution():
     try:
         global FILTER_GENERATED
         FILTER_GENERATED = False
-        while not FILTER_GENERATED:
-            FILTER_GENERATED = fg.generate_public_filter()
-            if FILTER_GENERATED:
-                print("Default filter dictionary has been updated.")
+        if check_external_service()["gen3"]:
+            while not FILTER_GENERATED:
+                FILTER_GENERATED = fg.generate_public_filter()
+                if FILTER_GENERATED:
+                    print("Default filter dictionary has been updated.")
     except Exception:
         print("Failed to update the default filter dictionary")
 
