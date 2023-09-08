@@ -141,7 +141,7 @@ async def start_up():
     connect_to_orthanc()
     check_external_service()
 
-    global s, sgqlc, fg, pf, f, p, qf
+    global s, sgqlc, fg, ff, pf, f, p, qf
     s = Search(SESSION)
     sgqlc = SimpleGraphQLClient(SUBMISSION)
     fg = FilterGenerator(sgqlc)
