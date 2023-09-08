@@ -178,13 +178,13 @@ def split_access(access):
 
 
 @ app.post("/access/token", tags=["Access"], summary="Create gen3 access token for authorized user", responses=access_token_responses)
-async def create_gen3_access(item: IdentityItem, connected: bool = Depends(check_external_service)):
+async def create_gen3_access(item: IdentityItem, connect_with: dict = Depends(check_external_service)):
+    if not connect_with["gen3"] or not connect_with["irods"]:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Please check the service (Gen3/iRODS) status")
     if item.identity == None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Missing field in the request body")
-    if not connected:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="Please check the irods server status or environment variables")
 
     result = {
         "identity": item.identity,
@@ -216,12 +216,16 @@ async def get_gen3_dictionary(access_scope: list = Depends(a.gain_user_authority
 
 
 @ app.get("/record/{uuid}", tags=["Gen3"], summary="Get gen3 record information", responses=record_responses)
-async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_authority)):
+async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_authority), connect_with: dict = Depends(check_external_service)):
     """
     Return record information in the Gen3 Data Commons.
 
     - **uuid**: uuid of the record.
     """
+    if not connect_with["gen3"]:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Please check the service (Gen3) status")
+
     program, project = split_access(access_scope)
     record = SUBMISSION.export_record(program, project, uuid, "json")
     if "message" in record:
@@ -235,7 +239,7 @@ async def get_gen3_record(uuid: str, access_scope: list = Depends(a.gain_user_au
 
 
 @ app.post("/graphql/query", tags=["Gen3"], summary="GraphQL query gen3 metadata information", responses=query_responses)
-async def get_gen3_graphql_query(item: GraphQLQueryItem, access_scope: list = Depends(a.gain_user_authority)):
+async def get_gen3_graphql_query(item: GraphQLQueryItem, access_scope: list = Depends(a.gain_user_authority), connect_with: dict = Depends(check_external_service)):
     """
     Return queries metadata records. The API uses GraphQL query language.
 
@@ -252,6 +256,9 @@ async def get_gen3_graphql_query(item: GraphQLQueryItem, access_scope: list = De
     - string content,
     - only available in dataset_description/manifest/case nodes
     """
+    if not connect_with["gen3"]:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Please check the service (Gen3) status")
     item.access = access_scope
     query_result = sgqlc.get_queried_result(item)
     result = {
@@ -269,7 +276,7 @@ async def get_gen3_graphql_query(item: GraphQLQueryItem, access_scope: list = De
 
 
 @ app.post("/graphql/pagination/", tags=["Gen3"], summary="Display datasets", responses=pagination_responses)
-async def get_gen3_graphql_pagination(item: GraphQLPaginationItem, search: str = "", access_scope: list = Depends(a.gain_user_authority)):
+async def get_gen3_graphql_pagination(item: GraphQLPaginationItem, search: str = "", access_scope: list = Depends(a.gain_user_authority), connect_with: dict = Depends(check_external_service)):
     """
     /graphql/pagination/?search=<string>
 
@@ -292,6 +299,10 @@ async def get_gen3_graphql_pagination(item: GraphQLPaginationItem, search: str =
     **search(parameter)**: 
     - string content
     """
+    if not connect_with["gen3"] or not connect_with["irods"]:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Please check the service (Gen3/iRODS) status")
+    
     is_public_access_filtered = p.update_pagination_item(
         item, search, access_scope)
     data_count, match_pair = p.get_pagination_count(item)
@@ -310,7 +321,7 @@ async def get_gen3_graphql_pagination(item: GraphQLPaginationItem, search: str =
 
 
 @ app.get("/filter/", tags=["Gen3"], summary="Get filter information", responses=filter_responses)
-async def get_gen3_filter(sidebar: bool, access_scope: list = Depends(a.gain_user_authority)):
+async def get_gen3_filter(sidebar: bool, access_scope: list = Depends(a.gain_user_authority), connect_with: dict = Depends(check_external_service)):
     """
     /filter/?sidebar=<boolean>
 
@@ -318,6 +329,10 @@ async def get_gen3_filter(sidebar: bool, access_scope: list = Depends(a.gain_use
 
     - **sidebar**: boolean content.
     """
+    if not connect_with["gen3"]:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Please check the service (Gen3) status")
+    
     retry = 0
     # Stop waiting for the filter generator after hitting the retry limits
     # The retry limit here may need to be increased if there is a large database
@@ -373,18 +388,18 @@ async def get_gen3_metadata_file(uuid: str, format: FormatParam, access_scope: l
 
 
 @ app.post("/collection", tags=["iRODS"], summary="Get folder information", responses=collection_responses)
-async def get_irods_collection(item: CollectionItem, connected: bool = Depends(check_external_service)):
+async def get_irods_collection(item: CollectionItem, connected: bool = Depends(check_external_service), connect_with: dict = Depends(check_external_service)):
     """
     Return all collections from the required folder.
 
     Root folder will be returned if no item or "/" is passed.
     """
+    if not connect_with["irods"]:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Please check the service (iRODS) status")
     if not re.match("(/(.)*)+", item.path):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid path format is used")
-    if not connected:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="Please check the irods server status or environment variables")
 
     def handle_collection(data):
         collection = []
@@ -410,7 +425,7 @@ async def get_irods_collection(item: CollectionItem, connected: bool = Depends(c
 
 
 @ app.get("/data/{action}/{filepath:path}", tags=["iRODS"], summary="Download irods file", response_description="Successfully return a file with data")
-async def get_irods_data_file(action: ActionParam, filepath: str, connected: bool = Depends(check_external_service)):
+async def get_irods_data_file(action: ActionParam, filepath: str, connected: bool = Depends(check_external_service), connect_with: dict = Depends(check_external_service)):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
     OR
@@ -420,13 +435,13 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
     - **filepath**: Required iRODS file path.
     """
     chunk_size = 1024*1024*1024
+
+    if not connect_with["irods"]:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Please check the service (iRODS) status")
     if action != "preview" and action != "download":
         raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
                             detail="The action is not provided in this API")
-
-    if not connected:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="Please check the irods server status or environment variables")
 
     try:
         file = SESSION.data_objects.get(
@@ -460,7 +475,10 @@ async def get_irods_data_file(action: ActionParam, filepath: str, connected: boo
 
 
 @ app.post("/instance", tags=["Orthanc"], summary="Get instance ids", responses=instance_responses)
-async def get_orthanc_instance(item: InstanceItem):
+async def get_orthanc_instance(item: InstanceItem, connect_with: dict = Depends(check_external_service)):
+    if not connect_with["orthanc"]:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Please check the service (Orthanc) status")
     if item.study == None or item.series == None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Missing one or more fields in the request body")
@@ -490,7 +508,10 @@ async def get_orthanc_instance(item: InstanceItem):
 
 
 @ app.get("/dicom/export/{identifier}", tags=["Orthanc"], summary="Export dicom file", response_description="Successfully return a file with data")
-async def get_orthanc_dicom_file(identifier: str):
+async def get_orthanc_dicom_file(identifier: str, connect_with: dict = Depends(check_external_service)):
+    if not connect_with["orthanc"]:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"Please check the service (Orthanc) status")
     try:
         instance_file = ORTHANC.get_instances_id_file(identifier)
         bytes_file = io.BytesIO(instance_file)
