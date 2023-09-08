@@ -67,6 +67,45 @@ sgqlc = None
 a = Authenticator()
 
 
+def connect_to_gen3():
+    try:
+        global SUBMISSION
+        GEN3_CREDENTIALS = {
+            "api_key": Gen3Config.GEN3_API_KEY,
+            "key_id": Gen3Config.GEN3_KEY_ID
+        }
+        AUTH = Gen3Auth(endpoint=Gen3Config.GEN3_ENDPOINT_URL,
+                        refresh_token=GEN3_CREDENTIALS)
+        SUBMISSION = Gen3Submission(AUTH)
+    except Exception:
+        print("Encounter an error while creating the GEN3 auth.")
+
+
+def connect_to_irods():
+    try:
+        # This function is used to connect to the iRODS server
+        # It requires "host", "port", "user", "password" and "zone" environment variables.
+        global SESSION
+        SESSION = iRODSSession(host=iRODSConfig.IRODS_HOST,
+                               port=iRODSConfig.IRODS_PORT,
+                               user=iRODSConfig.IRODS_USER,
+                               password=iRODSConfig.IRODS_PASSWORD,
+                               zone=iRODSConfig.IRODS_ZONE)
+        # SESSION.connection_timeout =
+    except Exception:
+        print("Encounter an error while creating the iRODS session.")
+
+
+def connect_to_orthanc():
+    try:
+        global ORTHANC
+        ORTHANC = Orthanc(OrthancConfig.ORTHANC_ENDPOINT_URL,
+                          username=OrthancConfig.ORTHANC_USERNAME,
+                          password=OrthancConfig.ORTHANC_PASSWORD)
+    except Exception:
+        print("Encounter an error while creating the Orthanc client.")
+
+
 def check_external_service():
     service = {"gen3": False, "irods": False, "orthanc": False}
     try:
@@ -89,47 +128,20 @@ def check_external_service():
 
     if not service["gen3"] or not service["irods"] or not service["orthanc"]:
         print("Status:", service)
+        if not service["gen3"]:
+            connect_to_gen3()
+            check_external_service()
     return service
 
 
 @ app.on_event("startup")
 async def start_up():
-    try:
-        global SUBMISSION
-        GEN3_CREDENTIALS = {
-            "api_key": Gen3Config.GEN3_API_KEY,
-            "key_id": Gen3Config.GEN3_KEY_ID
-        }
-        AUTH = Gen3Auth(endpoint=Gen3Config.GEN3_ENDPOINT_URL,
-                        refresh_token=GEN3_CREDENTIALS)
-        SUBMISSION = Gen3Submission(AUTH)
-    except Exception:
-        print("Encounter an error while creating the GEN3 auth.")
-
-    try:
-        # This function is used to connect to the iRODS server
-        # It requires "host", "port", "user", "password" and "zone" environment variables.
-        global SESSION
-        SESSION = iRODSSession(host=iRODSConfig.IRODS_HOST,
-                               port=iRODSConfig.IRODS_PORT,
-                               user=iRODSConfig.IRODS_USER,
-                               password=iRODSConfig.IRODS_PASSWORD,
-                               zone=iRODSConfig.IRODS_ZONE)
-        # SESSION.connection_timeout =
-    except Exception:
-        print("Encounter an error while creating the iRODS session.")
-
-    try:
-        global ORTHANC
-        ORTHANC = Orthanc(OrthancConfig.ORTHANC_ENDPOINT_URL,
-                          username=OrthancConfig.ORTHANC_USERNAME,
-                          password=OrthancConfig.ORTHANC_PASSWORD)
-    except Exception:
-        print("Encounter an error while creating the Orthanc client.")
-
+    connect_to_gen3()
+    connect_to_irods()
+    connect_to_orthanc()
     check_external_service()
 
-    global s, sgqlc, fg, ff, pf, p, qf
+    global s, sgqlc, fg, pf, f, p, qf
     s = Search(SESSION)
     sgqlc = SimpleGraphQLClient(SUBMISSION)
     fg = FilterGenerator(sgqlc)
@@ -225,13 +237,18 @@ async def get_gen3_record(
     program, project = handle_access(access_scope)
     record = SUBMISSION.export_record(program, project, uuid, "json")
     if "message" in record:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"{record['message']} and check if the correct project or uuid is used")
+<< << << < HEAD
+raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"{record['message']} and check if the correct project or uuid is used")
+== == == =
+raise HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
+>>>>>> > gen3-reconnection
 
-    result = {
-        "record": record[0]
-    }
-    return result
+result = {
+    "record": record[0]
+}
+return result
 
 
 @ app.post("/graphql/query/", tags=["Gen3"],
