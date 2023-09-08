@@ -237,18 +237,13 @@ async def get_gen3_record(
     program, project = handle_access(access_scope)
     record = SUBMISSION.export_record(program, project, uuid, "json")
     if "message" in record:
-<< << << < HEAD
-raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"{record['message']} and check if the correct project or uuid is used")
-== == == =
-raise HTTPException(
-    status_code=status.HTTP_404_NOT_FOUND, detail=record["message"]+" and check if the correct project or uuid is used")
->>>>>> > gen3-reconnection
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"{record['message']} and check if the correct project or uuid is used")
 
-result = {
-    "record": record[0]
-}
-return result
+    result = {
+        "record": record[0]
+    }
+    return result
 
 
 @ app.post("/graphql/query/", tags=["Gen3"],
