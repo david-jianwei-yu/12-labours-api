@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Union
+
 from pydantic import BaseModel
 
 title = "12 Labours Portal"
@@ -79,63 +80,146 @@ tags_metadata = [
 access_token_responses = {
     200: {
         "description": "Successfully return the gen3 access token",
-        "content": {"application/json": {"example": {"identity": "", "access_token": ""}}},
+        "content": {
+            "application/json": {"example": {"identity": "", "access_token": ""}}
+        },
     },
-    400: {"content": {"application/json": {"example": {"detail": "Missing field in the request body"}}}}
+    400: {
+        "content": {
+            "application/json": {
+                "example": {"detail": "Missing field in the request body"}
+            }
+        }
+    },
 }
 
 
 access_revoke_responses = {
     200: {
         "description": "Successfully remove the gen3 access",
-        "content": {"application/json": {"example": {"detail": "Revoke access successfully"}}},
+        "content": {
+            "application/json": {"example": {"detail": "Revoke access successfully"}}
+        },
     },
-    401: {"content": {"application/json": {"example": {"detail": "Unable to remove default access authority"}}}}
+    401: {
+        "content": {
+            "application/json": {
+                "example": {"detail": "Unable to remove default access authority"}
+            }
+        }
+    },
 }
 
 
 record_responses = {
     200: {
         "description": "Successfully return a json object contains gen3 record metadata",
-        "content": {"application/json": {"example": [{
-            "id": "", "type": "", "submitter_id": "", "associated_experiment": "",
-            "copy_numbers_identified": "", "data_description": "", "experimental_description": "",
-            "experimental_intent": "", "indels_identified": "", "marker_panel_description": "",
-            "number_experimental_group": "", "number_samples_per_experimental_group": "", "somatic_mutations_identified": "",
-            "type_of_data": "", "type_of_sample": "", "type_of_specimen": ""}]}}
+        "content": {
+            "application/json": {
+                "example": [
+                    {
+                        "id": "",
+                        "type": "",
+                        "submitter_id": "",
+                        "associated_experiment": "",
+                        "copy_numbers_identified": "",
+                        "data_description": "",
+                        "experimental_description": "",
+                        "experimental_intent": "",
+                        "indels_identified": "",
+                        "marker_panel_description": "",
+                        "number_experimental_group": "",
+                        "number_samples_per_experimental_group": "",
+                        "somatic_mutations_identified": "",
+                        "type_of_data": "",
+                        "type_of_sample": "",
+                        "type_of_specimen": "",
+                    }
+                ]
+            }
+        },
     },
-    404: {"content": {"application/json": {"example": {"detail": "Unable to find xxx and check if the correct project or uuid is used"}}}}
+    404: {
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Unable to find xxx and check if the correct project or uuid is used"
+                }
+            }
+        }
+    },
 }
 
 
 query_responses = {
     200: {
         "description": "Successfully return a list of queried datasets",
-        "content": {"application/json": {"example": {
-            "data mode": {"data": {"cases": [], "dataset_descriptions": [],  "id": "", "plots": [],
-                                   "scaffoldViews": [], "scaffolds": [], "submitter_id": "", "thumbnails": []}},
-            "detail mode": {"detail": {}, "facet": {}},
-            "facet mode": {"facet": [{"facet": "", "term": "", "facetPropPath": ""}]},
-            "mri mode": {"mri": {"filename": ["filepath"]}}
-        }}}
+        "content": {
+            "application/json": {
+                "example": {
+                    "data mode": {
+                        "data": {
+                            "cases": [],
+                            "dataset_descriptions": [],
+                            "id": "",
+                            "plots": [],
+                            "scaffoldViews": [],
+                            "scaffolds": [],
+                            "submitter_id": "",
+                            "thumbnails": [],
+                        }
+                    },
+                    "detail mode": {"detail": {}, "facet": {}},
+                    "facet mode": {
+                        "facet": [{"facet": "", "term": "", "facetPropPath": ""}]
+                    },
+                    "mri mode": {"mri": {"filename": ["filepath"]}},
+                }
+            }
+        },
     },
-    400: {"content": {"application/json": {"example": {"detail": "Mode detail/facet/mri only available when query one dataset in experiment node"}}}}
+    400: {
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Mode detail/facet/mri only available when query one dataset in experiment node"
+                }
+            }
+        }
+    },
 }
 
 
 pagination_responses = {
     200: {
         "description": "Successfully return a list of datasets information",
-        "content": {"application/json": {"example": {
-            "items": [{
-                "data_url": "", "source_url_prefix": "", "contributors": [], "keywords": [],
-                "numberSamples": 0, "numberSubjects": 0, "name": "", "datasetId": "",
-                "organs": [], "species": [], "plots": [], "scaffoldViews": [],
-                "scaffolds": [], "thumbnails": [], "detailsReady": True
-            }],
-            "numberPerPage": "",
-            "total": ""
-        }}}
+        "content": {
+            "application/json": {
+                "example": {
+                    "items": [
+                        {
+                            "data_url": "",
+                            "source_url_prefix": "",
+                            "contributors": [],
+                            "keywords": [],
+                            "numberSamples": 0,
+                            "numberSubjects": 0,
+                            "name": "",
+                            "datasetId": "",
+                            "organs": [],
+                            "species": [],
+                            "plots": [],
+                            "scaffoldViews": [],
+                            "scaffolds": [],
+                            "thumbnails": [],
+                            "detailsReady": True,
+                        }
+                    ],
+                    "numberPerPage": "",
+                    "total": "",
+                }
+            }
+        },
     }
 }
 
@@ -143,13 +227,27 @@ pagination_responses = {
 filter_responses = {
     200: {
         "description": "Successfully return filter information",
-        "content": {"application/json": {"example": {
-            "normal": {
-                "size": 0, "titles": [], "nodes": [], "fields": [],
-                "elements": [], "ids": []
-            },
-            "sidebar": [{"key": "", "label": "", "children": [{"facetPropPath": "",  "label": ""}]}]
-        }}}
+        "content": {
+            "application/json": {
+                "example": {
+                    "normal": {
+                        "size": 0,
+                        "titles": [],
+                        "nodes": [],
+                        "fields": [],
+                        "elements": [],
+                        "ids": [],
+                    },
+                    "sidebar": [
+                        {
+                            "key": "",
+                            "label": "",
+                            "children": [{"facetPropPath": "", "label": ""}],
+                        }
+                    ],
+                }
+            }
+        },
     }
 }
 
@@ -157,21 +255,49 @@ filter_responses = {
 collection_responses = {
     200: {
         "description": "Successfully return all folders/files name and path under selected folder",
-        "content": {"application/json": {"example": {"folders": [], "files": []}}}
+        "content": {"application/json": {"example": {"folders": [], "files": []}}},
     },
-    400: {"content": {"application/json": {"example": {"detail": "Invalid path format is used"}}}},
-    404: {"content": {"application/json": {"example": {"detail": "Data not found in the provided path"}}}}
+    400: {
+        "content": {
+            "application/json": {"example": {"detail": "Invalid path format is used"}}
+        }
+    },
+    404: {
+        "content": {
+            "application/json": {
+                "example": {"detail": "Data not found in the provided path"}
+            }
+        }
+    },
 }
 
 
 instance_responses = {
     200: {
         "description": "Successfully return all folders/files name and path under selected folder",
-        "content": {"application/json": {"example": []}}
+        "content": {"application/json": {"example": []}},
     },
-    400: {"content": {"application/json": {"example": {"detail": "Missing one or more fields in the request body"}}}},
-    401: {"content": {"application/json": {"example": {"detail": "Invalid orthanc username or password are used"}}}},
-    404: {"content": {"application/json": {"example": {"detail": "Resource is not found in the orthanc server"}}}}
+    400: {
+        "content": {
+            "application/json": {
+                "example": {"detail": "Missing one or more fields in the request body"}
+            }
+        }
+    },
+    401: {
+        "content": {
+            "application/json": {
+                "example": {"detail": "Invalid orthanc username or password are used"}
+            }
+        }
+    },
+    404: {
+        "content": {
+            "application/json": {
+                "example": {"detail": "Resource is not found in the orthanc server"}
+            }
+        }
+    },
 }
 
 
@@ -223,7 +349,7 @@ class GraphQLQueryItem(BaseModel):
             "example": {
                 "node": "experiment_query",
                 "filter": {"submitter_id": ["dataset-102-version-4"]},
-                "search": ""
+                "search": "",
             }
         }
 

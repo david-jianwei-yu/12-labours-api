@@ -12,8 +12,11 @@ class FilterFormat(object):
                 "label": "",
                 "children": [],
             }
-            filter_parent["key"] = used_filter[mapped_element]["node"] + \
-                ">" + used_filter[mapped_element]["field"]
+            filter_parent["key"] = (
+                used_filter[mapped_element]["node"]
+                + ">"
+                + used_filter[mapped_element]["field"]
+            )
             filter_parent["label"] = used_filter[mapped_element]["title"].capitalize()
             for facet_name in used_filter[mapped_element]["facets"]:
                 filter_children = {
@@ -31,14 +34,19 @@ class FilterFormat(object):
             "size": len(self.MAPPED_FILTERS),
             "titles": [],
             "nodes>fields": [],
-            "elements": []
+            "elements": [],
         }
         for mapped_element in self.MAPPED_FILTERS:
             used_filter = self.FG.set_filter(mapped_element, access_scope)
             filter_information["titles"].append(
-                used_filter[mapped_element]["title"].capitalize())
+                used_filter[mapped_element]["title"].capitalize()
+            )
             filter_information["nodes>fields"].append(
-                used_filter[mapped_element]["node"] + ">" + used_filter[mapped_element]["field"])
+                used_filter[mapped_element]["node"]
+                + ">"
+                + used_filter[mapped_element]["field"]
+            )
             filter_information["elements"].append(
-                list(used_filter[mapped_element]["facets"].keys()))
+                list(used_filter[mapped_element]["facets"].keys())
+            )
         return filter_information

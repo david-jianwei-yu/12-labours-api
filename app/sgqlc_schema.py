@@ -1,5 +1,5 @@
+from sgqlc.types import Field, Int, String, Type, list_of
 from sgqlc.types.relay import Node
-from sgqlc.types import String, Int, Type, Field, list_of
 
 
 # FILTER USE ONLY
@@ -175,7 +175,7 @@ class Query(Type):
             "offset": Int,
             "submitter_id": list_of(String),
             "project_id": list_of(String),
-        }
+        },
     )
     datasetDescriptionFilter = Field(
         DatasetDescriptionFilter,
@@ -184,7 +184,7 @@ class Query(Type):
             "offset": Int,
             # "study_organ_system": list_of(String),
             "project_id": list_of(String),
-        }
+        },
     )
     manifestFilter = Field(
         ManifestFilter,
@@ -193,7 +193,7 @@ class Query(Type):
             "offset": Int,
             "additional_types": list_of(String),
             "project_id": list_of(String),
-        }
+        },
     )
     caseFilter = Field(
         CaseFilter,
@@ -204,7 +204,7 @@ class Query(Type):
             "sex": list_of(String),
             "age_category": list_of(String),
             "project_id": list_of(String),
-        }
+        },
     )
     # QUERY
     experimentQuery = Field(
@@ -214,7 +214,7 @@ class Query(Type):
             "offset": Int,
             "submitter_id": list_of(String),
             "project_id": list_of(String),
-        }
+        },
     )
     datasetDescriptionQuery = Field(
         DatasetDescriptionQuery,
@@ -223,7 +223,7 @@ class Query(Type):
             "offset": Int,
             "quick_search": String,
             "project_id": list_of(String),
-        }
+        },
     )
     manifestQuery = Field(
         ManifestQuery,
@@ -232,7 +232,7 @@ class Query(Type):
             "offset": Int,
             "quick_search": String,
             "project_id": list_of(String),
-        }
+        },
     )
     caseQuery = Field(
         CaseQuery,
@@ -241,7 +241,7 @@ class Query(Type):
             "offset": Int,
             "quick_search": String,
             "project_id": list_of(String),
-        }
+        },
     )
     # PAGINATION
     experimentPagination = Field(
@@ -253,7 +253,7 @@ class Query(Type):
             "project_id": list_of(String),
             "order_by_asc": String,
             "order_by_desc": String,
-        }
+        },
     )
     experimentPaginationCount = Field(
         ExperimentPaginationCount,
@@ -262,7 +262,7 @@ class Query(Type):
             "offset": Int,
             "submitter_id": list_of(String),
             "project_id": list_of(String),
-        }
+        },
     )
     paginationOrderByDatasetDescription = Field(
         PaginationOrderByDatasetDescription,
@@ -273,5 +273,5 @@ class Query(Type):
             "project_id": list_of(String),
             "order_by_asc": String,
             "order_by_desc": String,
-        }
+        },
     )

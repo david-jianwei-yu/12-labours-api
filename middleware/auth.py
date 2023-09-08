@@ -1,12 +1,12 @@
-import re
 import json
-import yaml
-
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from yaml import SafeLoader
-from multiprocessing import Manager
+import re
 from datetime import datetime
+from multiprocessing import Manager
+
+import yaml
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from yaml import SafeLoader
 
 from app.config import Gen3Config, iRODSConfig
 from middleware.jwt import JWT
@@ -22,9 +22,7 @@ AUTHORIZED_USERS = manager.dict()
 class Authenticator(object):
     def __init__(self):
         AUTHORIZED_USERS["public"] = User(
-            "public",
-            [Gen3Config.GEN3_PUBLIC_ACCESS],
-            None
+            "public", [Gen3Config.GEN3_PUBLIC_ACCESS], None
         )
 
     def delete_expired_user(self, user):
@@ -53,20 +51,28 @@ class Authenticator(object):
                     self.delete_expired_user(decrypt_identity)
                 return AUTHORIZED_USERS[decrypt_identity]
         except Exception:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Invalid authentication credentials",
-                                headers={"WWW-Authenticate": "Bearer"})
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
-    async def revoke_user_authority(self, token: HTTPAuthorizationCredentials = Depends(security)):
+    async def revoke_user_authority(
+        self, token: HTTPAuthorizationCredentials = Depends(security)
+    ):
         verify_user = self.authenticate_token(token.credentials, "revoke")
         if verify_user.get_user_identity() == "public":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Unable to remove default access authority")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Unable to remove default access authority",
+            )
 
         del AUTHORIZED_USERS[verify_user.get_user_identity()]
         return True
 
-    async def gain_user_authority(self, token: HTTPAuthorizationCredentials = Depends(security)):
+    async def gain_user_authority(
+        self, token: HTTPAuthorizationCredentials = Depends(security)
+    ):
         verify_user = self.authenticate_token(token.credentials)
         return verify_user.get_user_scope()
 
@@ -75,26 +81,22 @@ class Authenticator(object):
         for ele in data["links"]:
             ele = ele.replace(path, "")
             if type_name == "access":
-                ele = re.sub('/', '-', ele)
+                ele = re.sub("/", "-", ele)
             name_list.append(ele)
         return name_list
 
     def generate_access_scope(self, policies, SUBMISSION):
         try:
             program = SUBMISSION.get_programs()
-            program_list = self.update_name_list(
-                program, "/v0/submission/")
-            restrict_program = list(
-                set(policies).intersection(program_list))
+            program_list = self.update_name_list(program, "/v0/submission/")
+            restrict_program = list(set(policies).intersection(program_list))
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=str(e))
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
         project = {"links": []}
         for prog in restrict_program:
             project["links"] += SUBMISSION.get_projects(prog)["links"]
-        access_scope = self.update_name_list(
-            project, "/v0/submission/", "access")
+        access_scope = self.update_name_list(project, "/v0/submission/", "access")
         return access_scope
 
     def create_user_authority(self, identity, userinfo, SUBMISSION):
@@ -121,15 +123,18 @@ class Authenticator(object):
         try:
             yaml_string = ""
             user_obj = SESSION.data_objects.get(
-                f"{iRODSConfig.IRODS_ROOT_PATH}/user.yaml")
+                f"{iRODSConfig.IRODS_ROOT_PATH}/user.yaml"
+            )
             with user_obj.open("r") as f:
                 for line in f:
-                    yaml_string += str(line, encoding='utf-8')
+                    yaml_string += str(line, encoding="utf-8")
             yaml_dict = yaml.load(yaml_string, Loader=SafeLoader)
             yaml_json = json.loads(json.dumps(yaml_dict))["users"]
         except Exception:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="User data not found in the provided path")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User data not found in the provided path",
+            )
 
         user = self.create_user_authority(identity, yaml_json, SUBMISSION)
         payload = {

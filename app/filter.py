@@ -1,7 +1,5 @@
 # This list contains all the "Array" type fields that used as a filter
-FIELDS = [
-    "study_organ_system"
-]
+FIELDS = ["study_organ_system"]
 
 
 class Filter(object):

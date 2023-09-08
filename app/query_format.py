@@ -27,10 +27,14 @@ class QueryFormat(object):
             # Based on mapintergratedvuer map sidebar required filter format
             facet_object = {}
             facet_object["facet"] = filter_facet
-            facet_object["term"] = self.MAPPED_FILTERS[mapped_element]["title"].capitalize(
+            facet_object["term"] = self.MAPPED_FILTERS[mapped_element][
+                "title"
+            ].capitalize()
+            facet_object["facetPropPath"] = (
+                self.MAPPED_FILTERS[mapped_element]["node"]
+                + ">"
+                + self.MAPPED_FILTERS[mapped_element]["field"]
             )
-            facet_object["facetPropPath"] = self.MAPPED_FILTERS[mapped_element]["node"] + \
-                ">" + self.MAPPED_FILTERS[mapped_element]["field"]
             related_facet[filter_facet] = facet_object
 
     def handle_detail_mode(self, related_facet, filter_facet, mapped_element):
@@ -57,23 +61,25 @@ class QueryFormat(object):
 
     def handle_facet_structure(self, related_facet, field, data):
         mapped_element = f"MAPPED_{field.upper()}"
-        for filter_facet, facet_value in self.MAPPED_FILTERS[mapped_element]["facets"].items():
+        for filter_facet, facet_value in self.MAPPED_FILTERS[mapped_element][
+            "facets"
+        ].items():
             for ele in data:
                 field_value = ele[field]
                 if self.handle_facet_check(facet_value, field_value):
                     if self.mode == "detail":
                         self.handle_detail_mode(
-                            related_facet, filter_facet, mapped_element)
+                            related_facet, filter_facet, mapped_element
+                        )
                     elif self.mode == "facet":
                         self.handle_facet_mode(
-                            related_facet, filter_facet, mapped_element)
+                            related_facet, filter_facet, mapped_element
+                        )
 
     def handle_facet_source(self):
         sources = []
         for mapped_element in self.MAPPED_FILTERS:
-            node = re.sub('_filter',
-                          's',
-                          self.MAPPED_FILTERS[mapped_element]["node"])
+            node = re.sub("_filter", "s", self.MAPPED_FILTERS[mapped_element]["node"])
             field = self.MAPPED_FILTERS[mapped_element]["field"]
             if node == "experiments":
                 pass
@@ -103,7 +109,7 @@ class QueryFormat(object):
         for mri in data:
             filepath = mri["filename"]
             if "_c0" in filepath:
-                mri["filename"] = re.sub('_c0', '', mri["filename"])
+                mri["filename"] = re.sub("_c0", "", mri["filename"])
                 mris.append(mri)
         return mris
 

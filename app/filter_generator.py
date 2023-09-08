@@ -6,27 +6,25 @@ MAPPED_FILTERS = {
         "title": "age category",
         "node": "case_filter",
         "field": "age_category",
-        "facets": {}
+        "facets": {},
     },
     "MAPPED_STUDY_ORGAN_SYSTEM": {
         "title": "anatomical structure",
         "node": "dataset_description_filter",
         "field": "study_organ_system",
-        "facets": {}
+        "facets": {},
     },
-    "MAPPED_SEX": {
-        "title": "sex",
-        "node": "case_filter",
-        "field": "sex",
-        "facets": {}
-    },
+    "MAPPED_SEX": {"title": "sex", "node": "case_filter", "field": "sex", "facets": {}},
     "MAPPED_ADDITIONAL_TYPES": {
         "title": "data type",
         "node": "manifest_filter",
         "field": "additional_types",
         "facets": {
             "Plot": ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+csv"],
-            "Scaffold": ["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"],
+            "Scaffold": [
+                "application/x.vnd.abi.scaffold.meta+json",
+                "inode/vnd.abi.scaffold+file",
+            ],
             "Dicom": ["application/dicom"],
             # "CSV": ["text/csv"],
             # "SEGMENTATION_FILES": ["application/vnd.mbfbioscience.metadata+xml", "application/vnd.mbfbioscience.neurolucida+xml"],
@@ -40,7 +38,7 @@ MAPPED_FILTERS = {
             # "BIOLUCIDA_3D": ["image/jpx", "image/vnd.ome.xml+jpx"],
             # "BIOLUCIDA_2D": ["image/jp2", "image/vnd.ome.xml+jp2"],
             # "VIDEO": ["video/mp4"],
-        }
+        },
     },
     "MAPPED_SPECIES": {
         "title": "species",
@@ -52,21 +50,21 @@ MAPPED_FILTERS = {
             "Mouse": "Mus musculus",
             "Pig": "Sus scrofa",
             "Rat": "Rattus norvegicus",
-        }
+        },
     },
     "MAPPED_PROJECT_ID": {
         "title": "access scope",
         "node": "experiment_filter",
         "field": "project_id",
-        "facets": {}
-    }
+        "facets": {},
+    },
 }
 
 DYNAMIC_FILTERS = [
     "MAPPED_AGE_CATEGORY",
     "MAPPED_STUDY_ORGAN_SYSTEM",
     "MAPPED_SEX",
-    "MAPPED_PROJECT_ID"
+    "MAPPED_PROJECT_ID",
 ]
 
 
@@ -102,10 +100,7 @@ class FilterGenerator(object):
 
     def update_temp_data(self, temp_data, mapped_element, private_access=None):
         filter_node = MAPPED_FILTERS[mapped_element]["node"]
-        query_item = GraphQLQueryItem(
-            node=filter_node,
-            access=self.public_access
-        )
+        query_item = GraphQLQueryItem(node=filter_node, access=self.public_access)
         if private_access != None:
             query_item.access = private_access
         if filter_node not in temp_data:
@@ -125,20 +120,25 @@ class FilterGenerator(object):
             temp_data = {}
             for mapped_element in MAPPED_FILTERS:
                 if mapped_element in DYNAMIC_FILTERS:
-                    self.update_temp_data(
-                        temp_data, mapped_element, private_access)
+                    self.update_temp_data(temp_data, mapped_element, private_access)
                     filter_facets = self.update_filter_facet(
-                        temp_data, mapped_element, private_access)
+                        temp_data, mapped_element, private_access
+                    )
                     if filter_facets != {}:
-                        updated_element = MAPPED_FILTERS[mapped_element]["facets"] | filter_facets
+                        updated_element = (
+                            MAPPED_FILTERS[mapped_element]["facets"] | filter_facets
+                        )
                         private_filter[mapped_element] = {
-                            "title": MAPPED_FILTERS[mapped_element]["title"].capitalize(),
+                            "title": MAPPED_FILTERS[mapped_element][
+                                "title"
+                            ].capitalize(),
                             "node": MAPPED_FILTERS[mapped_element]["node"],
                             "field": MAPPED_FILTERS[mapped_element]["field"],
-                            "facets": {}
+                            "facets": {},
                         }
                         private_filter[mapped_element]["facets"] = dict(
-                            sorted(updated_element.items()))
+                            sorted(updated_element.items())
+                        )
         return private_filter
 
     def set_filter(self, mapped_element, access_scope):
@@ -154,11 +154,11 @@ class FilterGenerator(object):
             if MAPPED_FILTERS[mapped_element]["facets"] == {}:
                 # Add to temp_data, avoid node data duplicate fetch
                 self.update_temp_data(temp_data, mapped_element)
-                filter_facets = self.update_filter_facet(
-                    temp_data, mapped_element)
+                filter_facets = self.update_filter_facet(temp_data, mapped_element)
                 if filter_facets == {}:
                     return False
 
                 MAPPED_FILTERS[mapped_element]["facets"] = dict(
-                    sorted(filter_facets.items()))
+                    sorted(filter_facets.items())
+                )
         return True

@@ -17,6 +17,6 @@ class User(object):
         user = {
             "identity": self.identity,
             "scope": self.scope,
-            "expire_time": self.expire_time
+            "expire_time": self.expire_time,
         }
         return user

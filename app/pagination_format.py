@@ -1,5 +1,5 @@
-import re
 import json
+import re
 
 
 class PaginationFormat(object):
@@ -17,13 +17,8 @@ class PaginationFormat(object):
 
     def handle_multiple_cite(self, filename, cite):
         full_path = ""
-        result = {
-            "path": [],
-            "relative": {
-                "path": []
-            }
-        }
-        data = json.loads(re.sub('\'', '\"', cite))
+        result = {"path": [], "relative": {"path": []}}
+        data = json.loads(re.sub("'", '"', cite))
         for ele in data:
             full_path_list = filename.split("/")
             full_path_list[-1] = ele.split("/")[-1]
@@ -35,12 +30,7 @@ class PaginationFormat(object):
     # filename: (contains full file path), cite: isDerivedFrom/isDescribedBy/isSourceOf
     def handle_cite_path(self, filename, cite):
         full_path = ""
-        result = {
-            "path": [],
-            "relative": {
-                "path": []
-            }
-        }
+        result = {"path": [], "relative": {"path": []}}
         if cite != "":
             if len(cite.split(",")) > 1:
                 result = self.handle_multiple_cite(filename, cite)
@@ -75,16 +65,29 @@ class PaginationFormat(object):
         result = []
         for ele in data:
             item = {
-                "image_url": self.handle_image_url(middle, ele["filename"], self.handle_empty_value(ele["is_source_of"]), image),
+                "image_url": self.handle_image_url(
+                    middle,
+                    ele["filename"],
+                    self.handle_empty_value(ele["is_source_of"]),
+                    image,
+                ),
                 "additional_mimetype": {
                     "name": self.handle_empty_value(ele["additional_types"])
                 },
                 "datacite": {
-                    "isDerivedFrom": self.handle_cite_path(ele["filename"], self.handle_empty_value(ele["is_derived_from"])),
-                    "isDescribedBy": self.handle_cite_path(ele["filename"], self.handle_empty_value(ele["is_described_by"])),
-                    "isSourceOf": self.handle_cite_path(ele["filename"], self.handle_empty_value(ele["is_source_of"])),
+                    "isDerivedFrom": self.handle_cite_path(
+                        ele["filename"], self.handle_empty_value(ele["is_derived_from"])
+                    ),
+                    "isDescribedBy": self.handle_cite_path(
+                        ele["filename"], self.handle_empty_value(ele["is_described_by"])
+                    ),
+                    "isSourceOf": self.handle_cite_path(
+                        ele["filename"], self.handle_empty_value(ele["is_source_of"])
+                    ),
                     "supplemental_json_metadata": {
-                        "description": self.handle_empty_value(ele["supplemental_json_metadata"])
+                        "description": self.handle_empty_value(
+                            ele["supplemental_json_metadata"]
+                        )
                     },
                 },
                 "dataset": {
@@ -107,8 +110,9 @@ class PaginationFormat(object):
         for ele in data:
             if ele["species"] != "NA":
                 species_filter = self.MAPPED_FILTERS["MAPPED_SPECIES"]["facets"]
-                species = list(species_filter.keys())[list(
-                    species_filter.values()).index(ele["species"])]
+                species = list(species_filter.keys())[
+                    list(species_filter.values()).index(ele["species"])
+                ]
                 if species not in result:
                     result.append(species)
         return result
@@ -118,9 +122,7 @@ class PaginationFormat(object):
         if data == []:
             return result
         for ele in data:
-            contributor = {
-                "name": ele
-            }
+            contributor = {"name": ele}
             result.append(contributor)
         return result
 
@@ -132,20 +134,41 @@ class PaginationFormat(object):
             dataset_item = {
                 "data_url_suffix": f"/data/browser/dataset/{dataset_id}?datasetTab=abstract",
                 "source_url_middle": f"/data/download/{dataset_id}/",
-                "contributors": self.update_contributor(ele["dataset_descriptions"][0]["contributor_name"]),
+                "contributors": self.update_contributor(
+                    ele["dataset_descriptions"][0]["contributor_name"]
+                ),
                 "keywords": ele["dataset_descriptions"][0]["keywords"],
-                "numberSamples": int(ele["dataset_descriptions"][0]["number_of_samples"][0]),
-                "numberSubjects": int(ele["dataset_descriptions"][0]["number_of_subjects"][0]),
+                "numberSamples": int(
+                    ele["dataset_descriptions"][0]["number_of_samples"][0]
+                ),
+                "numberSubjects": int(
+                    ele["dataset_descriptions"][0]["number_of_subjects"][0]
+                ),
                 "name": ele["dataset_descriptions"][0]["title"][0],
                 "datasetId": dataset_id,
                 "organs": ele["dataset_descriptions"][0]["study_organ_system"],
                 "species": self.update_species(ele["cases"]),
-                "plots": self.update_manifest_based(ele["id"], image_url_middle, ele["plots"]),
-                "scaffoldViews": self.update_manifest_based(ele["id"], image_url_middle, ele["scaffoldViews"], True),
-                "scaffolds": self.update_manifest_based(ele["id"], image_url_middle, ele["scaffolds"]),
-                "thumbnails": self.update_manifest_based(ele["id"], image_url_middle, self.update_thumbnail(ele["thumbnails"]), True),
-                "mris": self.update_manifest_based(ele["id"], image_url_middle, ele["mris"]),
-                "dicomImages": self.update_manifest_based(ele["id"], image_url_middle, ele["dicomImages"]),
+                "plots": self.update_manifest_based(
+                    ele["id"], image_url_middle, ele["plots"]
+                ),
+                "scaffoldViews": self.update_manifest_based(
+                    ele["id"], image_url_middle, ele["scaffoldViews"], True
+                ),
+                "scaffolds": self.update_manifest_based(
+                    ele["id"], image_url_middle, ele["scaffolds"]
+                ),
+                "thumbnails": self.update_manifest_based(
+                    ele["id"],
+                    image_url_middle,
+                    self.update_thumbnail(ele["thumbnails"]),
+                    True,
+                ),
+                "mris": self.update_manifest_based(
+                    ele["id"], image_url_middle, ele["mris"]
+                ),
+                "dicomImages": self.update_manifest_based(
+                    ele["id"], image_url_middle, ele["dicomImages"]
+                ),
                 "detailsReady": True,
             }
             result.append(dataset_item)
