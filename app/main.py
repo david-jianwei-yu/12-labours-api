@@ -127,7 +127,7 @@ def check_external_service():
         print("Status:", service)
         if not service["gen3"]:
             connect_to_gen3()
-        check_external_service()
+            check_external_service()
     return service
 
 
