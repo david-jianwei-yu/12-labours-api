@@ -30,7 +30,7 @@ class SimpleGraphQLClient(object):
             # Choose the number of data to display, 0 here means display everything
             'manifests1': ['scaffolds', 'additional_types', '["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"]'],
             'manifests2': ['scaffoldViews', 'additional_types', '["application/x.vnd.abi.scaffold.view+json"]'],
-            'manifests3': ['plots', 'additional_types', '["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"]'],
+            'manifests3': ['plots', 'additional_types', '["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+csv"]'],
             'manifests4': ['thumbnails', 'file_type', '[".jpg", ".png"]'],
             'manifests5': ['mris', 'file_type', '[".nrrd"]'],
             'manifests6': ['dicomImages', 'file_type', '[".dcm"]']

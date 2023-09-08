@@ -25,7 +25,7 @@ MAPPED_FILTERS = {
         "node": "manifest_filter",
         "field": "additional_types",
         "facets": {
-            "Plot": ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+Tab-separated-values", "text/vnd.abi.plot+csv"],
+            "Plot": ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+csv"],
             "Scaffold": ["application/x.vnd.abi.scaffold.meta+json", "inode/vnd.abi.scaffold+file"],
             "Dicom": ["application/dicom"],
             # "CSV": ["text/csv"],
