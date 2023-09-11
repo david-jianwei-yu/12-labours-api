@@ -53,16 +53,16 @@ app.add_middleware(
 SUBMISSION = None
 SESSION = None
 ORTHANC = None
+
+FF = None
+FG = None
+PF = None
+P = None
+QF = None
+SGQLC = None
+A = Authenticator()
+
 FILTER_GENERATED = False
-ff = None
-fg = None
-f = Filter()
-pf = None
-p = None
-qf = None
-s = None
-sgqlc = None
-a = Authenticator()
 
 
 def connect_to_gen3():
@@ -144,17 +144,17 @@ async def start_up():
     connect_to_orthanc()
     check_external_service()
 
-    global s, sgqlc, fg, ff, pf, f, p, qf
-    s = Search(SESSION)
-    sgqlc = SimpleGraphQLClient(SUBMISSION)
-    fg = FilterGenerator(sgqlc)
-    ff = FilterFormat(fg)
-    pf = PaginationFormat(fg)
-    p = Pagination(fg, f, s, sgqlc)
-    qf = QueryFormat(fg)
+    global SGQLC, FG, FF, PF, P, QF
+    SGQLC = SimpleGraphQLClient(SUBMISSION)
+    FG = FilterGenerator(SGQLC)
+    FF = FilterFormat(FG)
+    PF = PaginationFormat(FG)
+    P = Pagination(FG, Filter(), Search(SESSION), SGQLC)
+    QF = QueryFormat(FG)
+
+    await periodic_execution()
 
 
-@app.on_event("startup")
 @repeat_every(seconds=60 * 60 * 24)
 async def periodic_execution():
     try:
@@ -162,13 +162,13 @@ async def periodic_execution():
         FILTER_GENERATED = False
         if check_external_service()["gen3"]:
             while not FILTER_GENERATED:
-                FILTER_GENERATED = fg.generate_public_filter()
+                FILTER_GENERATED = FG.generate_public_filter()
                 if FILTER_GENERATED:
                     print("Default filter dictionary has been updated.")
     except Exception:
         print("Failed to update the default filter dictionary")
 
-    a.cleanup_authorized_user()
+    A.cleanup_authorized_user()
 
 
 @app.get("/", tags=["Root"])
@@ -203,7 +203,7 @@ async def create_gen3_access(
 
     result = {
         "identity": item.identity,
-        "access_token": a.generate_access_token(item.identity, SUBMISSION, SESSION),
+        "access_token": A.generate_access_token(item.identity, SUBMISSION, SESSION),
     }
     return result
 
@@ -214,7 +214,7 @@ async def create_gen3_access(
     summary="Revoke gen3 access for authorized user",
     responses=access_revoke_responses,
 )
-async def revoke_gen3_access(is_revoked: bool = Depends(a.revoke_user_authority)):
+async def revoke_gen3_access(is_revoked: bool = Depends(A.revoke_user_authority)):
     if is_revoked:
         raise HTTPException(
             status_code=status.HTTP_200_OK, detail="Revoke access successfully"
@@ -234,7 +234,7 @@ async def revoke_gen3_access(is_revoked: bool = Depends(a.revoke_user_authority)
 )
 async def get_gen3_record(
     uuid: str,
-    access_scope: list = Depends(a.gain_user_authority),
+    access_scope: list = Depends(A.gain_user_authority),
     connect_with: dict = Depends(check_external_service),
 ):
     """
@@ -273,7 +273,7 @@ async def get_gen3_record(
 async def get_gen3_graphql_query(
     item: GraphQLQueryItem,
     mode: ModeParam,
-    access_scope: list = Depends(a.gain_user_authority),
+    access_scope: list = Depends(A.gain_user_authority),
     connect_with: dict = Depends(check_external_service),
 ):
     """
@@ -312,9 +312,9 @@ async def get_gen3_graphql_query(
             detail=f"Mode {mode} only available when query one dataset in experiment node",
         )
 
-    qf.set_mode(mode)
+    QF.set_mode(mode)
     item.access = access_scope
-    query_result = sgqlc.get_queried_result(item)
+    query_result = SGQLC.get_queried_result(item)
 
     def handle_result():
         if len(query_result) == 1:
@@ -322,7 +322,7 @@ async def get_gen3_graphql_query(
         else:
             return query_result
 
-    return qf.process_data_output(handle_result())
+    return QF.process_data_output(handle_result())
 
 
 @app.post(
@@ -334,7 +334,7 @@ async def get_gen3_graphql_query(
 async def get_gen3_graphql_pagination(
     item: GraphQLPaginationItem,
     search: str = "",
-    access_scope: list = Depends(a.gain_user_authority),
+    access_scope: list = Depends(A.gain_user_authority),
     connect_with: dict = Depends(check_external_service),
 ):
     """
@@ -366,9 +366,9 @@ async def get_gen3_graphql_pagination(
         )
 
     item.access = access_scope
-    is_public_access_filtered = p.update_pagination_item(item, search)
-    data_count, match_pair = p.get_pagination_count(item)
-    query_result = p.get_pagination_data(item, match_pair, is_public_access_filtered)
+    is_public_access_filtered = P.update_pagination_item(item, search)
+    data_count, match_pair = P.get_pagination_count(item)
+    query_result = P.get_pagination_data(item, match_pair, is_public_access_filtered)
     # If both asc and desc are None, datasets ordered by self-written order function
     if item.asc == None and item.desc == None:
         query_result = sorted(
@@ -376,7 +376,7 @@ async def get_gen3_graphql_pagination(
             key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]),
         )
     result = {
-        "items": pf.reconstruct_data_structure(query_result),
+        "items": PF.reconstruct_data_structure(query_result),
         "numberPerPage": item.limit,
         "total": data_count,
     }
@@ -391,7 +391,7 @@ async def get_gen3_graphql_pagination(
 )
 async def get_gen3_filter(
     sidebar: bool,
-    access_scope: list = Depends(a.gain_user_authority),
+    access_scope: list = Depends(A.gain_user_authority),
     connect_with: dict = Depends(check_external_service),
 ):
     """
@@ -421,9 +421,9 @@ async def get_gen3_filter(
         )
 
     if sidebar == True:
-        return ff.generate_sidebar_filter_information(access_scope)
+        return FF.generate_sidebar_filter_information(access_scope)
     else:
-        return ff.generate_filter_information(access_scope)
+        return FF.generate_filter_information(access_scope)
 
 
 ############################################
