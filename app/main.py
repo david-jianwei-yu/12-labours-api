@@ -12,7 +12,7 @@ from gen3.submission import Gen3Submission
 from irods.session import iRODSSession
 from pyorthanc import Orthanc, find
 
-from app.config import *
+from app.config import Gen3Config, OrthancConfig, iRODSConfig
 from app.data_schema import *
 from app.filter import Filter
 from app.filter_format import FilterFormat
@@ -27,20 +27,12 @@ from middleware.auth import Authenticator
 app = FastAPI(
     title=title,
     description=description,
-    # version="",
-    # terms_of_service="",
     contact=contact,
-    # license_info={
-    #     "name": "",
-    #     "url": "",
-    # }
     openapi_tags=tags_metadata,
 )
 
-# Cross orgins, allow any for now
 origins = ["*"]
 
-# Add CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -66,21 +58,27 @@ FILTER_GENERATED = False
 
 
 def connect_to_gen3():
+    """
+    Connect to gen3 server.
+    """
     try:
         global SUBMISSION
-        GEN3_CREDENTIALS = {
-            "api_key": Gen3Config.GEN3_API_KEY,
-            "key_id": Gen3Config.GEN3_KEY_ID,
-        }
-        AUTH = Gen3Auth(
-            endpoint=Gen3Config.GEN3_ENDPOINT_URL, refresh_token=GEN3_CREDENTIALS
+        auth = Gen3Auth(
+            endpoint=Gen3Config.GEN3_ENDPOINT_URL,
+            refresh_token={
+                "api_key": Gen3Config.GEN3_API_KEY,
+                "key_id": Gen3Config.GEN3_KEY_ID,
+            },
         )
-        SUBMISSION = Gen3Submission(AUTH)
+        SUBMISSION = Gen3Submission(auth)
     except Exception:
         print("Encounter an error while creating the GEN3 auth.")
 
 
 def connect_to_irods():
+    """
+    Connect to irods server.
+    """
     try:
         # This function is used to connect to the iRODS server
         # It requires "host", "port", "user", "password" and "zone" environment variables.
@@ -98,6 +96,9 @@ def connect_to_irods():
 
 
 def connect_to_orthanc():
+    """
+    Connect to orthanc server.
+    """
     try:
         global ORTHANC
         ORTHANC = Orthanc(
@@ -110,24 +111,27 @@ def connect_to_orthanc():
 
 
 def check_external_service():
+    """
+    Check the services connection after startup and every time call apis.
+    """
     service = {"gen3": False, "irods": False, "orthanc": False}
     try:
         SUBMISSION.get_programs()
         service["gen3"] = True
     except Exception:
-        print("Encounter an error while using the gen3 submission.")
+        print("Encounter an error with gen3 submission.")
 
     try:
         SESSION.collections.get(iRODSConfig.IRODS_ROOT_PATH)
         service["irods"] = True
     except Exception:
-        print("Encounter an error while using the session connection.")
+        print("Encounter an error with session connection.")
 
     try:
         ORTHANC.get_patients()
         service["orthanc"] = True
     except Exception:
-        print("Encounter an error while using the orthanc client.")
+        print("Encounter an error with orthanc client.")
 
     if not service["gen3"] or not service["irods"] or not service["orthanc"]:
         print("Status:", service)
@@ -139,6 +143,9 @@ def check_external_service():
 
 @app.on_event("startup")
 async def start_up():
+    """
+    Connect to services, create function objects and trigger periodic function.
+    """
     connect_to_gen3()
     connect_to_irods()
     connect_to_orthanc()
@@ -157,6 +164,9 @@ async def start_up():
 
 @repeat_every(seconds=60 * 60 * 24)
 async def periodic_execution():
+    """
+    Update filter and cleanup users periodically.
+    """
     try:
         global FILTER_GENERATED
         FILTER_GENERATED = False
@@ -173,6 +183,9 @@ async def periodic_execution():
 
 @app.get("/", tags=["Root"])
 async def root():
+    """
+    Root
+    """
     return "This is the fastapi backend."
 
 
@@ -190,12 +203,17 @@ async def root():
 async def create_gen3_access(
     item: IdentityItem, connect_with: dict = Depends(check_external_service)
 ):
+    """
+    Return user identity and the authorized access token.
+
+    Example identity: email@gmail.com>machine_id>expiration_time
+    """
     if not connect_with["gen3"] or not connect_with["irods"]:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (Gen3/iRODS) status",
         )
-    if item.identity == None:
+    if item.identity is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Missing field in the request body",
@@ -215,6 +233,9 @@ async def create_gen3_access(
     responses=access_revoke_responses,
 )
 async def revoke_gen3_access(is_revoked: bool = Depends(A.revoke_user_authority)):
+    """
+    Return revoke message if success.
+    """
     if is_revoked:
         raise HTTPException(
             status_code=status.HTTP_200_OK, detail="Revoke access successfully"
@@ -319,8 +340,7 @@ async def get_gen3_graphql_query(
     def handle_result():
         if len(query_result) == 1:
             return query_result[0]
-        else:
-            return query_result
+        return query_result
 
     return QF.process_data_output(handle_result())
 
@@ -370,7 +390,7 @@ async def get_gen3_graphql_pagination(
     data_count, match_pair = P.get_pagination_count(item)
     query_result = P.get_pagination_data(item, match_pair, is_public_access_filtered)
     # If both asc and desc are None, datasets ordered by self-written order function
-    if item.asc == None and item.desc == None:
+    if item.asc is None and item.desc is None:
         query_result = sorted(
             query_result,
             key=lambda dict: item.filter["submitter_id"].index(dict["submitter_id"]),
@@ -420,10 +440,9 @@ async def get_gen3_filter(
             detail="Failed to generate filter or the maximum retry limit was reached",
         )
 
-    if sidebar == True:
+    if sidebar:
         return FF.generate_sidebar_filter_information(access_scope)
-    else:
-        return FF.generate_filter_information(access_scope)
+    return FF.generate_filter_information(access_scope)
 
 
 ############################################
@@ -473,11 +492,11 @@ async def get_irods_collection(
         file = handle_collection(collect.data_objects)
         result = {"folders": folder, "files": file}
         return result
-    except Exception:
+    except Exception as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Data not found in the provided path",
-        )
+        ) from error
 
 
 @app.get(
@@ -511,14 +530,19 @@ async def get_irods_data_file(
             status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
             detail=f"The action ({action}) is not provided in this API",
         )
+    if not re.match("(/(.)*)+", filepath):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid path format is used",
+        )
 
     try:
         file = SESSION.data_objects.get(f"{iRODSConfig.IRODS_ROOT_PATH}/{filepath}")
-    except Exception:
+    except Exception as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Data not found in the provided path",
-        )
+        ) from error
 
     def handle_header():
         header = None
@@ -566,24 +590,17 @@ async def get_orthanc_instance(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (Orthanc) status",
         )
-    if item.study == None or item.series == None:
+    if item.study is None or item.series is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Missing one or more fields in the request body",
         )
 
-    try:
-        patients = find(
-            orthanc=ORTHANC,
-            study_filter=lambda s: s.uid == item.study,
-            series_filter=lambda s: s.uid == item.series,
-        )
-    except Exception as e:
-        if "401" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid orthanc username or password are used",
-            )
+    patients = find(
+        orthanc=ORTHANC,
+        study_filter=lambda s: s.uid == item.study,
+        series_filter=lambda s: s.uid == item.series,
+    )
     if patients == []:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -616,21 +633,15 @@ async def get_orthanc_dicom_file(
     if not connect_with["orthanc"]:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Please check the service (Orthanc) status",
+            detail="Please check the service (Orthanc) status",
         )
 
     try:
         instance_file = ORTHANC.get_instances_id_file(identifier)
         bytes_file = io.BytesIO(instance_file)
         return Response(bytes_file.getvalue(), media_type="application/dicom")
-    except Exception as e:
-        if "401" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid orthanc username or password are used",
-            )
-        elif "404" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Resource is not found in the orthanc server",
-            )
+    except Exception as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resource is not found in the orthanc server",
+        ) from error

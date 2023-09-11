@@ -65,13 +65,14 @@ The connection between the backend and Gen3 Data Commons is directly through sen
 
 ```bash
 global SUBMISSION
-GEN3_CREDENTIALS = {
-    "api_key": Gen3Config.GEN3_API_KEY,
-    "key_id": Gen3Config.GEN3_KEY_ID
-}
-AUTH = Gen3Auth(endpoint=Gen3Config.GEN3_ENDPOINT_URL,
-                refresh_token=GEN3_CREDENTIALS)
-SUBMISSION = Gen3Submission(AUTH)
+auth = Gen3Auth(
+            endpoint=Gen3Config.GEN3_ENDPOINT_URL,
+            refresh_token={
+                "api_key": Gen3Config.GEN3_API_KEY,
+                "key_id": Gen3Config.GEN3_KEY_ID,
+            },
+        )
+SUBMISSION = Gen3Submission(auth)
 ```
 
 More information about the usage of this database in [the documentation](https://gen3.org/resources/user/using-api/).
@@ -129,3 +130,6 @@ $ export PYTHONPATH=.
 # Run the pytest
 $ pytest --timeout=<time in second>
 ```
+
+Developer Code Standards
+Black, Pylint, Mypy, isort

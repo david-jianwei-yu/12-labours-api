@@ -284,13 +284,6 @@ instance_responses = {
             }
         }
     },
-    401: {
-        "content": {
-            "application/json": {
-                "example": {"detail": "Invalid orthanc username or password are used"}
-            }
-        }
-    },
     404: {
         "content": {
             "application/json": {
