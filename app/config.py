@@ -7,10 +7,16 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config(object):
+    """
+    Token security environment variable
+    """
     JWT_SECURE_KEY = os.environ.get("JWT_SECURE_KEY")
 
 
 class Gen3Config(object):
+    """
+    Gen3 environment variable
+    """
     GEN3_ENDPOINT_URL = os.environ.get("GEN3_ENDPOINT_URL")
     GEN3_API_KEY = os.environ.get("GEN3_API_KEY")
     GEN3_KEY_ID = os.environ.get("GEN3_KEY_ID")
@@ -18,6 +24,9 @@ class Gen3Config(object):
 
 
 class iRODSConfig(object):
+    """
+    iRODS security environment variable
+    """
     IRODS_HOST = os.environ.get("IRODS_HOST")
     IRODS_PORT = os.environ.get("IRODS_PORT")
     IRODS_USER = os.environ.get("IRODS_USER")
@@ -27,6 +36,9 @@ class iRODSConfig(object):
 
 
 class OrthancConfig(object):
+    """
+    Orthanc security environment variable
+    """
     ORTHANC_ENDPOINT_URL = os.environ.get("ORTHANC_ENDPOINT_URL")
     ORTHANC_USERNAME = os.environ.get("ORTHANC_USERNAME")
     ORTHANC_PASSWORD = os.environ.get("ORTHANC_PASSWORD")
