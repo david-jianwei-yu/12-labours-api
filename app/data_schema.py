@@ -63,13 +63,161 @@ tags_metadata = [
     },
     {
         "name": "Orthanc",
-        "description": "Orthanc is a free and open-source, lightweight DICOM server for medical imaging",
+        "description": "Orthanc is a free and open-source, "
+        + "lightweight DICOM server for medical imaging",
         "externalDocs": {
             "description": "Orthanc official website",
             "url": "https://www.orthanc-server.com/",
         },
     },
 ]
+
+
+#############
+### PARAM ###
+#############
+
+
+class ModeParam(str, Enum):
+    """
+    Provided modes
+    """
+
+    data = "data"
+    detail = "detail"
+    facet = "facet"
+    mri = "mri"
+
+
+class ActionParam(str, Enum):
+    """
+    Provided actions
+    """
+
+    preview = "preview"
+    download = "download"
+
+
+############
+### ITEM ###
+############
+
+
+class IdentityItem(BaseModel):
+    """
+    Access identity item
+    """
+
+    identity: Union[str, None] = None
+
+    class Config:
+        """
+        Identity example
+        """
+
+        schema_extra = {
+            "example": {
+                "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time",
+            }
+        }
+
+
+class GraphQLQueryItem(BaseModel):
+    """
+    Gen3 graphql query item
+    """
+
+    node: Union[str, None] = None
+    page: Union[int, None] = None
+    limit: Union[int, None] = None
+    filter: Union[dict, None] = {}
+    search: Union[str, None] = ""
+    access: Union[list, None] = None
+    asc: Union[str, None] = None
+    desc: Union[str, None] = None
+
+    class Config:
+        """
+        Query example
+        """
+
+        schema_extra = {
+            "example": {
+                "node": "experiment_query",
+                "filter": {"submitter_id": ["dataset-102-version-4"]},
+                "search": "",
+            }
+        }
+
+
+class GraphQLPaginationItem(BaseModel):
+    """
+    Gen3 graphql pagination item
+    """
+
+    node: Union[str, None] = "experiment_pagination"
+    page: Union[int, None] = 1
+    limit: Union[int, None] = 50
+    filter: Union[dict, None] = {}
+    search: Union[dict, None] = {}
+    relation: Union[str, None] = "and"
+    access: Union[list, None] = None
+    order: Union[str, None] = "published(asc)"
+    asc: Union[str, None] = None
+    desc: Union[str, None] = None
+
+    class Config:
+        """
+        Pagination example
+        """
+
+        schema_extra = {
+            "example": {
+                "page": 1,
+                "limit": 50,
+                "filter": {},
+            }
+        }
+
+
+class CollectionItem(BaseModel):
+    """
+    iRODS collection item
+    """
+
+    path: Union[str, None] = "/"
+
+    class Config:
+        """
+        Collection example
+        """
+
+        schema_extra = {
+            "example": {
+                "path": "/dataset-102-version-4",
+            }
+        }
+
+
+class InstanceItem(BaseModel):
+    """
+    Orthanc instance item
+    """
+
+    study: Union[str, None] = None
+    series: Union[str, None] = None
+
+    class Config:
+        """
+        Instance example
+        """
+
+        schema_extra = {
+            "example": {
+                "study": "",
+                "series": "",
+            }
+        }
 
 
 #####################
@@ -161,7 +309,9 @@ query_responses = {
                         "data": {
                             "cases": [],
                             "dataset_descriptions": [],
+                            "dicomImages": [],
                             "id": "",
+                            "mris": [],
                             "plots": [],
                             "scaffoldViews": [],
                             "scaffolds": [],
@@ -169,11 +319,11 @@ query_responses = {
                             "thumbnails": [],
                         }
                     },
-                    "detail mode": {"detail": {}, "facet": {}},
+                    "detail mode": {"detail": {}, "facet": {"filter name": []}},
                     "facet mode": {
                         "facet": [{"facet": "", "term": "", "facetPropPath": ""}]
                     },
-                    "mri mode": {"mri": {"filename": ["filepath"]}},
+                    "mri mode": {"mri": {"file name": []}},
                 }
             }
         },
@@ -212,6 +362,8 @@ pagination_responses = {
                             "scaffoldViews": [],
                             "scaffolds": [],
                             "thumbnails": [],
+                            "mris": [],
+                            "dicomImages": [],
                             "detailsReady": True,
                         }
                     ],
@@ -292,102 +444,3 @@ instance_responses = {
         }
     },
 }
-
-
-#############
-### PARAM ###
-#############
-
-
-class ModeParam(str, Enum):
-    data = "data"
-    detail = "detail"
-    facet = "facet"
-    mri = "mri"
-
-
-class ActionParam(str, Enum):
-    preview = "preview"
-    download = "download"
-
-
-############
-### ITEM ###
-############
-
-
-class IdentityItem(BaseModel):
-    identity: Union[str, None] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time",
-            }
-        }
-
-
-class GraphQLQueryItem(BaseModel):
-    node: Union[str, None] = None
-    page: Union[int, None] = None
-    limit: Union[int, None] = None
-    filter: Union[dict, None] = {}
-    search: Union[str, None] = ""
-    access: Union[list, None] = None
-    asc: Union[str, None] = None
-    desc: Union[str, None] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "node": "experiment_query",
-                "filter": {"submitter_id": ["dataset-102-version-4"]},
-                "search": "",
-            }
-        }
-
-
-class GraphQLPaginationItem(BaseModel):
-    node: Union[str, None] = "experiment_pagination"
-    page: Union[int, None] = 1
-    limit: Union[int, None] = 50
-    filter: Union[dict, None] = {}
-    search: Union[dict, None] = {}
-    relation: Union[str, None] = "and"
-    access: Union[list, None] = None
-    order: Union[str, None] = "published(asc)"
-    asc: Union[str, None] = None
-    desc: Union[str, None] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "page": 1,
-                "limit": 50,
-                "filter": {},
-            }
-        }
-
-
-class CollectionItem(BaseModel):
-    path: Union[str, None] = "/"
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "path": "/dataset-102-version-4",
-            }
-        }
-
-
-class InstanceItem(BaseModel):
-    study: Union[str, None] = None
-    series: Union[str, None] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "study": "",
-                "series": "",
-            }
-        }
