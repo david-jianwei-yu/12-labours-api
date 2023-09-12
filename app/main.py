@@ -1,3 +1,16 @@
+"""
+Functional APIs provided by the server
+- /access/token
+- /access/revoke
+- /record/{uuid}
+- /graphql/query/?mode=data/detail/facet/mri
+- /graphql/pagination/?search=<string>
+- /filter/?sidebar=<boolean>
+- /collection
+- /data/{action}/{filepath:path}
+- /instance
+- /dicom/export/{identifier}
+"""
 import io
 import mimetypes
 import re
@@ -410,7 +423,7 @@ async def get_gen3_graphql_pagination(
     responses=filter_responses,
 )
 async def get_gen3_filter(
-    sidebar: bool,
+    sidebar: bool = False,
     access_scope: list = Depends(A.gain_user_authority),
     connect_with: dict = Depends(check_external_service),
 ):

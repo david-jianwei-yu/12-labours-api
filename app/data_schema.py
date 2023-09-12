@@ -1,7 +1,20 @@
+"""
+All the data used by APIs/functions
+- docs metadata
+- api params
+- api items
+- api responses
+"""
 from enum import Enum
 from typing import Union
 
 from pydantic import BaseModel
+
+
+############
+### docs ###
+############
+
 
 title = "12 Labours Portal"
 

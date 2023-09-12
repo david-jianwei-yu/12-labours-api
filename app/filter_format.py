@@ -1,5 +1,7 @@
 """
 Functionality for generating different types of filter format
+- generate_sidebar_filter_format
+- generate_filter_format
 """
 
 
