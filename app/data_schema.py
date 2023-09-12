@@ -1,5 +1,5 @@
 """
-All the data used by APIs/functions
+Data schema used by APIs/functions
 - docs metadata
 - api params
 - api items
