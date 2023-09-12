@@ -1,7 +1,7 @@
 import re
 
 
-class QueryFormat(object):
+class QueryFormat:
     def __init__(self, fg):
         self.MAPPED_FILTERS = fg.get_mapped_filter()
         self.mode = None

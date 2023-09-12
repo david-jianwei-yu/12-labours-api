@@ -6,14 +6,14 @@ load_dotenv()
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
-class Config(object):
+class Config:
     """
     Token security environment variable
     """
     JWT_SECURE_KEY = os.environ.get("JWT_SECURE_KEY")
 
 
-class Gen3Config(object):
+class Gen3Config:
     """
     Gen3 environment variable
     """
@@ -23,7 +23,7 @@ class Gen3Config(object):
     GEN3_PUBLIC_ACCESS = os.environ.get("GEN3_PUBLIC_ACCESS")
 
 
-class iRODSConfig(object):
+class iRODSConfig:
     """
     iRODS security environment variable
     """
@@ -35,7 +35,7 @@ class iRODSConfig(object):
     IRODS_ROOT_PATH = os.environ.get("IRODS_ROOT_PATH")
 
 
-class OrthancConfig(object):
+class OrthancConfig:
     """
     Orthanc security environment variable
     """

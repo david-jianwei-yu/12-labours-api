@@ -2,7 +2,7 @@ import json
 import re
 
 
-class PaginationFormat(object):
+class PaginationFormat:
     def __init__(self, fg):
         self.MAPPED_FILTERS = fg.get_mapped_filter()
 

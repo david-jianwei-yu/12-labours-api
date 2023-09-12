@@ -1,4 +1,4 @@
-class User(object):
+class User:
     def __init__(self, identity, scope, expire_time):
         self.identity = identity
         self.scope = scope

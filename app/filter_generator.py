@@ -68,7 +68,7 @@ DYNAMIC_FILTERS = [
 ]
 
 
-class FilterGenerator(object):
+class FilterGenerator:
     def __init__(self, sgqlc):
         self.SGQLC = sgqlc
         self.public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]

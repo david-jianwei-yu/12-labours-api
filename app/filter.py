@@ -2,7 +2,7 @@
 FIELDS = ["study_organ_system"]
 
 
-class Filter(object):
+class Filter:
     def handle_filtered_dataset(self, filter, data):
         field = list(filter.keys())[0]
         if field in FIELDS:

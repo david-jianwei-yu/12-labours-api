@@ -9,7 +9,7 @@ from app.config import iRODSConfig
 SEARCHFIELD = ["TITLE", "SUBTITLE", "CONTRIBUTOR"]
 
 
-class Search(object):
+class Search:
     def __init__(self, session):
         self.SESSION = session
 

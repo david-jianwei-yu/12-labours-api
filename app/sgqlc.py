@@ -6,7 +6,7 @@ from sgqlc.operation import Operation
 from app.sgqlc_schema import Query
 
 
-class SimpleGraphQLClient(object):
+class SimpleGraphQLClient:
     def __init__(self, submission):
         self.SUBMISSION = submission
 

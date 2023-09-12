@@ -3,7 +3,7 @@ import jwt
 from app.config import Config
 
 
-class JWT(object):
+class JWT:
     def __init__(self):
         self.algorithm = "HS256"
         self.secure = Config.JWT_SECURE_KEY

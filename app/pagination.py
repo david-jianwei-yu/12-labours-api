@@ -9,7 +9,7 @@ from app.config import Gen3Config
 from app.data_schema import GraphQLPaginationItem, GraphQLQueryItem
 
 
-class Pagination(object):
+class Pagination:
     def __init__(self, fg, f, s, sgqlc):
         self.FG = fg
         self.MAPPED_FILTERS = fg.get_mapped_filter()

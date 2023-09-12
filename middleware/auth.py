@@ -19,7 +19,7 @@ jwt = JWT()
 AUTHORIZED_USERS = manager.dict()
 
 
-class Authenticator(object):
+class Authenticator:
     def __init__(self):
         AUTHORIZED_USERS["public"] = User(
             "public", [Gen3Config.GEN3_PUBLIC_ACCESS], None
