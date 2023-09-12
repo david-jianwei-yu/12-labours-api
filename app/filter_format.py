@@ -1,10 +1,22 @@
-class FilterFormat(object):
+"""
+Functionality for generating different types of filter format
+"""
+
+
+class FilterFormat:
+    """
+    fg -> filter generator  is required
+    """
+
     def __init__(self, fg):
         self.FG = fg
         self.MAPPED_FILTERS = fg.get_mapped_filter()
 
-    def generate_sidebar_filter_information(self, access_scope):
-        sidebar_filter_information = []
+    def generate_sidebar_filter_format(self, access_scope):
+        """
+        Format for map viewer sidebar
+        """
+        sidebar_filter_format = []
         for mapped_element in self.MAPPED_FILTERS:
             used_filter = self.FG.set_filter(mapped_element, access_scope)
             filter_parent = {
@@ -26,11 +38,14 @@ class FilterFormat(object):
                 filter_children["facetPropPath"] = filter_parent["key"]
                 filter_children["label"] = facet_name
                 filter_parent["children"].append(filter_children)
-            sidebar_filter_information.append(filter_parent)
-        return sidebar_filter_information
+            sidebar_filter_format.append(filter_parent)
+        return sidebar_filter_format
 
-    def generate_filter_information(self, access_scope):
-        filter_information = {
+    def generate_filter_format(self, access_scope):
+        """
+        Format for data browser
+        """
+        filter_format = {
             "size": len(self.MAPPED_FILTERS),
             "titles": [],
             "nodes>fields": [],
@@ -38,15 +53,15 @@ class FilterFormat(object):
         }
         for mapped_element in self.MAPPED_FILTERS:
             used_filter = self.FG.set_filter(mapped_element, access_scope)
-            filter_information["titles"].append(
+            filter_format["titles"].append(
                 used_filter[mapped_element]["title"].capitalize()
             )
-            filter_information["nodes>fields"].append(
+            filter_format["nodes>fields"].append(
                 used_filter[mapped_element]["node"]
                 + ">"
                 + used_filter[mapped_element]["field"]
             )
-            filter_information["elements"].append(
+            filter_format["elements"].append(
                 list(used_filter[mapped_element]["facets"].keys())
             )
-        return filter_information
+        return filter_format

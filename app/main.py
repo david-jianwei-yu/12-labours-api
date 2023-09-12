@@ -441,8 +441,8 @@ async def get_gen3_filter(
         )
 
     if sidebar:
-        return FF.generate_sidebar_filter_information(access_scope)
-    return FF.generate_filter_information(access_scope)
+        return FF.generate_sidebar_filter_format(access_scope)
+    return FF.generate_filter_format(access_scope)
 
 
 ############################################
