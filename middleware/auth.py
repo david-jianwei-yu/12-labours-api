@@ -1,3 +1,11 @@
+"""
+Functionality for backend services access control
+- AUTHORIZED_USERS
+- cleanup_authorized_user
+- handle_revoke_authority
+- handle_gain_authority
+- generate_access_token
+"""
 import json
 import re
 from datetime import datetime
@@ -20,12 +28,25 @@ AUTHORIZED_USERS = manager.dict()
 
 
 class Authenticator:
+    """
+    Authentication functionality
+    """
+
     def __init__(self):
         AUTHORIZED_USERS["public"] = User(
             "public", [Gen3Config.GEN3_PUBLIC_ACCESS], None
         )
 
-    def delete_expired_user(self, user):
+    def get_authorized_user_number(self):
+        """
+        Return the number of user in AUTHORIZED_USERS
+        """
+        return len(AUTHORIZED_USERS)
+
+    def _delete_expired_user(self, user):
+        """
+        Handler for finding and deleting expired users from AUTHORIZED_USERS
+        """
         if user in AUTHORIZED_USERS and user != "public":
             current_time = datetime.now()
             expire_time = AUTHORIZED_USERS[user].get_user_expire_time()
@@ -33,34 +54,42 @@ class Authenticator:
                 del AUTHORIZED_USERS[user]
 
     def cleanup_authorized_user(self):
+        """
+        Handler for providing deleting expired users option outside auth file
+        """
         for user in list(AUTHORIZED_USERS):
             if user != "public":
-                self.delete_expired_user(user)
+                self._delete_expired_user(user)
         print("All expired users have been deleted.")
 
-    def authenticate_token(self, token, auth_type=None):
+    def _handle_authenticate_token(self, token, auth_type=None):
+        """
+        Handler for verifying the authenticate token validity
+        """
         try:
             if token == "undefined":
                 return AUTHORIZED_USERS["public"]
-            else:
-                # Token will always be decoded
-                decrypt_identity = jwt.decoding_tokens(token)["identity"]
-                if auth_type == None:
-                    # Check and remove expired user
-                    # Currently should only for self.gain_user_authority
-                    self.delete_expired_user(decrypt_identity)
-                return AUTHORIZED_USERS[decrypt_identity]
-        except Exception:
+            # Token will always be decoded
+            decrypt_identity = jwt.decoding_token(token)["identity"]
+            if auth_type is None:
+                # Check and remove expired user
+                # Currently should only for self.handle_gain_authority
+                self._delete_expired_user(decrypt_identity)
+            return AUTHORIZED_USERS[decrypt_identity]
+        except Exception as error:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication credentials",
                 headers={"WWW-Authenticate": "Bearer"},
-            )
+            ) from error
 
-    async def revoke_user_authority(
+    async def handle_revoke_authority(
         self, token: HTTPAuthorizationCredentials = Depends(security)
     ):
-        verify_user = self.authenticate_token(token.credentials, "revoke")
+        """
+        Handler for delete user access scope if token is valid
+        """
+        verify_user = self._handle_authenticate_token(token.credentials, "revoke")
         if verify_user.get_user_identity() == "public":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -70,76 +99,91 @@ class Authenticator:
         del AUTHORIZED_USERS[verify_user.get_user_identity()]
         return True
 
-    async def gain_user_authority(
+    async def handle_gain_authority(
         self, token: HTTPAuthorizationCredentials = Depends(security)
     ):
-        verify_user = self.authenticate_token(token.credentials)
-        return verify_user.get_user_scope()
+        """
+        Handler for returning user access scope if token is valid
+        """
+        verify_user = self._handle_authenticate_token(token.credentials)
+        return verify_user.get_user_access_scope()
 
-    def update_name_list(self, data, path, type_name=None):
+    def _handle_name(self, data, path, type_name=None):
+        """
+        Handler for processing gen3 program/project name
+        """
         name_list = []
-        for ele in data["links"]:
-            ele = ele.replace(path, "")
+        for _ in data:
+            name = _.replace(path, "")
             if type_name == "access":
-                ele = re.sub("/", "-", ele)
-            name_list.append(ele)
+                name = re.sub("/", "-", name)
+            name_list.append(name)
         return name_list
 
-    def generate_access_scope(self, policies, SUBMISSION):
+    def _handle_access_scope(self, policies, SUBMISSION):
+        """
+        Handler for generating gen3 access scopes
+        """
         try:
             program = SUBMISSION.get_programs()
-            program_list = self.update_name_list(program, "/v0/submission/")
-            restrict_program = list(set(policies).intersection(program_list))
-        except Exception as e:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+            program_list = self._handle_name(program["links"], "/v0/submission/")
+        except Exception as error:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
+            ) from error
 
         project = {"links": []}
-        for prog in restrict_program:
+        for prog in list(set(policies).intersection(program_list)):
             project["links"] += SUBMISSION.get_projects(prog)["links"]
-        access_scope = self.update_name_list(project, "/v0/submission/", "access")
-        return access_scope
+        return self._handle_name(project["links"], "/v0/submission/", "access")
 
-    def create_user_authority(self, identity, userinfo, SUBMISSION):
+    def _handle_user_authority(self, identity, user_yaml, SUBMISSION):
+        """
+        Handler for generating user authority object
+        """
         email = identity.split(">")[0]
         expiration = identity.split(">")[2]
-        if email in userinfo and expiration != "false":
+        if email in user_yaml and expiration != "false":
             # Avoid user object expired but not removed
             # Provide auto renew ability when user request access
             # Always return valid user object
-            self.delete_expired_user(identity)
+            self._delete_expired_user(identity)
             if identity in AUTHORIZED_USERS:
                 return AUTHORIZED_USERS[identity]
-            else:
-                policies = userinfo[email]["policies"]
-                scope = self.generate_access_scope(policies, SUBMISSION)
-                expire_time = datetime.fromtimestamp(int(expiration) / 1000)
-                user = User(identity, scope, expire_time)
-                AUTHORIZED_USERS[identity] = user
-                return user
-        else:
-            return AUTHORIZED_USERS["public"]
+            policies = user_yaml[email]["policies"]
+            scope = self._handle_access_scope(policies, SUBMISSION)
+            expire_time = datetime.fromtimestamp(int(expiration) / 1000)
+            user = User(identity, scope, expire_time)
+            AUTHORIZED_USERS[identity] = user
+            return user
+        return AUTHORIZED_USERS["public"]
 
     def generate_access_token(self, identity, SUBMISSION, SESSION):
+        """
+        Handler for generating gen3 access_token to limit user access scope
+        """
         try:
             yaml_string = ""
             user_obj = SESSION.data_objects.get(
                 f"{iRODSConfig.IRODS_ROOT_PATH}/user.yaml"
             )
-            with user_obj.open("r") as f:
-                for line in f:
+            with user_obj.open("r") as file:
+                for line in file:
                     yaml_string += str(line, encoding="utf-8")
-            yaml_dict = yaml.load(yaml_string, Loader=SafeLoader)
-            yaml_json = json.loads(json.dumps(yaml_dict))["users"]
-        except Exception:
+            user_yaml = json.loads(
+                json.dumps(yaml.load(yaml_string, Loader=SafeLoader))
+            )["users"]
+        except Exception as error:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User data not found in the provided path",
-            )
+            ) from error
 
-        user = self.create_user_authority(identity, yaml_json, SUBMISSION)
-        payload = {
-            "identity": user.get_user_identity(),
-            "scope": user.get_user_scope(),
-        }
-        access_token = jwt.encoding_tokens(payload)
+        user = self._handle_user_authority(identity, user_yaml, SUBMISSION)
+        access_token = jwt.encoding_token(
+            {
+                "identity": user.get_user_identity(),
+                "scope": user.get_user_access_scope(),
+            }
+        )
         return access_token
