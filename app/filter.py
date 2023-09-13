@@ -1,37 +1,54 @@
+"""
+Functionality for implementing data filtering
+- generate_filtered_dataset
+- implement_filter_relation
+"""
 # This list contains all the "Array" type fields that used as a filter
 FIELDS = ["study_organ_system"]
 
 
 class Filter:
-    def handle_filtered_dataset(self, filter, data):
-        field = list(filter.keys())[0]
+    """
+    Filter functionality
+    """
+
+    def _handle_filtered_data(self, filter_, data):
+        """
+        Handler for processing different filter relation types
+        """
+        field = list(filter_.keys())[0]
         if field in FIELDS:
-            dataset = []
-            for ele in data:
-                for value in filter[field]:
-                    if value in ele[field]:
-                        dataset.append(ele)
-            data = dataset
+            matched_data = []
+            for _ in data:
+                for value in filter_[field]:
+                    if value in _[field]:
+                        matched_data.append(_)
+            data = matched_data
         return data
 
-    def get_filtered_dataset(self, filter, data):
-        data = self.handle_filtered_dataset(filter, data)
-        dataset_list = []
-        for ele in data:
-            if "experiments" in ele:
-                dataset_list.append(ele["experiments"][0]["submitter_id"])
+    def generate_filtered_dataset(self, filter_, data):
+        """
+        Handler for processing different filter relation types
+        """
+        datasets = []
+        for _ in self._handle_filtered_data(filter_, data):
+            if "experiments" in _:
+                datasets.append(_["experiments"][0]["submitter_id"])
             else:
                 # Implement filter in experiment node
-                dataset_list.append(ele["submitter_id"])
-        return dataset_list
+                datasets.append(_["submitter_id"])
+        return datasets
 
-    def filter_relation(self, item):
+    def implement_filter_relation(self, item):
+        """
+        Handler for processing different filter relation types
+        """
         nested_list = item.filter["submitter_id"]
         if item.relation == "and":  # AND relationship
-            dataset_list = set(nested_list[0]).intersection(*nested_list)
+            datasets = set(nested_list[0]).intersection(*nested_list)
         elif item.relation == "or":  # OR relationship
-            dataset_list = set()
+            datasets = set()
             for ids_list in nested_list:
                 for dataset_id in ids_list:
-                    dataset_list.add(dataset_id)
-        item.filter["submitter_id"] = list(dataset_list)
+                    datasets.add(dataset_id)
+        item.filter["submitter_id"] = list(datasets)
