@@ -164,7 +164,7 @@ async def start_up():
     connect_to_orthanc()
     check_external_service()
 
-    global SGQLC, FG, FF, PF, P, QF
+    global FF, FG, PF, P, QF, SGQLC
     SGQLC = SimpleGraphQLClient(SUBMISSION)
     FG = FilterGenerator(SGQLC)
     FF = FilterFormat(FG)
@@ -543,14 +543,10 @@ async def get_irods_data_file(
             status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
             detail=f"The action ({action}) is not provided in this API",
         )
-    if not re.match("(/(.)*)+", filepath):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid path format is used",
-        )
 
     try:
         file = SESSION.data_objects.get(f"{iRODSConfig.IRODS_ROOT_PATH}/{filepath}")
+        filename = file.name
     except Exception as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -561,13 +557,13 @@ async def get_irods_data_file(
         header = None
         if action == "download":
             header = {
-                "X-File-Name": file.name,
-                "Content-Disposition": f"attachment;filename={file.name}",
+                "X-File-Name": filename,
+                "Content-Disposition": f"attachment;filename={filename}",
             }
         return header
 
     def handle_mimetype():
-        return mimetypes.guess_type(file.name)[0]
+        return mimetypes.guess_type(filename)[0]
 
     def iterate_file():
         with file.open("r") as file_like:
