@@ -105,12 +105,12 @@ class FilterGenerator:
         Handler for fetching and storing data as temporary data which will be used to generate filter
         Avoid duplicate fetch
         """
-        filter_node = element_content["node"]
-        query_item = GraphQLQueryItem(node=filter_node, access=self.public_access)
+        node = element_content["node"]
+        query_item = GraphQLQueryItem(node=node, access=self.public_access)
         if private_access is not None:
             query_item.access = private_access
-        if filter_node not in self.cache:
-            self.cache[filter_node] = self._sgqlc.get_queried_result(query_item)
+        if node not in self.cache:
+            self.cache[node] = self._sgqlc.get_queried_result(query_item)
 
     def _handle_facet(self, element_content, private_access=None):
         """
@@ -122,10 +122,10 @@ class FilterGenerator:
             exist_facets = element_content["facets"]
         else:
             exist_facets = facets
-        filter_node = element_content["node"]
-        filter_field = element_content["field"]
-        for ele in self.cache[filter_node]:
-            field_value = ele[filter_field]
+        node = element_content["node"]
+        field = element_content["field"]
+        for _ in self.cache[node]:
+            field_value = _[field]
             if isinstance(field_value, list) and field_value != []:
                 for sub_value in field_value:
                     self._update_facet(facets, exist_facets, sub_value)
