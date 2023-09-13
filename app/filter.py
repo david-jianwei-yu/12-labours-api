@@ -14,7 +14,7 @@ class Filter:
 
     def _handle_filtered_data(self, filter_, data):
         """
-        Handler for processing different filter relation types
+        Handler for processing data with field in FIELDS
         """
         field = list(filter_.keys())[0]
         if field in FIELDS:
@@ -28,7 +28,7 @@ class Filter:
 
     def generate_filtered_dataset(self, filter_, data):
         """
-        Handler for processing different filter relation types
+        Handler for generating the filtered dataset
         """
         datasets = []
         for _ in self._handle_filtered_data(filter_, data):
