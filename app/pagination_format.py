@@ -2,7 +2,6 @@
 Functionality for reconstructing data structure
 - reconstruct_data_structure
 """
-
 import json
 import re
 
