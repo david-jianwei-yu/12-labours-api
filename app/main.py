@@ -191,7 +191,8 @@ async def periodic_execution():
     except Exception:
         print("Failed to update the default filter dictionary")
 
-    A.cleanup_authorized_user()
+    if A.get_authorized_user_number() > 1:
+        A.cleanup_authorized_user()
 
 
 @app.get("/", tags=["Root"])
