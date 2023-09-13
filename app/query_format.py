@@ -1,6 +1,6 @@
 """
 Functionality for processing query data output
-- set_mode
+- set_query_mode
 - process_data_output
 """
 import re
