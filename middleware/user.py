@@ -3,7 +3,6 @@ Functionality for creating gen3 access users to support portal access control
 - get_user_identity
 - get_user_access_scope
 - get_user_expire_time
-- get_user_detail
 """
 
 
@@ -34,13 +33,3 @@ class User:
         Handler for returning user expire time
         """
         return self.expire_time
-
-    def get_user_detail(self):
-        """
-        Handler for returning user detail
-        """
-        return {
-            "identity": self.identity,
-            "access_scope": self.access_scope,
-            "expire_time": self.expire_time,
-        }
