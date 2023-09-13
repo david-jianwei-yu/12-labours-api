@@ -348,7 +348,7 @@ async def get_gen3_graphql_query(
 
     QF.set_mode(mode)
     item.access = access_scope
-    query_result = SGQLC.get_queried_result(item)
+    query_result = SGQLC.fetch_queried_result(item)
 
     def handle_result():
         if len(query_result) == 1:

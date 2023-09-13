@@ -110,7 +110,7 @@ class FilterGenerator:
         if private_access is not None:
             query_item.access = private_access
         if node not in self.cache:
-            self.cache[node] = self._sgqlc.get_queried_result(query_item)
+            self.cache[node] = self._sgqlc.fetch_queried_result(query_item)
 
     def _handle_facet(self, element_content, private_access=None):
         """
