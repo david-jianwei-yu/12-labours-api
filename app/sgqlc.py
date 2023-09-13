@@ -61,7 +61,6 @@ class SimpleGraphQLClient:
             "manifests5": ["mris", "file_type", '[".nrrd"]'],
             "manifests6": ["dicomImages", "file_type", '[".dcm"]'],
         }
-
         for key, value in data.items():
             snake_case = re.sub(
                 key,
@@ -113,7 +112,9 @@ class SimpleGraphQLClient:
         Handler for creating graphql query code
         """
         query = Operation(Query)
-
+        # FILTER
+        # if the node name contains "_filter",
+        # the query generator will be used for /filter/ and /graphql/pagination API
         if item.node == "experiment_filter":
             graphql_query_code = self._handle_query_code_format(
                 item,
@@ -156,7 +157,9 @@ class SimpleGraphQLClient:
                     project_id=item.access,
                 ),
             )
-
+        # QUERY
+        # if the node name contains "_query",
+        # the query generator will only be used for /graphql/query API
         elif item.node == "experiment_query":
             if isinstance(item.search, str) and item.search != "":
                 raise HTTPException(

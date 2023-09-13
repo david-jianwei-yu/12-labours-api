@@ -45,7 +45,6 @@ class Search:
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="There is no matched content in the database",
                 )
-
             for result in query:
                 content_list = re.findall(
                     rf"(\s{keyword}|{keyword}\s)", result[DataObjectMeta.value]
