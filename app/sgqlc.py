@@ -35,7 +35,7 @@ class SimpleGraphQLClient:
         updated_node = re.sub(node, node_type, node)
         return updated_query, updated_node
 
-    def handle_classification(self, item, snake_case):
+    def _handle_classification(self, item, snake_case):
         """
         Handler for processing manifest classification
         """
@@ -103,7 +103,7 @@ class SimpleGraphQLClient:
         snake_case = self._handle_null_argument(snake_case)
         # Either pagination or experiment node query
         if "experiment" in item.node and "count" not in item.node:
-            snake_case = self.handle_classification(item, snake_case)
+            snake_case = self._handle_classification(item, snake_case)
         snake_case, item.node = self._handle_suffix(item.node, snake_case)
         return "{" + snake_case + "}"
 
