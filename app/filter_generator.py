@@ -1,3 +1,10 @@
+"""
+Functionality for generating the filter based on database files
+- MAPPED_FILTERS
+- DYNAMIC_FILTERS
+- generate_private_filter
+- generate_public_filter
+"""
 from app.config import Gen3Config
 from app.data_schema import GraphQLQueryItem
 
@@ -14,7 +21,15 @@ MAPPED_FILTERS = {
         "field": "study_organ_system",
         "facets": {},
     },
-    "MAPPED_SEX": {"title": "sex", "node": "case_filter", "field": "sex", "facets": {}},
+    "MAPPED_SEX": {
+        "title": "sex",
+        "node": "case_filter",
+        "field": "sex",
+        "facets": {
+            "Female": ["F", "Female"],
+            "Male": ["M", "Male"],
+        },
+    },
     "MAPPED_ADDITIONAL_TYPES": {
         "title": "data type",
         "node": "manifest_filter",
@@ -26,18 +41,6 @@ MAPPED_FILTERS = {
                 "inode/vnd.abi.scaffold+file",
             ],
             "Dicom": ["application/dicom"],
-            # "CSV": ["text/csv"],
-            # "SEGMENTATION_FILES": ["application/vnd.mbfbioscience.metadata+xml", "application/vnd.mbfbioscience.neurolucida+xml"],
-            # "CONTEXT_FILE": ["application/x.vnd.abi.context-information+json"],
-            # "SCAFFOLD_VIEW_FILE": ["application/x.vnd.abi.scaffold.view+json", "inode/vnd.abi.scaffold.view+file"],
-            # "SIMULATION_FILE": ["application/x.vnd.abi.simulation+json"],
-            # "THUMBNAIL_IMAGE": ["image/x.vnd.abi.thumbnail+jpeg", "inode/vnd.abi.scaffold+thumbnail", "inode/vnd.abi.scaffold.thumbnail+file"],
-            # "SCAFFOLD_DIR": ["inode/vnd.abi.scaffold+directory"],
-            # "COMMON_IMAGES": ["image/png", "image/jpeg"],
-            # "tiff-image": ["image/tiff", "image/tif"],
-            # "BIOLUCIDA_3D": ["image/jpx", "image/vnd.ome.xml+jpx"],
-            # "BIOLUCIDA_2D": ["image/jp2", "image/vnd.ome.xml+jp2"],
-            # "VIDEO": ["video/mp4"],
         },
     },
     "MAPPED_SPECIES": {
@@ -63,50 +66,77 @@ MAPPED_FILTERS = {
 DYNAMIC_FILTERS = [
     "MAPPED_AGE_CATEGORY",
     "MAPPED_STUDY_ORGAN_SYSTEM",
-    "MAPPED_SEX",
     "MAPPED_PROJECT_ID",
 ]
 
 
 class FilterGenerator:
+    """
+    sgqlc -> simple graphql client object is required
+    """
+
     def __init__(self, sgqlc):
-        self.SGQLC = sgqlc
+        self._sgqlc = sgqlc
         self.public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
+        self.cache = {}
 
     def get_mapped_filter(self):
+        """
+        Return MAPPED_FILTERS
+        """
         return MAPPED_FILTERS
 
-    def add_facet(self, filter_facets, exist_facets, value):
+    def reset_cache(self):
+        """
+        Cleanup self.cache
+        """
+        self.cache = {}
+
+    def _update_facet(self, facets, exist_facets, value):
+        """
+        Handler for adding facets which not exist yet
+        """
         name = value.capitalize()
         if name not in exist_facets:
-            filter_facets[name] = value
+            facets[name] = value
 
-    def update_filter_facet(self, temp_data, mapped_element, private_access=None):
-        filter_facets = {}
-        if private_access != None:
-            exist_facets = MAPPED_FILTERS[mapped_element]["facets"]
-        else:
-            exist_facets = filter_facets
-        filter_node = MAPPED_FILTERS[mapped_element]["node"]
-        field = MAPPED_FILTERS[mapped_element]["field"]
-        for ele in temp_data[filter_node]:
-            field_value = ele[field]
-            if type(field_value) == list and field_value != []:
-                for sub_value in field_value:
-                    self.add_facet(filter_facets, exist_facets, sub_value)
-            elif type(field_value) == str and field_value != "NA":
-                self.add_facet(filter_facets, exist_facets, field_value)
-        return filter_facets
-
-    def update_temp_data(self, temp_data, mapped_element, private_access=None):
-        filter_node = MAPPED_FILTERS[mapped_element]["node"]
+    def _update_cache(self, element_content, private_access=None):
+        """
+        Handler for fetching and storing data as temporary data which will be used to generate filter
+        Avoid duplicate fetch
+        """
+        filter_node = element_content["node"]
         query_item = GraphQLQueryItem(node=filter_node, access=self.public_access)
-        if private_access != None:
+        if private_access is not None:
             query_item.access = private_access
-        if filter_node not in temp_data:
-            temp_data[filter_node] = self.SGQLC.get_queried_result(query_item)
+        if filter_node not in self.cache:
+            self.cache[filter_node] = self._sgqlc.get_queried_result(query_item)
 
-    def handle_access(self, access_scope):
+    def _handle_facet(self, element_content, private_access=None):
+        """
+        Handler for updating corresponding filter element facets
+        """
+        self._update_cache(element_content, private_access)
+        facets = {}
+        if private_access is not None:
+            exist_facets = element_content["facets"]
+        else:
+            exist_facets = facets
+        filter_node = element_content["node"]
+        filter_field = element_content["field"]
+        for ele in self.cache[filter_node]:
+            field_value = ele[filter_field]
+            if isinstance(field_value, list) and field_value != []:
+                for sub_value in field_value:
+                    self._update_facet(facets, exist_facets, sub_value)
+            elif isinstance(field_value, str) and field_value != "NA":
+                self._update_facet(facets, exist_facets, field_value)
+        return facets
+
+    def _handle_private_access(self, access_scope):
+        """
+        Handler for removing public access from access, keep private access only
+        """
         private_access = []
         for scope in access_scope:
             if scope != self.public_access[0]:
@@ -114,51 +144,35 @@ class FilterGenerator:
         return private_access
 
     def generate_private_filter(self, access_scope):
-        private_access = self.handle_access(access_scope)
+        """
+        Generator for private dataset filter
+        """
+        private_access = self._handle_private_access(access_scope)
         private_filter = {}
-        if private_access != []:
-            temp_data = {}
-            for mapped_element in MAPPED_FILTERS:
+        if private_access:
+            for mapped_element, element_content in MAPPED_FILTERS.items():
                 if mapped_element in DYNAMIC_FILTERS:
-                    self.update_temp_data(temp_data, mapped_element, private_access)
-                    filter_facets = self.update_filter_facet(
-                        temp_data, mapped_element, private_access
-                    )
-                    if filter_facets != {}:
-                        updated_element = (
-                            MAPPED_FILTERS[mapped_element]["facets"] | filter_facets
-                        )
+                    private_facets = self._handle_facet(element_content, private_access)
+                    if private_facets:
+                        updated_facets = element_content["facets"] | private_facets
                         private_filter[mapped_element] = {
-                            "title": MAPPED_FILTERS[mapped_element][
-                                "title"
-                            ].capitalize(),
-                            "node": MAPPED_FILTERS[mapped_element]["node"],
-                            "field": MAPPED_FILTERS[mapped_element]["field"],
-                            "facets": {},
+                            "title": element_content["title"].capitalize(),
+                            "node": element_content["node"],
+                            "field": element_content["field"],
+                            "facets": dict(sorted(updated_facets.items())),
                         }
-                        private_filter[mapped_element]["facets"] = dict(
-                            sorted(updated_element.items())
-                        )
+        self.reset_cache()
         return private_filter
 
-    def set_filter(self, mapped_element, access_scope):
-        private_filter = self.generate_private_filter(access_scope)
-        if mapped_element in private_filter:
-            return private_filter
-        else:
-            return MAPPED_FILTERS
-
     def generate_public_filter(self):
-        temp_data = {}
-        for mapped_element in MAPPED_FILTERS:
-            if MAPPED_FILTERS[mapped_element]["facets"] == {}:
-                # Add to temp_data, avoid node data duplicate fetch
-                self.update_temp_data(temp_data, mapped_element)
-                filter_facets = self.update_filter_facet(temp_data, mapped_element)
-                if filter_facets == {}:
+        """
+        Generator for public dataset filter
+        """
+        for element_content in MAPPED_FILTERS.values():
+            if not element_content["facets"]:
+                public_facets = self._handle_facet(element_content)
+                if not public_facets:
                     return False
-
-                MAPPED_FILTERS[mapped_element]["facets"] = dict(
-                    sorted(filter_facets.items())
-                )
+                element_content["facets"] = dict(sorted(public_facets.items()))
+        self.reset_cache()
         return True
