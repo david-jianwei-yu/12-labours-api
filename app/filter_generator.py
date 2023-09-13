@@ -1,7 +1,6 @@
 """
 Functionality for generating the filter based on database files
 - MAPPED_FILTERS
-- DYNAMIC_FILTERS
 - generate_private_filter
 - generate_public_filter
 """
