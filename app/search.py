@@ -17,6 +17,7 @@ SEARCHFIELD = ["TITLE", "SUBTITLE", "CONTRIBUTOR"]
 class Search:
     """
     Search functionality
+    session -> iRODS session is required
     """
 
     def __init__(self, session):
