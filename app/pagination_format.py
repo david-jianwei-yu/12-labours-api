@@ -15,7 +15,7 @@ class PaginationFormat:
     def __init__(self, fg):
         self._mapped_filter = fg.get_mapped_filter()
 
-    def _update_thumbnail(self, data):
+    def _handle_thumbnail(self, data):
         """
         Handler for updating thumbnail
         """
@@ -190,7 +190,7 @@ class PaginationFormat:
                 "thumbnails": self._handle_manifest(
                     uuid,
                     preview_link,
-                    self._update_thumbnail(_["thumbnails"]),
+                    self._handle_thumbnail(_["thumbnails"]),
                     True,
                 ),
                 "mris": self._handle_manifest(uuid, preview_link, _["mris"]),
