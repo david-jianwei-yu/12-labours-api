@@ -60,10 +60,10 @@ class Search:
                         dataset_dict[dataset] += 1
         return dataset_dict
 
-    # The dataset list order is based on how the dataset content is relevant to the input_ string.
+    # The datasets order is based on how the dataset content is relevant to the input_ string.
     def generate_searched_dataset(self, input_):
         """
-        Handler for processing relation between search and filter
+        Handler for generating the searched dataset
         """
         keyword_list = re.findall("[a-zA-Z0-9]+", input_.lower())
         dataset_dict = self._handle_searched_data(keyword_list)
