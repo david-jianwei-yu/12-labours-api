@@ -245,7 +245,7 @@ async def create_gen3_access(
     summary="Revoke gen3 access for authorized user",
     responses=access_revoke_responses,
 )
-async def revoke_gen3_access(is_revoked: bool = Depends(A.revoke_user_authority)):
+async def revoke_gen3_access(is_revoked: bool = Depends(A.handle_revoke_authority)):
     """
     Return revoke message if success.
     """
@@ -268,7 +268,7 @@ async def revoke_gen3_access(is_revoked: bool = Depends(A.revoke_user_authority)
 )
 async def get_gen3_record(
     uuid: str,
-    access_scope: list = Depends(A.gain_user_authority),
+    access_scope: list = Depends(A.handle_gain_authority),
     connect_with: dict = Depends(check_external_service),
 ):
     """
@@ -307,7 +307,7 @@ async def get_gen3_record(
 async def get_gen3_graphql_query(
     item: GraphQLQueryItem,
     mode: ModeParam,
-    access_scope: list = Depends(A.gain_user_authority),
+    access_scope: list = Depends(A.handle_gain_authority),
     connect_with: dict = Depends(check_external_service),
 ):
     """
@@ -367,7 +367,7 @@ async def get_gen3_graphql_query(
 async def get_gen3_graphql_pagination(
     item: GraphQLPaginationItem,
     search: str = "",
-    access_scope: list = Depends(A.gain_user_authority),
+    access_scope: list = Depends(A.handle_gain_authority),
     connect_with: dict = Depends(check_external_service),
 ):
     """
@@ -424,7 +424,7 @@ async def get_gen3_graphql_pagination(
 )
 async def get_gen3_filter(
     sidebar: bool = False,
-    access_scope: list = Depends(A.gain_user_authority),
+    access_scope: list = Depends(A.handle_gain_authority),
     connect_with: dict = Depends(check_external_service),
 ):
     """
