@@ -346,7 +346,7 @@ async def get_gen3_graphql_query(
             detail=f"Mode {mode} only available when query one dataset in experiment node",
         )
 
-    QF.set_mode(mode)
+    QF.set_query_mode(mode)
     item.access = access_scope
     query_result = SGQLC.fetch_queried_result(item)
 
