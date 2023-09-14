@@ -103,32 +103,52 @@ def connect_to_orthanc():
         print("Encounter an error while creating the Orthanc client.")
 
 
-def check_external_service():
-    service = {"gen3": False, "irods": False, "orthanc": False}
-    try:
-        SUBMISSION.get_programs()
-        service["gen3"] = True
-    except Exception:
-        print("Encounter an error while using the gen3 submission.")
+def check_external_service(check=None):
+    services = {"gen3": False, "irods": False, "orthanc": False}
 
-    try:
-        SESSION.collections.get(iRODSConfig.IRODS_ROOT_PATH)
-        service["irods"] = True
-    except Exception:
-        print("Encounter an error while using the session connection.")
+    def check_gen3():
+        try:
+            SUBMISSION.get_programs()
+            services["gen3"] = True
+        except Exception:
+            print("Encounter an error while using the gen3 submission.")
 
-    try:
-        if not ORTHANC.is_closed:
-            service["orthanc"] = True
-    except Exception:
-        print("Encounter an error while using the orthanc client.")
-
-    if not service["gen3"] or not service["irods"] or not service["orthanc"]:
-        print("Status:", service)
-        if not service["gen3"]:
+        if not services["gen3"]:
+            print("Gen3 connected:", services["gen3"])
             connect_to_gen3()
-            check_external_service()
-    return service
+            check_external_service("gen3")
+
+    def check_irods():
+        try:
+            SESSION.collections.get(iRODSConfig.IRODS_ROOT_PATH)
+            services["irods"] = True
+        except Exception:
+            print("Encounter an error while using the irods session.")
+
+        if not services["irods"]:
+            print("iRODS connected:", services["irods"])
+
+    def check_orthanc():
+        try:
+            if not ORTHANC.is_closed:
+                services["orthanc"] = True
+        except Exception:
+            print("Encounter an error while using the orthanc client.")
+
+        if not services["orthanc"]:
+            print("Orthanc connected:", services["orthanc"])
+
+    if check == "gen3":
+        check_gen3()
+    elif check == "irods":
+        check_irods()
+    elif check == "orthanc":
+        check_orthanc()
+    else:
+        check_gen3()
+        check_irods()
+        check_orthanc()
+    return services
 
 
 @ app.on_event("startup")
