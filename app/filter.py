@@ -7,9 +7,6 @@ FIELDS = [
 
 
 class Filter(object):
-    def __init__(self, fg):
-        self.FG = fg
-
     def get_fields(self):
         return FIELDS
 

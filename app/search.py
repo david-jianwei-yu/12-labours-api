@@ -15,14 +15,14 @@ SEARCHFIELD = [
 
 
 class Search(object):
-    def __init__(self, session):
-        self.SESSION = session
+    def __init__(self, service):
+        self.service = service
 
     def generate_searched_datasets(self, keyword_list):
         dataset_dict = {}
         for keyword in keyword_list:
             try:
-                query = self.SESSION.query(Collection.name, DataObjectMeta.value).filter(
+                query = self.service["irods"].query(Collection.name, DataObjectMeta.value).filter(
                     In(DataObjectMeta.name, SEARCHFIELD)).filter(
                     Like(DataObjectMeta.value, f"%{keyword}%"))
             except Exception as e:
