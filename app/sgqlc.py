@@ -15,8 +15,8 @@ class SimpleGraphQLClient:
     submission -> Gen3 submission is required
     """
 
-    def __init__(self, submission):
-        self._submission = submission
+    def __init__(self, service):
+        self._service = service
 
     def _handle_suffix(self, node, snake_case):
         """
@@ -262,7 +262,7 @@ class SimpleGraphQLClient:
 
         query = self._handle_graphql_query_code(item)
         try:
-            result = self._submission.query(query)["data"][item.node]
+            result = self._service["gen3"].query(query)["data"][item.node]
             if key is not None and queue is not None:
                 queue.put({key: result})
             return result

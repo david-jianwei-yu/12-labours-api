@@ -20,8 +20,8 @@ class Search:
     session -> iRODS session is required
     """
 
-    def __init__(self, session):
-        self._session = session
+    def __init__(self, service):
+        self._service = service
 
     def _handle_searched_data(self, keyword_list):
         """
@@ -31,7 +31,8 @@ class Search:
         for keyword in keyword_list:
             try:
                 query = (
-                    self._session.query(Collection.name, DataObjectMeta.value)
+                    self._service["irods"]
+                    .query(Collection.name, DataObjectMeta.value)
                     .filter(In(DataObjectMeta.name, SEARCHFIELD))
                     .filter(Like(DataObjectMeta.value, f"%{keyword}%"))
                 )
