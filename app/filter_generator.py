@@ -71,11 +71,11 @@ DYNAMIC_FILTERS = [
 
 class FilterGenerator:
     """
-    sgqlc -> simple graphql client object is required
+    es -> external service object is required
     """
 
-    def __init__(self, sgqlc):
-        self._sgqlc = sgqlc
+    def __init__(self, es):
+        self._es = es
         self.public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
         self.cache = {}
 
@@ -109,7 +109,7 @@ class FilterGenerator:
         if private_access is not None:
             query_item.access = private_access
         if node not in self.cache:
-            self.cache[node] = self._sgqlc.fetch_queried_result(query_item)
+            self.cache[node] = self._es.process_gen3_graphql_query(query_item)
 
     def _handle_facet(self, element_content, private_access=None):
         """

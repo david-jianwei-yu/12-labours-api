@@ -17,11 +17,11 @@ SEARCHFIELD = ["TITLE", "SUBTITLE", "CONTRIBUTOR"]
 class Search:
     """
     Search functionality
-    session -> iRODS session is required
+    es -> external service object is required
     """
 
-    def __init__(self, service):
-        self._service = service
+    def __init__(self, es):
+        self._service = es.check_service_status()
 
     def _handle_searched_data(self, keyword_list):
         """

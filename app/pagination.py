@@ -20,15 +20,15 @@ class Pagination:
     fg -> filter generator object is required
     f -> filter object is required
     s -> search object is required
-    sgqlc -> simple graphql client object is required
+    es -> external service object is required
     """
 
-    def __init__(self, fg, f, s, sgqlc):
+    def __init__(self, fg, f, s, es):
         self._fg = fg
         self._mapped_filter = fg.get_mapped_filter()
         self._f = f
         self._s = s
-        self._sgqlc = sgqlc
+        self._es = es
         self.public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
 
     def _handle_dataset(self, data):
@@ -50,7 +50,7 @@ class Pagination:
         threads_pool = []
         for args in items:
             thread = threading.Thread(
-                target=self._sgqlc.fetch_queried_result, args=(*args, queue_)
+                target=self._es.process_gen3_graphql_query, args=(*args, queue_)
             )
             threads_pool.append(thread)
             thread.start()
@@ -92,7 +92,7 @@ class Pagination:
             query_item.desc = "title"
         # Include both public and private if have the access
         ordered_datasets = []
-        for ele in self._sgqlc.fetch_queried_result(query_item):
+        for ele in self._es.process_gen3_graphql_query(query_item):
             dataset_id = ele["experiments"][0]["submitter_id"]
             if dataset_id not in ordered_datasets:
                 ordered_datasets.append(dataset_id)
@@ -116,7 +116,7 @@ class Pagination:
             desc=item.desc,
         )
         displayed_dataset = self._handle_dataset(
-            self._sgqlc.fetch_queried_result(query_item)
+            self._es.process_gen3_graphql_query(query_item)
         )
         item.access.remove(self.public_access[0])
         items = []

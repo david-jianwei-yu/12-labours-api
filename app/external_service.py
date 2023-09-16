@@ -1,4 +1,5 @@
 import time
+from fastapi import HTTPException, status
 
 from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
@@ -9,7 +10,8 @@ from app.config import Gen3Config, OrthancConfig, iRODSConfig
 
 
 class ExternalService:
-    def __init__(self):
+    def __init__(self, sgqlc):
+        self._sgqlc = sgqlc
         self.services = {"gen3": None, "irods": None, "orthanc": None}
         self.retry = 0
 
@@ -53,6 +55,27 @@ class ExternalService:
             self.check_irods_status()
         except Exception:
             print("Failed to create the iRODS session.")
+
+    def process_gen3_graphql_query(self, item, key=None, queue=None):
+        """
+        Handler for fetching gen3 data with graphql query code
+        """
+        if item.node is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing one or more fields in the request body",
+            )
+
+        query = self._sgqlc.handle_graphql_query_code(item)
+        try:
+            result = self.services["gen3"].query(query)["data"][item.node]
+            if key is not None and queue is not None:
+                queue.put({key: result})
+            return result
+        except Exception as error:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
+            ) from error
 
     def check_gen3_status(self):
         try:

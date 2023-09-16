@@ -53,31 +53,18 @@ app.add_middleware(
     expose_headers=["X-File-Name"],
 )
 
-ES = ExternalService()
-FF = None
 FILTER_GENERATED = False
-FG = None
+ES = ExternalService(SimpleGraphQLClient())
+FG = FilterGenerator(ES)
+FF = FilterFormat(FG)
 F = Filter()
-PF = None
-P = None
-QF = None
-SGQLC = None
+PF = PaginationFormat(FG)
+P = Pagination(FG, F, Search(ES), ES)
+QF = QueryFormat(FG)
 A = Authenticator()
 
 
 @app.on_event("startup")
-async def start_up():
-    services = ES.check_service_status()
-
-    global SGQLC, FG, FF, PF, P, QF
-    SGQLC = SimpleGraphQLClient(services)
-    FG = FilterGenerator(SGQLC)
-    FF = FilterFormat(FG)
-    PF = PaginationFormat(FG)
-    P = Pagination(FG, F, Search(services), SGQLC)
-    QF = QueryFormat(FG)
-
-
 @repeat_every(seconds=60 * 60 * 24)
 async def periodic_execution():
     """
@@ -89,9 +76,9 @@ async def periodic_execution():
         while not FILTER_GENERATED:
             FILTER_GENERATED = FG.generate_public_filter()
             if FILTER_GENERATED:
-                print("Default filter dictionary has been updated.")
+                print("Default filter has been updated.")
     except Exception:
-        print("Failed to update the default filter dictionary")
+        print("Failed to update the default filter.")
 
     if A.get_authorized_user_number() > 1:
         A.cleanup_authorized_user()
@@ -253,7 +240,7 @@ async def get_gen3_graphql_query(
 
     QF.set_query_mode(mode)
     item.access = access_scope
-    query_result = SGQLC.fetch_queried_result(item)
+    query_result = ES.process_gen3_graphql_query(item)
 
     def handle_result():
         if len(query_result) == 1:
