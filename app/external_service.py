@@ -1,6 +1,11 @@
+"""
+Functionality for connecting and using external service
+- process_gen3_graphql_query
+- check_service_status
+"""
 import time
-from fastapi import HTTPException, status
 
+from fastapi import HTTPException, status
 from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
 from irods.session import iRODSSession
@@ -10,37 +15,53 @@ from app.config import Gen3Config, OrthancConfig, iRODSConfig
 
 
 class ExternalService:
+    """
+    sgqlc -> simple graphql client object is required
+    """
+
     def __init__(self, sgqlc):
         self._sgqlc = sgqlc
         self.services = {"gen3": None, "irods": None, "orthanc": None}
         self.retry = 0
 
-    def check_orthanc_status(self):
+    def _check_orthanc_status(self):
+        """
+        Handler for checking orthanc connection status
+        """
         try:
             self.services["orthanc"].get_patients()
         except Exception:
             print("Orthanc disconnected")
             self.services["orthanc"] = None
 
-    def connect_to_orthanc(self):
+    def _connect_orthanc(self):
+        """
+        Handler for connecting orthanc service
+        """
         try:
             self.services["orthanc"] = Orthanc(
                 OrthancConfig.ORTHANC_ENDPOINT_URL,
                 username=OrthancConfig.ORTHANC_USERNAME,
                 password=OrthancConfig.ORTHANC_PASSWORD,
             )
-            self.check_orthanc_status()
+            self._check_orthanc_status()
         except Exception:
             print("Failed to create the Orthanc client.")
 
-    def check_irods_status(self):
+    def _check_irods_status(self):
+        """
+        Handler for checking irods connection status
+        """
         try:
             self.services["irods"].collections.get(iRODSConfig.IRODS_ROOT_PATH)
         except Exception:
             print("iRODS disconnected")
             self.services["irods"] = None
 
-    def connect_to_irods(self):
+    def _connect_irods(self):
+        """
+        Handler for connecting irods service
+        """
         try:
             # This function is used to connect to the iRODS server
             # It requires "host", "port", "user", "password" and "zone" environment variables.
@@ -52,7 +73,7 @@ class ExternalService:
                 zone=iRODSConfig.IRODS_ZONE,
             )
             # self.services["irods"].connection_timeout =
-            self.check_irods_status()
+            self._check_irods_status()
         except Exception:
             print("Failed to create the iRODS session.")
 
@@ -77,7 +98,10 @@ class ExternalService:
                 status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
             ) from error
 
-    def check_gen3_status(self):
+    def _check_gen3_status(self):
+        """
+        Handler for checking gen3 connection status
+        """
         try:
             self.services["gen3"].get_programs()
             self.retry = 0
@@ -88,9 +112,12 @@ class ExternalService:
                 self.retry += 1
                 print(f"Reconnecting...{self.retry}...")
                 time.sleep(self.retry)
-                self.connect_to_gen3()
+                self._connect_gen3()
 
-    def connect_to_gen3(self):
+    def _connect_gen3(self):
+        """
+        Handler for connecting gen3 service
+        """
         try:
             self.services["gen3"] = Gen3Submission(
                 Gen3Auth(
@@ -101,23 +128,26 @@ class ExternalService:
                     },
                 )
             )
-            self.check_gen3_status()
+            self._check_gen3_status()
         except Exception:
             print("Failed to create the Gen3 submission.")
 
     def check_service_status(self):
+        """
+        Handler for checking external services status
+        """
         if self.services["gen3"] is None:
-            self.connect_to_gen3()
+            self._connect_gen3()
         else:
-            self.check_gen3_status()
+            self._check_gen3_status()
 
         if self.services["irods"] is None:
-            self.connect_to_irods()
+            self._connect_irods()
         else:
-            self.check_irods_status()
+            self._check_irods_status()
 
         if self.services["orthanc"] is None:
-            self.connect_to_orthanc()
+            self._connect_orthanc()
         else:
-            self.check_orthanc_status()
+            self._check_orthanc_status()
         return self.services
