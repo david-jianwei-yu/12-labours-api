@@ -17,8 +17,8 @@ class ExternalService:
         try:
             self.services["orthanc"].get_patients()
         except Exception:
-            self.services["orthanc"] = None
             print("Orthanc disconnected")
+            self.services["orthanc"] = None
 
     def connect_to_orthanc(self):
         try:
@@ -29,14 +29,14 @@ class ExternalService:
             )
             self.check_orthanc_status()
         except Exception:
-            print("Encounter an error while creating the Orthanc client.")
+            print("Failed to create the Orthanc client.")
 
     def check_irods_status(self):
         try:
             self.services["irods"].collections.get(iRODSConfig.IRODS_ROOT_PATH)
         except Exception:
-            self.services["irods"] = None
             print("iRODS disconnected")
+            self.services["irods"] = None
 
     def connect_to_irods(self):
         try:
@@ -52,18 +52,18 @@ class ExternalService:
             # self.services["irods"].connection_timeout =
             self.check_irods_status()
         except Exception:
-            print("Encounter an error while creating the iRODS session.")
+            print("Failed to create the iRODS session.")
 
     def check_gen3_status(self):
         try:
             self.services["gen3"].get_programs()
             self.retry = 0
         except Exception:
-            self.services["gen3"] = None
             print("Gen3 disconnected")
-            print(f"Reconnecting...{self.retry}...")
+            self.services["gen3"] = None
             if self.retry < 12:
                 self.retry += 1
+                print(f"Reconnecting...{self.retry}...")
                 time.sleep(self.retry)
                 self.connect_to_gen3()
 
@@ -80,13 +80,21 @@ class ExternalService:
             )
             self.check_gen3_status()
         except Exception:
-            print("Encounter an error while creating the GEN3 auth.")
+            print("Failed to create the Gen3 submission.")
 
     def check_service_status(self):
         if self.services["gen3"] is None:
             self.connect_to_gen3()
+        else:
+            self.check_gen3_status()
+
         if self.services["irods"] is None:
             self.connect_to_irods()
+        else:
+            self.check_irods_status()
+
         if self.services["orthanc"] is None:
             self.connect_to_orthanc()
+        else:
+            self.check_orthanc_status()
         return self.services
