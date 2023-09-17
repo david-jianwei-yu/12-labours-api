@@ -69,6 +69,7 @@ async def periodic_execution():
     """
     Update filter and cleanup users periodically.
     """
+    ES.check_service_status()
     try:
         global FILTER_GENERATED
         FILTER_GENERATED = False

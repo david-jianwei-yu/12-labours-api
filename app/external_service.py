@@ -8,10 +8,14 @@ import time
 from fastapi import HTTPException, status
 from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
+from irods.column import In, Like
+from irods.models import Collection, DataObjectMeta
 from irods.session import iRODSSession
 from pyorthanc import Orthanc
 
 from app.config import Gen3Config, OrthancConfig, iRODSConfig
+
+SEARCHFIELD = ["TITLE", "SUBTITLE", "CONTRIBUTOR"]
 
 
 class ExternalService:
@@ -31,7 +35,7 @@ class ExternalService:
         try:
             self.services["orthanc"].get_patients()
         except Exception:
-            print("Orthanc disconnected")
+            print("Orthanc disconnected.")
             self.services["orthanc"] = None
 
     def _connect_orthanc(self):
@@ -48,6 +52,26 @@ class ExternalService:
         except Exception:
             print("Failed to create the Orthanc client.")
 
+    def process_irods_keyword_search(self, keyword):
+        try:
+            result = (
+                self.services["irods"]
+                .query(Collection.name, DataObjectMeta.value)
+                .filter(In(DataObjectMeta.name, SEARCHFIELD))
+                .filter(Like(DataObjectMeta.value, f"%{keyword}%"))
+            )
+        except Exception as error:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error)
+            ) from error
+        # Any keyword that does not match with the database content will cause search no result
+        if len(result.all()) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="There is no matched content in the database",
+            )
+        return result
+
     def _check_irods_status(self):
         """
         Handler for checking irods connection status
@@ -55,7 +79,7 @@ class ExternalService:
         try:
             self.services["irods"].collections.get(iRODSConfig.IRODS_ROOT_PATH)
         except Exception:
-            print("iRODS disconnected")
+            print("iRODS disconnected.")
             self.services["irods"] = None
 
     def _connect_irods(self):
@@ -106,7 +130,7 @@ class ExternalService:
             self.services["gen3"].get_programs()
             self.retry = 0
         except Exception:
-            print("Gen3 disconnected")
+            print("Gen3 disconnected.")
             self.services["gen3"] = None
             if self.retry < 12:
                 self.retry += 1

@@ -5,13 +5,9 @@ Functionality for implementing data searching
 """
 import re
 
-from fastapi import HTTPException, status
-from irods.column import In, Like
 from irods.models import Collection, DataObjectMeta
 
 from app.config import iRODSConfig
-
-SEARCHFIELD = ["TITLE", "SUBTITLE", "CONTRIBUTOR"]
 
 
 class Search:
@@ -21,7 +17,7 @@ class Search:
     """
 
     def __init__(self, es):
-        self._service = es.check_service_status()
+        self._es = es
 
     def _handle_searched_data(self, keyword_list):
         """
@@ -29,24 +25,7 @@ class Search:
         """
         dataset_dict = {}
         for keyword in keyword_list:
-            try:
-                query = (
-                    self._service["irods"]
-                    .query(Collection.name, DataObjectMeta.value)
-                    .filter(In(DataObjectMeta.name, SEARCHFIELD))
-                    .filter(Like(DataObjectMeta.value, f"%{keyword}%"))
-                )
-            except Exception as error:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error)
-                ) from error
-            # Any keyword that does not match with the database content will cause search no result
-            if len(query.all()) == 0:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="There is no matched content in the database",
-                )
-            for result in query:
+            for result in self._es.process_irods_keyword_search(keyword):
                 content_list = re.findall(
                     rf"(\s{keyword}|{keyword}\s)", result[DataObjectMeta.value]
                 )
