@@ -57,9 +57,8 @@ FILTER_GENERATED = False
 ES = ExternalService(SimpleGraphQLClient())
 FG = FilterGenerator(ES)
 FF = FilterFormat(FG)
-F = Filter()
 PF = PaginationFormat(FG)
-P = Pagination(FG, F, Search(ES), ES)
+P = Pagination(FG, Filter(), Search(ES), ES)
 QF = QueryFormat(FG)
 A = Authenticator()
 
