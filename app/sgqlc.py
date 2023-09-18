@@ -8,8 +8,8 @@ from app.sgqlc_schema import Query
 
 
 class SimpleGraphQLClient(object):
-    def __init__(self, submission):
-        self.SUBMISSION = submission
+    def __init__(self, service):
+        self.service = service
 
     def remove_node_suffix(self, node, query):
         gen3_node = ""
@@ -205,7 +205,7 @@ class SimpleGraphQLClient(object):
 
         query = self.generate_query(item)
         try:
-            result = self.SUBMISSION.query(query)["data"]
+            result = self.service["gen3"].query(query)["data"]
             if key != None and queue != None:
                 queue.put({key: result[item.node]})
             return result
