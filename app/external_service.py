@@ -1,5 +1,6 @@
 """
 Functionality for connecting and using external service
+- process_irods_keyword_search
 - process_gen3_graphql_query
 - check_service_status
 """
@@ -53,6 +54,9 @@ class ExternalService:
             print("Failed to create the Orthanc client.")
 
     def process_irods_keyword_search(self, keyword):
+        """
+        Handler for searching keywords in irods
+        """
         try:
             result = (
                 self.services["irods"]
