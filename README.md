@@ -42,6 +42,10 @@ IRODS_PASSWORD =
 IRODS_PORT =
 IRODS_USER =
 IRODS_ZONE =
+
+ORTHANC_ENDPOINT_URL =
+ORTHANC_USERNAME =
+ORTHANC_PASSWORD =
 ```
 
 ## Running the app
@@ -64,30 +68,41 @@ $ uvicorn main:app or uvicorn main:app --port <port number>
 The connection between the backend and Gen3 Data Commons is directly through sending requests to Gen3 API. The backend will frequently request the access token to keep continuous interactions.
 
 ```bash
-global SUBMISSION
-auth = Gen3Auth(
-            endpoint=Gen3Config.GEN3_ENDPOINT_URL,
-            refresh_token={
-                "api_key": Gen3Config.GEN3_API_KEY,
-                "key_id": Gen3Config.GEN3_KEY_ID,
-            },
-        )
-SUBMISSION = Gen3Submission(auth)
+self.services["gen3"] = Gen3Submission(
+                Gen3Auth(
+                    endpoint=Gen3Config.GEN3_ENDPOINT_URL,
+                    refresh_token={
+                        "api_key": Gen3Config.GEN3_API_KEY,
+                        "key_id": Gen3Config.GEN3_KEY_ID,
+                    },
+                )
+            )
 ```
 
 More information about the usage of this database in [the documentation](https://gen3.org/resources/user/using-api/).
 
 ### `iRODS`
 
-iRODS provides a Python package. Using the iRODSession to create the session to provide further features.
+iRODS provides Python SDK. Using the iRODSession to create the session to provide further features.
 
 ```bash
-global SESSION
-SESSION = iRODSSession(host=iRODSConfig.IRODS_HOST,
-                        port=iRODSConfig.IRODS_PORT,
-                        user=iRODSConfig.IRODS_USER,
-                        password=iRODSConfig.IRODS_PASSWORD,
-                        zone=iRODSConfig.IRODS_ZONE)
+self.services["irods"] = iRODSSession(
+                host=iRODSConfig.IRODS_HOST,
+                port=iRODSConfig.IRODS_PORT,
+                user=iRODSConfig.IRODS_USER,
+                password=iRODSConfig.IRODS_PASSWORD,
+                zone=iRODSConfig.IRODS_ZONE,
+            )
+```
+
+### `Orthanc`
+
+```bash
+self.services["orthanc"] = Orthanc(
+                OrthancConfig.ORTHANC_ENDPOINT_URL,
+                username=OrthancConfig.ORTHANC_USERNAME,
+                password=OrthancConfig.ORTHANC_PASSWORD,
+            )
 ```
 
 More information about the usage of this database in [the documentation](https://github.com/irods/python-irodsclient).
