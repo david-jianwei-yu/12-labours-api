@@ -1,7 +1,7 @@
 """
 Functionality for processing pagination related logic
-- gain_pagination_data
-- gain_pagination_count
+- get_pagination_data
+- get_pagination_count
 - process_pagination_item
 """
 import copy
@@ -98,7 +98,7 @@ class Pagination:
                 ordered_datasets.append(dataset_id)
         return ordered_datasets
 
-    def gain_pagination_data(self, item, match_pair, is_public_access_filtered):
+    def get_pagination_data(self, item, match_pair, is_public_access_filtered):
         """
         Handler for fetching data based on pagination item
         """
@@ -136,7 +136,7 @@ class Pagination:
                 displayed_dataset[dataset] = data[0]
         return list(displayed_dataset.values())
 
-    def gain_pagination_count(self, item):
+    def get_pagination_count(self, item):
         """
         Handler for processing the number of data based on pagination item
         """

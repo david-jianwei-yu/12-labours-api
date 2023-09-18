@@ -3,7 +3,7 @@ Functionality for backend services access control
 - AUTHORIZED_USERS
 - cleanup_authorized_user
 - handle_revoke_authority
-- handle_gain_authority
+- handle_get_authority
 - generate_access_token
 """
 import json
@@ -73,7 +73,7 @@ class Authenticator:
             decrypt_identity = jwt.decoding_token(token)["identity"]
             if auth_type is None:
                 # Check and remove expired user
-                # Currently should only for self.handle_gain_authority
+                # Currently should only for self.handle_get_authority
                 self._delete_expired_user(decrypt_identity)
             return AUTHORIZED_USERS[decrypt_identity]
         except Exception as error:
@@ -99,7 +99,7 @@ class Authenticator:
         del AUTHORIZED_USERS[verify_user.get_user_identity()]
         return True
 
-    async def handle_gain_authority(
+    async def handle_get_authority(
         self, token: HTTPAuthorizationCredentials = Depends(security)
     ):
         """

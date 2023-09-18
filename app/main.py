@@ -160,7 +160,7 @@ async def revoke_gen3_access(is_revoked: bool = Depends(A.handle_revoke_authorit
 )
 async def get_gen3_record(
     uuid: str,
-    access_scope: list = Depends(A.handle_gain_authority),
+    access_scope: list = Depends(A.handle_get_authority),
     service: dict = Depends(ES.check_service_status),
 ):
     """
@@ -199,7 +199,7 @@ async def get_gen3_record(
 async def get_gen3_graphql_query(
     item: GraphQLQueryItem,
     mode: ModeParam,
-    access_scope: list = Depends(A.handle_gain_authority),
+    access_scope: list = Depends(A.handle_get_authority),
     service: dict = Depends(ES.check_service_status),
 ):
     """
@@ -259,7 +259,7 @@ async def get_gen3_graphql_query(
 async def get_gen3_graphql_pagination(
     item: GraphQLPaginationItem,
     search: str = "",
-    access_scope: list = Depends(A.handle_gain_authority),
+    access_scope: list = Depends(A.handle_get_authority),
     service: dict = Depends(ES.check_service_status),
 ):
     """
@@ -292,8 +292,8 @@ async def get_gen3_graphql_pagination(
 
     item.access = access_scope
     is_public_access_filtered = P.process_pagination_item(item, search)
-    data_count, match_pair = P.gain_pagination_count(item)
-    query_result = P.gain_pagination_data(item, match_pair, is_public_access_filtered)
+    data_count, match_pair = P.get_pagination_count(item)
+    query_result = P.get_pagination_data(item, match_pair, is_public_access_filtered)
     # If both asc and desc are None, datasets ordered by self-written order function
     if item.asc is None and item.desc is None:
         query_result = sorted(
@@ -316,7 +316,7 @@ async def get_gen3_graphql_pagination(
 )
 async def get_gen3_filter(
     sidebar: bool = False,
-    access_scope: list = Depends(A.handle_gain_authority),
+    access_scope: list = Depends(A.handle_get_authority),
 ):
     """
     /filter/?sidebar=<boolean>
