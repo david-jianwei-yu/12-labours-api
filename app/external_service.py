@@ -1,11 +1,16 @@
 """
 Functionality for connecting and using external service
 - process_irods_keyword_search
+- process_irods_gen3_user_yaml
 - process_gen3_graphql_query
+- process_gen3_program_project
 - check_service_status
 """
+import json
+import re
 import time
 
+import yaml
 from fastapi import HTTPException, status
 from gen3.auth import Gen3Auth, Gen3AuthError
 from gen3.submission import Gen3Submission, Gen3SubmissionQueryError
@@ -13,6 +18,7 @@ from irods.column import In, Like
 from irods.models import Collection, DataObjectMeta
 from irods.session import iRODSSession
 from pyorthanc import Orthanc
+from yaml import SafeLoader
 
 from app.config import Gen3Config, OrthancConfig, iRODSConfig
 
@@ -74,7 +80,30 @@ class ExternalService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="There is no matched content in the database",
             )
+
         return result
+
+    def process_irods_gen3_user_yaml(self):
+        """
+        Handler for getting gen3 use yaml file
+        Temporary function
+        """
+        try:
+            yaml_string = ""
+            user_obj = self.services["irods"].data_objects.get(
+                f"{iRODSConfig.IRODS_ROOT_PATH}/user.yaml"
+            )
+            with user_obj.open("r") as file:
+                for line in file:
+                    yaml_string += str(line, encoding="utf-8")
+        except Exception as error:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User.yaml file not found",
+            ) from error
+
+        user_yaml = yaml.load(yaml_string, Loader=SafeLoader)
+        return json.loads(json.dumps(user_yaml))["users"]
 
     def _check_irods_status(self):
         """
@@ -115,16 +144,45 @@ class ExternalService:
                 detail="Missing one or more fields in the request body",
             )
 
-        query = self._sgqlc.handle_graphql_query_code(item)
+        query_code = self._sgqlc.handle_graphql_query_code(item)
         try:
-            result = self.services["gen3"].query(query)["data"][item.node]
+            query_result = self.services["gen3"].query(query_code)["data"][item.node]
             if key is not None and queue is not None:
-                queue.put({key: result})
-            return result
+                queue.put({key: query_result})
+            return query_result
         except Gen3SubmissionQueryError as error:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
             ) from error
+
+    def process_gen3_program_project(self, policies):
+        """
+        Handler for processing gen3 program/project name
+        Temporary function
+        """
+
+        def handle_name(data, type_name=None):
+            name_list = []
+            for _ in data["links"]:
+                name = _.replace("/v0/submission/", "")
+                if type_name == "hyphen":
+                    name = re.sub("/", "-", name)
+                name_list.append(name)
+            return name_list
+
+        try:
+            program_list = handle_name(self.services["gen3"].get_programs())
+            project = {"links": []}
+            for program in list(set(policies).intersection(program_list)):
+                project["links"] += handle_name(
+                    self.services["gen3"].get_projects(program)
+                )
+        except Gen3Error as error:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
+            ) from error
+
+        return handle_name(project, "hyphen")
 
     def _check_gen3_status(self):
         """

@@ -1,22 +1,19 @@
 """
 Functionality for backend services access control
 - AUTHORIZED_USERS
+- get_authorized_user_number
 - cleanup_authorized_user
 - handle_revoke_authority
 - handle_get_authority
 - generate_access_token
 """
-import json
-import re
 from datetime import datetime
 from multiprocessing import Manager
 
-import yaml
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from yaml import SafeLoader
 
-from app.config import Gen3Config, iRODSConfig
+from app.config import Gen3Config
 from middleware.jwt import JWT
 from middleware.user import User
 
@@ -32,7 +29,8 @@ class Authenticator:
     Authentication functionality
     """
 
-    def __init__(self):
+    def __init__(self, es):
+        self._es = es
         AUTHORIZED_USERS["public"] = User(
             "public", [Gen3Config.GEN3_PUBLIC_ACCESS], None
         )
@@ -108,36 +106,7 @@ class Authenticator:
         verify_user = self._handle_authenticate_token(token.credentials)
         return verify_user.get_user_access_scope()
 
-    def _handle_name(self, data, path, type_name=None):
-        """
-        Handler for processing gen3 program/project name
-        """
-        name_list = []
-        for _ in data:
-            name = _.replace(path, "")
-            if type_name == "access":
-                name = re.sub("/", "-", name)
-            name_list.append(name)
-        return name_list
-
-    def _handle_access_scope(self, policies, SUBMISSION):
-        """
-        Handler for generating gen3 access scopes
-        """
-        try:
-            program = SUBMISSION.get_programs()
-            program_list = self._handle_name(program["links"], "/v0/submission/")
-        except Exception as error:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
-            ) from error
-
-        project = {"links": []}
-        for prog in list(set(policies).intersection(program_list)):
-            project["links"] += SUBMISSION.get_projects(prog)["links"]
-        return self._handle_name(project["links"], "/v0/submission/", "access")
-
-    def _handle_user_authority(self, identity, user_yaml, SUBMISSION):
+    def _handle_user_authority(self, identity, user_yaml):
         """
         Handler for generating user authority object
         """
@@ -151,35 +120,19 @@ class Authenticator:
             if identity in AUTHORIZED_USERS:
                 return AUTHORIZED_USERS[identity]
             policies = user_yaml[email]["policies"]
-            scope = self._handle_access_scope(policies, SUBMISSION)
+            access_scope = self._es.process_gen3_program_project(policies)
             expire_time = datetime.fromtimestamp(int(expiration) / 1000)
-            user = User(identity, scope, expire_time)
+            user = User(identity, access_scope, expire_time)
             AUTHORIZED_USERS[identity] = user
             return user
         return AUTHORIZED_USERS["public"]
 
-    def generate_access_token(self, identity, SUBMISSION, SESSION):
+    def generate_access_token(self, identity):
         """
         Handler for generating gen3 access_token to limit user access scope
         """
-        try:
-            yaml_string = ""
-            user_obj = SESSION.data_objects.get(
-                f"{iRODSConfig.IRODS_ROOT_PATH}/user.yaml"
-            )
-            with user_obj.open("r") as file:
-                for line in file:
-                    yaml_string += str(line, encoding="utf-8")
-            user_yaml = json.loads(
-                json.dumps(yaml.load(yaml_string, Loader=SafeLoader))
-            )["users"]
-        except Exception as error:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User data not found in the provided path",
-            ) from error
-
-        user = self._handle_user_authority(identity, user_yaml, SUBMISSION)
+        user_yaml = self._es.process_irods_gen3_user_yaml()
+        user = self._handle_user_authority(identity, user_yaml)
         access_token = jwt.encoding_token(
             {
                 "identity": user.get_user_identity(),

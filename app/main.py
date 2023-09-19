@@ -60,7 +60,7 @@ FF = FilterFormat(FG)
 PF = PaginationFormat(FG)
 P = Pagination(FG, Filter(), Search(ES), ES)
 QF = QueryFormat(FG)
-A = Authenticator()
+A = Authenticator(ES)
 
 
 @app.on_event("startup")
@@ -124,9 +124,7 @@ async def create_gen3_access(
 
     result = {
         "identity": item.identity,
-        "access_token": A.generate_access_token(
-            item.identity, service["gen3"], service["irods"]
-        ),
+        "access_token": A.generate_access_token(item.identity),
     }
     return result
 
