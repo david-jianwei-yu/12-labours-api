@@ -25,13 +25,14 @@ class Search:
         """
         dataset_dict = {}
         for keyword in keyword_list:
-            for result in self._es.process_irods_keyword_search(keyword):
+            search_result = self._es.process_irods_keyword_search(keyword)
+            for _ in search_result:
                 content_list = re.findall(
-                    rf"(\s{keyword}|{keyword}\s)", result[DataObjectMeta.value]
+                    rf"(\s{keyword}|{keyword}\s)", _[DataObjectMeta.value]
                 )
                 if content_list != []:
                     dataset = re.sub(
-                        f"{iRODSConfig.IRODS_ROOT_PATH}/", "", result[Collection.name]
+                        f"{iRODSConfig.IRODS_ROOT_PATH}/", "", _[Collection.name]
                     )
                     if dataset not in dataset_dict:
                         dataset_dict[dataset] = 1

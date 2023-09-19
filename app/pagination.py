@@ -92,8 +92,9 @@ class Pagination:
             query_item.desc = "title"
         # Include both public and private if have the access
         ordered_datasets = []
-        for ele in self._es.process_gen3_graphql_query(query_item):
-            dataset_id = ele["experiments"][0]["submitter_id"]
+        query_result = self._es.process_gen3_graphql_query(query_item)
+        for _ in query_result:
+            dataset_id = _["experiments"][0]["submitter_id"]
             if dataset_id not in ordered_datasets:
                 ordered_datasets.append(dataset_id)
         return ordered_datasets
