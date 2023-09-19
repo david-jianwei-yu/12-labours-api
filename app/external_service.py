@@ -7,8 +7,8 @@ Functionality for connecting and using external service
 import time
 
 from fastapi import HTTPException, status
-from gen3.auth import Gen3Auth
-from gen3.submission import Gen3Submission
+from gen3.auth import Gen3Auth, Gen3AuthError
+from gen3.submission import Gen3Submission, Gen3SubmissionQueryError
 from irods.column import In, Like
 from irods.models import Collection, DataObjectMeta
 from irods.session import iRODSSession
@@ -121,7 +121,7 @@ class ExternalService:
             if key is not None and queue is not None:
                 queue.put({key: result})
             return result
-        except Exception as error:
+        except Gen3SubmissionQueryError as error:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
             ) from error
@@ -133,7 +133,7 @@ class ExternalService:
         try:
             self.services["gen3"].get_programs()
             self.retry = 0
-        except Exception:
+        except Gen3AuthError:
             print("Gen3 disconnected.")
             self.services["gen3"] = None
             if self.retry < 12:
