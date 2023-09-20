@@ -132,7 +132,7 @@ def test_get_gen3_graphql_query(client):
     )
     result = response.json()
     assert response.status_code == 400
-    assert result["detail"] == "Missing one or more fields in the request body"
+    assert result["detail"] == "Missing field in the request body"
 
     wrong_node = {
         "node": "fakenode",
