@@ -1,8 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app import app
 from app.config import Gen3Config
+from app.main import app
 
 
 @pytest.fixture

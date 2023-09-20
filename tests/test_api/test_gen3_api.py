@@ -1,8 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app import app
-from app.filter_generator import MAPPED_FILTERS
+from app.filter_func.filter_generator import MAPPED_FILTERS
+from app.main import app
 
 
 @pytest.fixture
