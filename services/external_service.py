@@ -17,9 +17,17 @@ class ExternalService:
 
     def __init__(self):
         self.__services = {
-            "gen3": {"object": Gen3Service(SimpleGraphQLClient()), "connection": None},
-            "irods": {"object": iRODSService(), "connection": None},
-            "orthanc": {"object": OrthancService(), "connection": None},
+            "gen3": {
+                "object": Gen3Service(SimpleGraphQLClient()),
+                "connection": None,
+                "status": False,
+            },
+            "irods": {"object": iRODSService(), "connection": None, "status": False},
+            "orthanc": {
+                "object": OrthancService(),
+                "connection": None,
+                "status": False,
+            },
         }
 
     def get(self, service):
@@ -28,16 +36,20 @@ class ExternalService:
         """
         return self.__services[service]["object"]
 
-    def check_service_status(self):
+    def check_service_status(self, startup=False):
         """
         Handler for checking external service status
         """
         connection = {}
         for name, service in self.__services.items():
-            if service["connection"] is None:
-                service["object"].connect()
-                service["connection"] = service["object"].get()
+            if not service["status"]:
+                service["object"].connection()
             else:
                 service["object"].status()
-            connection[name] = service["connection"]
+            service["connection"] = service["object"].get_connection()
+            service["status"] = service["object"].get_status()
+            if startup:
+                connection[name] = service["status"]
+            else:
+                connection[name] = service["connection"]
         return connection

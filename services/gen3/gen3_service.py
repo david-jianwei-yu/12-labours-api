@@ -2,9 +2,10 @@
 Functionality for processing gen3 service
 - process_graphql_query
 - process_program_project -> temp
-- get
+- get_status
 - status
-- connect
+- get_connection
+- connection
 """
 import re
 import time
@@ -25,6 +26,7 @@ class Gen3Service:
     def __init__(self, sgqlc):
         self._sgqlc = sgqlc
         self.__submission = None
+        self.__status = False
         self.__retry = 0
 
     def process_graphql_query(self, item, key=None, queue=None):
@@ -75,33 +77,41 @@ class Gen3Service:
 
         return handle_name(project, "hyphen")
 
-    def get(self):
+    def get_status(self):
         """
-        Handler for getting gen3 submission
+        Handler for getting gen3 submission status
         """
-        return self.__submission
+        return self.__status
 
     def status(self):
         """
-        Handler for checking gen3 connection status
+        Handler for checking gen3 submission status
         """
         try:
             self.__submission.get_programs()
+            self.__status = True
             self.__retry = 0
         except Gen3AuthError:
             print("Gen3 disconnected.")
             self.__submission = None
+            self.__status = False
             if self.__retry == 12:
                 print("Hit the max retry limit.")
             if self.__retry < 12:
                 self.__retry += 1
                 print(f"Reconnecting...{self.__retry}...")
                 time.sleep(self.__retry)
-                self.connect()
+                self.connection()
 
-    def connect(self):
+    def get_connection(self):
         """
-        Handler for connecting gen3 service
+        Handler for getting gen3 submission service
+        """
+        return self.__submission
+
+    def connection(self):
+        """
+        Handler for connecting gen3 submission service
         """
         try:
             self.__submission = Gen3Submission(

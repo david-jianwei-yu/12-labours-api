@@ -1,8 +1,9 @@
 """
 Functionality for processing orthanc service
-- get
+- get_status
 - status
-- connect
+- get_connection
+- connection
 """
 from pyorthanc import Orthanc
 
@@ -16,26 +17,35 @@ class OrthancService:
 
     def __init__(self):
         self.__orthanc = None
+        self.__status = False
 
-    def get(self):
+    def get_status(self):
         """
-        Handler for getting orthanc
+        Handler for getting orthanc client status
         """
-        return self.__orthanc
+        return self.__status
 
     def status(self):
         """
-        Handler for checking orthanc connection status
+        Handler for checking orthanc client status
         """
         try:
             self.__orthanc.get_patients()
+            self.__status = True
         except Exception:
             print("Orthanc disconnected.")
             self.__orthanc = None
+            self.__status = False
 
-    def connect(self):
+    def get_connection(self):
         """
-        Handler for connecting orthanc service
+        Handler for getting orthanc client service
+        """
+        return self.__orthanc
+
+    def connection(self):
+        """
+        Handler for connecting orthanc client service
         """
         try:
             self.__orthanc = Orthanc(

@@ -2,9 +2,10 @@
 Functionality for processing irods service
 - process_keyword_search
 - process_gen3_user_yaml -> temp
-- get
+- get_status
 - status
-- connect
+- get_connection
+- connection
 """
 import json
 
@@ -25,6 +26,7 @@ class iRODSService:
 
     def __init__(self):
         self.__session = None
+        self.__status = False
 
     def process_keyword_search(self, keyword):
         """
@@ -71,26 +73,34 @@ class iRODSService:
 
         user_yaml = yaml.load(yaml_string, Loader=SafeLoader)
         return json.loads(json.dumps(user_yaml))["users"]
-
-    def get(self):
+    
+    def get_status(self):
         """
-        Handler for getting irods session
+        Handler for getting irods session status
         """
-        return self.__session
+        return self.__status
 
     def status(self):
         """
-        Handler for checking irods connection status
+        Handler for checking irods session status
         """
         try:
             self.__session.collections.get(iRODSConfig.IRODS_ROOT_PATH)
+            self.__status = True
         except Exception:
             print("iRODS disconnected.")
             self.__session = None
+            self.__status = False
 
-    def connect(self):
+    def get_connection(self):
         """
-        Handler for connecting irods service
+        Handler for getting irods session service
+        """
+        return self.__session
+
+    def connection(self):
+        """
+        Handler for connecting irods session service
         """
         try:
             # This function is used to connect to the iRODS server
