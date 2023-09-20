@@ -4,6 +4,9 @@ Functionality for generating the filter based on database files
 - generate_private_filter
 - generate_public_filter
 """
+import queue
+import threading
+
 from app.config import Gen3Config
 from app.data_schema import GraphQLQueryItem
 
@@ -85,7 +88,7 @@ class FilterGenerator:
         """
         return MAPPED_FILTERS
 
-    def reset_cache(self):
+    def _reset_cache(self):
         """
         Cleanup self.__cache
         """
@@ -99,29 +102,14 @@ class FilterGenerator:
         if name not in exist_facets:
             facets[name] = value
 
-    def _update_cache(self, element_content, private_access=None):
-        """
-        Handler for fetching and storing data as temporary data which will be used to generate filter
-        Avoid duplicate fetch
-        """
-        node = element_content["node"]
-        query_item = GraphQLQueryItem(node=node, access=self.__public_access)
-        if private_access is not None:
-            query_item.access = private_access
-        if node not in self.__cache:
-            query_result = self._es.get("gen3").process_graphql_query(query_item)
-            self.__cache[node] = query_result
-
     def _handle_facet(self, element_content, private_access=None):
         """
         Handler for updating corresponding filter element facets
         """
-        self._update_cache(element_content, private_access)
         facets = {}
+        exist_facets = facets
         if private_access is not None:
             exist_facets = element_content["facets"]
-        else:
-            exist_facets = facets
         node = element_content["node"]
         field = element_content["field"]
         for _ in self.__cache[node]:
@@ -132,6 +120,37 @@ class FilterGenerator:
             elif isinstance(field_value, str) and field_value != "NA":
                 self._update_facet(facets, exist_facets, field_value)
         return facets
+
+    def _handle_filter_query_item(self, private_access=None):
+        items = []
+        for mapped_element in DYNAMIC_FILTERS:
+            node = MAPPED_FILTERS[mapped_element]["node"]
+            query_item = GraphQLQueryItem(
+                node=node,
+                access=self.__public_access,
+            )
+            if private_access is not None:
+                query_item.access = private_access
+            items.append((query_item, node))
+        return items
+
+    def _update_cache(self, private_access=None):
+        """
+        Handler for using thread to update data cache
+        """
+        items = self._handle_filter_query_item(private_access)
+        queue_ = queue.Queue()
+        threads_pool = []
+        for args in items:
+            thread = threading.Thread(
+                target=self._es.get("gen3").process_graphql_query, args=(*args, queue_)
+            )
+            threads_pool.append(thread)
+            thread.start()
+        for thread in threads_pool:
+            thread.join()
+        while not queue_.empty():
+            self.__cache.update(queue_.get())
 
     def _handle_private_access(self, access_scope):
         """
@@ -150,6 +169,7 @@ class FilterGenerator:
         private_access = self._handle_private_access(access_scope)
         private_filter = {}
         if private_access:
+            self._update_cache(private_access)
             for mapped_element, element_content in MAPPED_FILTERS.items():
                 if mapped_element in DYNAMIC_FILTERS:
                     private_facets = self._handle_facet(element_content, private_access)
@@ -161,18 +181,19 @@ class FilterGenerator:
                             "field": element_content["field"],
                             "facets": dict(sorted(updated_facets.items())),
                         }
-        self.reset_cache()
+        self._reset_cache()
         return private_filter
 
     def generate_public_filter(self):
         """
         Generator for public dataset filter
         """
-        for element_content in MAPPED_FILTERS.values():
-            if not element_content["facets"]:
+        self._update_cache()
+        for mapped_element, element_content in MAPPED_FILTERS.items():
+            if mapped_element in DYNAMIC_FILTERS:
                 public_facets = self._handle_facet(element_content)
                 if not public_facets:
                     return False
                 element_content["facets"] = dict(sorted(public_facets.items()))
-        self.reset_cache()
+        self._reset_cache()
         return True
