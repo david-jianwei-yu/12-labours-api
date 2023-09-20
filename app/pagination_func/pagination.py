@@ -105,7 +105,8 @@ class Pagination:
         """
         if "title" in item.order.lower():
             # Get an ordered filter
-            item.filter["submitter_id"] = self._handle_pagination_order(item)
+            order_result = self._handle_pagination_order(item)
+            item.filter["submitter_id"] = order_result
             item.page = 1
         query_item = GraphQLPaginationItem(
             limit=item.limit,
@@ -116,9 +117,8 @@ class Pagination:
             asc=item.asc,
             desc=item.desc,
         )
-        displayed_dataset = self._handle_dataset(
-            self._es.get("gen3").process_graphql_query(query_item)
-        )
+        query_result = self._es.get("gen3").process_graphql_query(query_item)
+        displayed_dataset = self._handle_dataset(query_result)
         item.access.remove(self.__public_access[0])
         items = []
         # Query displayed datasets which have private version
@@ -132,8 +132,9 @@ class Pagination:
                     )
                     items.append((query_item, dataset))
         if not is_public_access_filtered:
+            fetch_result = self._handle_thread_fetch(items)
             # Replace the dataset if it has a private version
-            for dataset, data in self._handle_thread_fetch(items).items():
+            for dataset, data in fetch_result.items():
                 displayed_dataset[dataset] = data[0]
         return list(displayed_dataset.values())
 
@@ -155,9 +156,9 @@ class Pagination:
                 node="experiment_pagination_count", filter=item.filter, access=value
             )
             items.append((pagination_count_item, key))
-        fetched_data = self._handle_thread_fetch(items)
-        public_result = self._handle_dataset(fetched_data["public_access"])
-        private_result = self._handle_dataset(fetched_data["private_access"])
+        fetch_result = self._handle_thread_fetch(items)
+        public_result = self._handle_dataset(fetch_result["public_access"])
+        private_result = self._handle_dataset(fetch_result["private_access"])
         # Default datasets exist in public repository only,
         # Will contain all available datasets after updating
         displayed_dataset = list(public_result.keys())
@@ -220,9 +221,8 @@ class Pagination:
 
         # FILTER
         if item.filter != {}:
-            private_filter = self._fg.generate_private_filter(
-                self._handle_access(item.access)
-            )
+            private_access = self._handle_access(item.access)
+            private_filter = self._fg.generate_private_filter(private_access)
             items = []
             filter_dict = {"submitter_id": []}
             for node_filed, facets in item.filter.items():
@@ -242,17 +242,20 @@ class Pagination:
                 else:
                     query_item.access = item.access
                 items.append((query_item, json.dumps(valid_filter)))
-            for filter_, related_data in self._handle_thread_fetch(items).items():
-                filter_dict["submitter_id"].append(
-                    self._f.generate_filtered_dataset(json.loads(filter_), related_data)
+            fetch_result = self._handle_thread_fetch(items)
+            for filter_, related_data in fetch_result.items():
+                filter_result = self._f.generate_filtered_dataset(
+                    json.loads(filter_), related_data
                 )
+                filter_dict["submitter_id"].append(filter_result)
             item.filter = filter_dict
             self._f.implement_filter_relation(item)
 
         # SEARCH
         if input_ != "":
+            search_result = self._s.generate_searched_dataset(input_)
             # If input does not match any content in the database, item.search will be empty
-            item.search["submitter_id"] = self._s.generate_searched_dataset(input_)
+            item.search["submitter_id"] = search_result
             if item.search != {} and (
                 "submitter_id" not in item.filter or item.filter["submitter_id"] != []
             ):

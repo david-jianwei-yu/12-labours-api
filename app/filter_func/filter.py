@@ -31,7 +31,8 @@ class Filter:
         Handler for generating the filtered dataset
         """
         datasets = []
-        for _ in self._handle_filtered_data(filter_, data):
+        filtered_result = self._handle_filtered_data(filter_, data)
+        for _ in filtered_result:
             if "experiments" in _:
                 datasets.append(_["experiments"][0]["submitter_id"])
             else:
