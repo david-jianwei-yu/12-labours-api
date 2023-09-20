@@ -54,8 +54,9 @@ class QueryFormat:
         Handler for updating detail mode related facets
         """
         title = content["title"].capitalize()
-        if title in related_facets and facet_name not in related_facets[title]:
-            related_facets[title].append(facet_name)
+        if title in related_facets:
+            if facet_name not in related_facets[title]:
+                related_facets[title].append(facet_name)
         else:
             related_facets[title] = [facet_name]
 
