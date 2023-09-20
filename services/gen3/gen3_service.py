@@ -11,7 +11,7 @@ import time
 
 from fastapi import HTTPException, status
 from gen3.auth import Gen3Auth, Gen3AuthError
-from gen3.submission import Gen3Submission, Gen3SubmissionQueryError
+from gen3.submission import Gen3Submission
 
 from app.config import Gen3Config
 
@@ -34,7 +34,7 @@ class Gen3Service:
         if item.node is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Missing one or more fields in the request body",
+                detail="Missing field in the request body",
             )
 
         query_code = self._sgqlc.handle_graphql_query_code(item)
@@ -43,7 +43,7 @@ class Gen3Service:
             if key is not None and queue is not None:
                 queue.put({key: query_result})
             return query_result
-        except Gen3SubmissionQueryError as error:
+        except Exception as error:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
             ) from error
@@ -91,6 +91,8 @@ class Gen3Service:
         except Gen3AuthError:
             print("Gen3 disconnected.")
             self.__submission = None
+            if self.__retry == 12:
+                print("Hit the max retry limit.")
             if self.__retry < 12:
                 self.__retry += 1
                 print(f"Reconnecting...{self.__retry}...")
