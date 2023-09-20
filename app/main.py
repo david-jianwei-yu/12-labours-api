@@ -52,6 +52,7 @@ app.add_middleware(
     expose_headers=["X-File-Name"],
 )
 
+CONNECTION = None
 FILTER_GENERATED = False
 ES = ExternalService()
 FG = FilterGenerator(ES)
@@ -63,21 +64,32 @@ A = Authenticator(ES)
 
 
 @app.on_event("startup")
+async def start_up():
+    """
+    Create service connection.
+    """
+    global CONNECTION
+    CONNECTION = ES.check_service_status(True)
+    print(CONNECTION)
+
+
+@app.on_event("startup")
 @repeat_every(seconds=60 * 60 * 24)
-async def periodic_execution():
+def periodic_execution():
     """
     Update filter and cleanup users periodically.
     """
-    ES.check_service_status()
-    try:
-        global FILTER_GENERATED
-        FILTER_GENERATED = False
-        while not FILTER_GENERATED:
+    global FILTER_GENERATED
+    FILTER_GENERATED = False
+    if CONNECTION["gen3"]:
+        try:
             FILTER_GENERATED = FG.generate_public_filter()
-            if FILTER_GENERATED:
-                print("Default filter has been updated.")
-    except Exception:
-        print("Failed to update the default filter.")
+        except Exception as error:
+            print(f"Invalid filter data {error} has been used.")
+        if FILTER_GENERATED:
+            print("Default filter has been updated.")
+    else:
+        print("Failed to update default filter.")
 
     if A.get_authorized_user_number() > 1:
         A.cleanup_authorized_user()
@@ -323,18 +335,9 @@ async def get_gen3_filter(
     - **sidebar**: boolean content.
     """
     retry = 0
-    # Stop waiting for the filter generator after hitting the retry limits
-    # The retry limit here may need to be increased if there is a large database
-    # This also depends on how fast the filter will be generated
     while retry < 12 and not FILTER_GENERATED:
         retry += 1
         time.sleep(retry)
-    if not FILTER_GENERATED:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Failed to generate filter or the maximum retry limit was reached",
-        )
-
     if sidebar:
         return FF.generate_sidebar_filter_format(access_scope)
     return FF.generate_filter_format(access_scope)
