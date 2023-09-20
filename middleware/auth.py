@@ -120,7 +120,7 @@ class Authenticator:
             if identity in AUTHORIZED_USERS:
                 return AUTHORIZED_USERS[identity]
             policies = user_yaml[email]["policies"]
-            access_scope = self._es.process_gen3_program_project(policies)
+            access_scope = self._es.get("gen3").process_program_project(policies)
             expire_time = datetime.fromtimestamp(int(expiration) / 1000)
             user = User(identity, access_scope, expire_time)
             AUTHORIZED_USERS[identity] = user
@@ -131,7 +131,7 @@ class Authenticator:
         """
         Handler for generating gen3 access_token to limit user access scope
         """
-        user_yaml = self._es.process_irods_gen3_user_yaml()
+        user_yaml = self._es.get("irods").process_gen3_user_yaml()
         user = self._handle_user_authority(identity, user_yaml)
         access_token = jwt.encoding_token(
             {
