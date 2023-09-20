@@ -13,13 +13,13 @@ class QueryFormat:
 
     def __init__(self, fg):
         self._mapped_filter = fg.get_mapped_filter()
-        self.query_mode = None
+        self.__query_mode = None
 
     def set_query_mode(self, mode):
         """
         Handler for setting query_mode
         """
-        self.query_mode = mode
+        self.__query_mode = mode
 
     def _handle_mri_path(self, data):
         """
@@ -87,9 +87,9 @@ class QueryFormat:
             for _ in data:
                 field_value = _[field]
                 if self._handle_facet_check(facet_value, field_value):
-                    if self.query_mode == "detail":
+                    if self.__query_mode == "detail":
                         self._update_detail_mode(related_facets, facet_name, content)
-                    elif self.query_mode == "facet":
+                    elif self.__query_mode == "facet":
                         self._update_facet_mode(related_facets, facet_name, content)
 
     def _handle_facet_source(self):
@@ -121,7 +121,7 @@ class QueryFormat:
             field = _.split(">")[1]
             if key in data and data[key] != []:
                 self._update_related_facet(related_facets, field, data[key])
-        if self.query_mode == "detail":
+        if self.__query_mode == "detail":
             return related_facets
         return list(related_facets.values())
 
@@ -169,16 +169,16 @@ class QueryFormat:
         Handler for processing data output to support portal services
         """
         result = {}
-        if self.query_mode == "data":
+        if self.__query_mode == "data":
             result["data"] = data
-        elif self.query_mode == "detail":
+        elif self.__query_mode == "detail":
             result["detail"] = self._handle_detail_content(data)
             # Filter format facet
             result["facet"] = self._handle_related_facet(data)
-        elif self.query_mode == "facet":
+        elif self.__query_mode == "facet":
             # Sidebar format facet
             result["facet"] = self._handle_related_facet(data)
-        elif self.query_mode == "mri":
+        elif self.__query_mode == "mri":
             # Combine 5 sub-file paths based on filename
             result["mri"] = self._handle_mri_path(data["mris"])
         return result
