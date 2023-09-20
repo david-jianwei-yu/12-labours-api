@@ -76,8 +76,8 @@ class FilterGenerator:
 
     def __init__(self, es):
         self._es = es
-        self.public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
-        self.cache = {}
+        self.__public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
+        self.__cache = {}
 
     def get_mapped_filter(self):
         """
@@ -87,9 +87,9 @@ class FilterGenerator:
 
     def reset_cache(self):
         """
-        Cleanup self.cache
+        Cleanup self.__cache
         """
-        self.cache = {}
+        self.__cache = {}
 
     def _update_facet(self, facets, exist_facets, value):
         """
@@ -105,12 +105,12 @@ class FilterGenerator:
         Avoid duplicate fetch
         """
         node = element_content["node"]
-        query_item = GraphQLQueryItem(node=node, access=self.public_access)
+        query_item = GraphQLQueryItem(node=node, access=self.__public_access)
         if private_access is not None:
             query_item.access = private_access
-        if node not in self.cache:
-            query_result = self._es.process_gen3_graphql_query(query_item)
-            self.cache[node] = query_result
+        if node not in self.__cache:
+            query_result = self._es.get("gen3").process_graphql_query(query_item)
+            self.__cache[node] = query_result
 
     def _handle_facet(self, element_content, private_access=None):
         """
@@ -124,7 +124,7 @@ class FilterGenerator:
             exist_facets = facets
         node = element_content["node"]
         field = element_content["field"]
-        for _ in self.cache[node]:
+        for _ in self.__cache[node]:
             field_value = _[field]
             if isinstance(field_value, list) and field_value != []:
                 for sub_value in field_value:
@@ -139,7 +139,7 @@ class FilterGenerator:
         """
         private_access = []
         for scope in access_scope:
-            if scope != self.public_access[0]:
+            if scope != self.__public_access[0]:
                 private_access.append(scope)
         return private_access
 
