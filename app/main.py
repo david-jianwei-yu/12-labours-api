@@ -24,16 +24,15 @@ from pyorthanc import find
 
 from app.config import iRODSConfig
 from app.data_schema import *
-from app.external_service import ExternalService
-from app.filter import Filter
-from app.filter_format import FilterFormat
-from app.filter_generator import FilterGenerator
-from app.pagination import Pagination
-from app.pagination_format import PaginationFormat
-from app.query_format import QueryFormat
-from app.search import Search
-from app.sgqlc import SimpleGraphQLClient
+from app.filter_func.filter import Filter
+from app.filter_func.filter_format import FilterFormat
+from app.filter_func.filter_generator import FilterGenerator
+from app.pagination_func.pagination import Pagination
+from app.pagination_func.pagination_format import PaginationFormat
+from app.query_func.query_format import QueryFormat
+from app.search_func.search import Search
 from middleware.auth import Authenticator
+from services.external_service import ExternalService
 
 app = FastAPI(
     title=title,
@@ -54,7 +53,7 @@ app.add_middleware(
 )
 
 FILTER_GENERATED = False
-ES = ExternalService(SimpleGraphQLClient())
+ES = ExternalService()
 FG = FilterGenerator(ES)
 FF = FilterFormat(FG)
 PF = PaginationFormat(FG)
@@ -104,14 +103,14 @@ async def root():
     responses=access_token_responses,
 )
 async def create_gen3_access(
-    item: IdentityItem, service: dict = Depends(ES.check_service_status)
+    item: IdentityItem, connection: dict = Depends(ES.check_service_status)
 ):
     """
     Return user identity and the authorized access token.
 
     Example identity: email@gmail.com>machine_id>expiration_time
     """
-    if service["gen3"] is None or service["irods"] is None:
+    if connection["gen3"] is None or connection["irods"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (Gen3/iRODS) status",
@@ -159,14 +158,14 @@ async def revoke_gen3_access(is_revoked: bool = Depends(A.handle_revoke_authorit
 async def get_gen3_record(
     uuid: str,
     access_scope: list = Depends(A.handle_get_authority),
-    service: dict = Depends(ES.check_service_status),
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     Return record information in the Gen3 Data Commons.
 
     - **uuid**: uuid of the record.
     """
-    if service["gen3"] is None:
+    if connection["gen3"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (Gen3) status",
@@ -177,7 +176,7 @@ async def get_gen3_record(
         return access_list[0], access_list[1]
 
     program, project = handle_access(access_scope)
-    record = service["gen3"].export_record(program, project, uuid, "json")
+    record = connection["gen3"].export_record(program, project, uuid, "json")
     if "message" in record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -198,7 +197,7 @@ async def get_gen3_graphql_query(
     item: GraphQLQueryItem,
     mode: ModeParam,
     access_scope: list = Depends(A.handle_get_authority),
-    service: dict = Depends(ES.check_service_status),
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     Return queries metadata records. The API uses GraphQL query language.
@@ -216,7 +215,7 @@ async def get_gen3_graphql_query(
     - string content,
     - only available in dataset_description/manifest/case nodes
     """
-    if service["gen3"] is None:
+    if connection["gen3"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (Gen3) status",
@@ -238,7 +237,7 @@ async def get_gen3_graphql_query(
 
     QF.set_query_mode(mode)
     item.access = access_scope
-    query_result = ES.process_gen3_graphql_query(item)
+    query_result = ES.get("gen3").process_graphql_query(item)
 
     def handle_result():
         if len(query_result) == 1:
@@ -258,7 +257,7 @@ async def get_gen3_graphql_pagination(
     item: GraphQLPaginationItem,
     search: str = "",
     access_scope: list = Depends(A.handle_get_authority),
-    service: dict = Depends(ES.check_service_status),
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     /graphql/pagination/?search=<string>
@@ -282,7 +281,7 @@ async def get_gen3_graphql_pagination(
     **search(parameter)**:
     - string content
     """
-    if service["gen3"] is None or service["irods"] is None:
+    if connection["gen3"] is None or connection["irods"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (Gen3/iRODS) status",
@@ -353,14 +352,14 @@ async def get_gen3_filter(
     responses=collection_responses,
 )
 async def get_irods_collection(
-    item: CollectionItem, service: dict = Depends(ES.check_service_status)
+    item: CollectionItem, connection: dict = Depends(ES.check_service_status)
 ):
     """
     Return all collections from the required folder.
 
     Root folder will be returned if no item or "/" is passed.
     """
-    if service["irods"] is None:
+    if connection["irods"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (iRODS) status",
@@ -383,7 +382,7 @@ async def get_irods_collection(
         return collection
 
     try:
-        collect = service["irods"].collections.get(
+        collect = connection["irods"].collections.get(
             f"{iRODSConfig.IRODS_ROOT_PATH}{item.path}"
         )
         folder = handle_collection(collect.subcollections)
@@ -406,7 +405,7 @@ async def get_irods_collection(
 async def get_irods_data_file(
     action: ActionParam,
     filepath: str,
-    service: dict = Depends(ES.check_service_status),
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
@@ -418,7 +417,7 @@ async def get_irods_data_file(
     """
     chunk_size = 1024 * 1024 * 1024
 
-    if service["irods"] is None:
+    if connection["irods"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (iRODS) status",
@@ -430,7 +429,7 @@ async def get_irods_data_file(
         )
 
     try:
-        file = service["irods"].data_objects.get(
+        file = connection["irods"].data_objects.get(
             f"{iRODSConfig.IRODS_ROOT_PATH}/{filepath}"
         )
         filename = file.name
@@ -476,17 +475,17 @@ async def get_irods_data_file(
     responses=instance_responses,
 )
 async def get_orthanc_instance(
-    item: InstanceItem, service: dict = Depends(ES.check_service_status)
+    item: InstanceItem, connection: dict = Depends(ES.check_service_status)
 ):
     """
     Return a list of dicom instance uuids
     """
-    if service["orthanc"] is None:
+    if connection["orthanc"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (Orthanc) status",
         )
-    if item.study == None or item.series == None:
+    if item.study is None or item.series is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Missing one or more fields in the request body",
@@ -494,16 +493,16 @@ async def get_orthanc_instance(
 
     try:
         patients = find(
-            orthanc=service["orthanc"],
+            orthanc=connection["orthanc"],
             study_filter=lambda s: s.uid == item.study,
             series_filter=lambda s: s.uid == item.series,
         )
-    except Exception as e:
-        if "401" in str(e):
+    except Exception as error:
+        if "401" in str(error):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid orthanc username or password are used",
-            )
+            ) from error
     if patients == []:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -526,21 +525,21 @@ async def get_orthanc_instance(
     response_description="Successfully return a file with data",
 )
 async def get_orthanc_dicom_file(
-    identifier: str, service: dict = Depends(ES.check_service_status)
+    identifier: str, connection: dict = Depends(ES.check_service_status)
 ):
     """
     Export a specific dicom file from Orthanc server
 
     - **identifier**: dicom instance uuid.
     """
-    if service["orthanc"] is None:
+    if connection["orthanc"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Please check the service (Orthanc) status",
+            detail="Please check the service (Orthanc) status",
         )
 
     try:
-        instance_file = service["orthanc"].get_instances_id_file(identifier)
+        instance_file = connection["orthanc"].get_instances_id_file(identifier)
         bytes_file = io.BytesIO(instance_file)
         return Response(bytes_file.getvalue(), media_type="application/dicom")
     except Exception as error:
