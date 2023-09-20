@@ -25,7 +25,7 @@ class Search:
         """
         dataset_dict = {}
         for keyword in keyword_list:
-            search_result = self._es.process_irods_keyword_search(keyword)
+            search_result = self._es.get("irods").process_keyword_search(keyword)
             for _ in search_result:
                 content_list = re.findall(
                     rf"(\s{keyword}|{keyword}\s)", _[DataObjectMeta.value]
