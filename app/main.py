@@ -24,13 +24,13 @@ from pyorthanc import find
 
 from app.config import iRODSConfig
 from app.data_schema import *
-from app.filter_func.filter import Filter
-from app.filter_func.filter_format import FilterFormat
+from app.filter_func.filter_formatter import FilterFormatter
 from app.filter_func.filter_generator import FilterGenerator
-from app.pagination_func.pagination import Pagination
-from app.pagination_func.pagination_format import PaginationFormat
-from app.query_func.query_format import QueryFormat
-from app.search_func.search import Search
+from app.filter_func.filter_logic import FilterLogic
+from app.pagination_func.pagination_formatter import PaginationFormatter
+from app.pagination_func.pagination_logic import PaginationLogic
+from app.query_func.query_formatter import QueryFormatter
+from app.search_func.search_logic import SearchLogic
 from middleware.auth import Authenticator
 from services.external_service import ExternalService
 
@@ -56,10 +56,10 @@ CONNECTION = None
 FILTER_GENERATED = False
 ES = ExternalService()
 FG = FilterGenerator(ES)
-FF = FilterFormat(FG)
-PF = PaginationFormat(FG)
-P = Pagination(FG, Filter(), Search(ES), ES)
-QF = QueryFormat(FG)
+FF = FilterFormatter(FG)
+PF = PaginationFormatter(FG)
+PL = PaginationLogic(FG, FilterLogic(), SearchLogic(ES), ES)
+QF = QueryFormatter(FG)
 A = Authenticator(ES)
 
 
@@ -85,7 +85,7 @@ def periodic_execution():
         try:
             FILTER_GENERATED = FG.generate_public_filter()
         except Exception as error:
-            print(f"Invalid filter data {error} has been used.")
+            print(f"Invalid filter metadata {error} has been used.")
         if FILTER_GENERATED:
             print("Default filter has been updated.")
     else:
@@ -300,9 +300,9 @@ async def get_gen3_graphql_pagination(
         )
 
     item.access = access_scope
-    is_public_access_filtered = P.process_pagination_item(item, search)
-    data_count, match_pair = P.get_pagination_count(item)
-    query_result = P.get_pagination_data(item, match_pair, is_public_access_filtered)
+    is_public_access_filtered = PL.process_pagination_item(item, search)
+    data_count, match_pair = PL.get_pagination_count(item)
+    query_result = PL.get_pagination_data(item, match_pair, is_public_access_filtered)
     # If both asc and desc are None, datasets ordered by self-written order function
     if item.asc is None and item.desc is None:
         query_result = sorted(

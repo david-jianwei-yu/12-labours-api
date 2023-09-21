@@ -7,7 +7,7 @@ Functionality for implementing data filtering
 FIELDS = ["study_organ_system"]
 
 
-class Filter:
+class FilterLogic:
     """
     Filter functionality
     """

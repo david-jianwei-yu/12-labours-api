@@ -6,7 +6,7 @@ Functionality for processing query data output
 import re
 
 
-class QueryFormat:
+class QueryFormatter:
     """
     fg -> filter generator object is required
     """

@@ -15,7 +15,7 @@ from app.config import Gen3Config
 from app.data_schema import GraphQLPaginationItem, GraphQLQueryItem
 
 
-class Pagination:
+class PaginationLogic:
     """
     fg -> filter generator object is required
     f -> filter object is required
@@ -23,11 +23,11 @@ class Pagination:
     es -> external service object is required
     """
 
-    def __init__(self, fg, f, s, es):
+    def __init__(self, fg, fl, sl, es):
         self._fg = fg
         self._mapped_filter = fg.get_mapped_filter()
-        self._f = f
-        self._s = s
+        self._fl = fl
+        self._sl = sl
         self._es = es
         self.__public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
 
@@ -244,23 +244,23 @@ class Pagination:
                 items.append((query_item, json.dumps(valid_filter)))
             fetch_result = self._handle_thread_fetch(items)
             for filter_, related_data in fetch_result.items():
-                filter_result = self._f.generate_filtered_dataset(
+                filter_result = self._fl.generate_filtered_dataset(
                     json.loads(filter_), related_data
                 )
                 filter_dict["submitter_id"].append(filter_result)
             item.filter = filter_dict
-            self._f.implement_filter_relation(item)
+            self._fl.implement_filter_relation(item)
 
         # SEARCH
         if input_ != "":
-            search_result = self._s.generate_searched_dataset(input_)
+            search_result = self._sl.generate_searched_dataset(input_)
             # If input does not match any content in the database, item.search will be empty
             item.search["submitter_id"] = search_result
             if item.search != {} and (
                 "submitter_id" not in item.filter or item.filter["submitter_id"] != []
             ):
                 has_search_result = True
-                self._s.implement_search_filter_relation(item)
+                self._sl.implement_search_filter_relation(item)
 
         # ORDER
         order_type = item.order.lower()

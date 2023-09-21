@@ -5,7 +5,7 @@ Functionality for generating different types of filter format
 """
 
 
-class FilterFormat:
+class FilterFormatter:
     """
     fg -> filter generator object is required
     """

@@ -6,7 +6,7 @@ import json
 import re
 
 
-class PaginationFormat:
+class PaginationFormatter:
     """
     fg -> filter generator object is required
     """

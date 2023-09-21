@@ -9,8 +9,10 @@ from irods.models import Collection, DataObjectMeta
 
 from app.config import iRODSConfig
 
+SEARCHFIELD = ["TITLE", "SUBTITLE", "CONTRIBUTOR"]
 
-class Search:
+
+class SearchLogic:
     """
     Search functionality
     es -> external service object is required
@@ -25,7 +27,9 @@ class Search:
         """
         dataset_dict = {}
         for keyword in keyword_list:
-            search_result = self._es.get("irods").process_keyword_search(keyword)
+            search_result = self._es.get("irods").process_keyword_search(
+                SEARCHFIELD, keyword
+            )
             for _ in search_result:
                 content_list = re.findall(
                     rf"(\s{keyword}|{keyword}\s)", _[DataObjectMeta.value]
