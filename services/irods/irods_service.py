@@ -28,15 +28,14 @@ class iRODSService:
         self.__session = None
         self.__status = False
 
-    def process_keyword_search(self, keyword):
+    def process_keyword_search(self, searchfield, keyword):
         """
         Handler for searching keywords in irods
         """
-        SEARCHFIELD = ["TITLE", "SUBTITLE", "CONTRIBUTOR"]
         try:
             result = (
                 self.__session.query(Collection.name, DataObjectMeta.value)
-                .filter(In(DataObjectMeta.name, SEARCHFIELD))
+                .filter(In(DataObjectMeta.name, searchfield))
                 .filter(Like(DataObjectMeta.value, f"%{keyword}%"))
             )
         except Exception as error:
@@ -73,7 +72,7 @@ class iRODSService:
 
         user_yaml = yaml.load(yaml_string, Loader=SafeLoader)
         return json.loads(json.dumps(user_yaml))["users"]
-    
+
     def get_status(self):
         """
         Handler for getting irods session status
