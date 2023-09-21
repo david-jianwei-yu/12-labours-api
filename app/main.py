@@ -24,13 +24,13 @@ from pyorthanc import find
 
 from app.config import iRODSConfig
 from app.data_schema import *
-from app.filter_func.filter_formatter import FilterFormatter
-from app.filter_func.filter_generator import FilterGenerator
-from app.filter_func.filter_logic import FilterLogic
-from app.pagination_func.pagination_formatter import PaginationFormatter
-from app.pagination_func.pagination_logic import PaginationLogic
-from app.query_func.query_formatter import QueryFormatter
-from app.search_func.search_logic import SearchLogic
+from app.function.filter.filter_formatter import FilterFormatter
+from app.function.filter.filter_generator import FilterGenerator
+from app.function.filter.filter_logic import FilterLogic
+from app.function.pagination.pagination_formatter import PaginationFormatter
+from app.function.pagination.pagination_logic import PaginationLogic
+from app.function.query.query_formatter import QueryFormatter
+from app.function.search.search_logic import SearchLogic
 from middleware.auth import Authenticator
 from services.external_service import ExternalService
 
