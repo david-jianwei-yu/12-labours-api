@@ -9,7 +9,7 @@ FIELDS = ["study_organ_system"]
 
 class FilterLogic:
     """
-    Filter functionality
+    Filter logic functionality
     """
 
     def _handle_filtered_data(self, filter_, data):

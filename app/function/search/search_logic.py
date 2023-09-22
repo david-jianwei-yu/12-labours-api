@@ -14,7 +14,7 @@ SEARCHFIELD = ["TITLE", "SUBTITLE", "CONTRIBUTOR"]
 
 class SearchLogic:
     """
-    Search functionality
+    Search logic functionality
     es -> external service object is required
     """
 
