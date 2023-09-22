@@ -19,7 +19,7 @@ class SearchLogic:
     """
 
     def __init__(self, es):
-        self._es = es
+        self.__es = es
 
     def _handle_searched_data(self, keyword_list):
         """
@@ -27,7 +27,7 @@ class SearchLogic:
         """
         dataset_dict = {}
         for keyword in keyword_list:
-            search_result = self._es.get("irods").process_keyword_search(
+            search_result = self.__es.get("irods").process_keyword_search(
                 SEARCHFIELD, keyword
             )
             for _ in search_result:

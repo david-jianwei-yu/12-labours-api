@@ -24,7 +24,7 @@ class Gen3Service:
     """
 
     def __init__(self, sgqlc):
-        self._sgqlc = sgqlc
+        self.__sgqlc = sgqlc
         self.__submission = None
         self.__status = False
         self.__retry = 0
@@ -39,7 +39,7 @@ class Gen3Service:
                 detail="Missing field in the request body",
             )
 
-        query_code = self._sgqlc.handle_graphql_query_code(item)
+        query_code = self.__sgqlc.handle_graphql_query_code(item)
         try:
             query_result = self.__submission.query(query_code)["data"][item.node]
             if key is not None and queue is not None:

@@ -23,9 +23,9 @@ class FilterGenerator:
     """
 
     def __init__(self, fe, es):
-        self._fe = fe
+        self.__fe = fe
         self.__filter_cache = fe.cache_loader()
-        self._es = es
+        self.__es = es
         self.__public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
         self.__cache = {}
 
@@ -84,7 +84,7 @@ class FilterGenerator:
         threads_pool = []
         for args in items:
             thread = threading.Thread(
-                target=self._es.get("gen3").process_graphql_query, args=(*args, queue_)
+                target=self.__es.get("gen3").process_graphql_query, args=(*args, queue_)
             )
             threads_pool.append(thread)
             thread.start()
@@ -137,5 +137,5 @@ class FilterGenerator:
                     return False
                 element_content["facets"] = dict(sorted(public_facets.items()))
         self._reset_cache()
-        self._fe.update_filter_cache(self.__filter_cache)
+        self.__fe.update_filter_cache(self.__filter_cache)
         return True
