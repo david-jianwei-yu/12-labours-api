@@ -7,29 +7,27 @@ Functionality for generating different types of filter format
 
 class FilterFormatter:
     """
-    fg -> filter generator object is required
+    fg -> filter editor object is required
     """
 
-    def __init__(self, fg):
-        self._fg = fg
-        self._mapped_filter = fg.get_mapped_filter()
+    def __init__(self, fe):
+        self.__filter_cache = fe.cache_loader()
 
-    def _handle_element_content(self, mapped_element, access_scope):
+    def _handle_element_content(self, mapped_element, private_filter):
         """
         Handler for switching element content between public and private
         """
-        private_filter = self._fg.generate_private_filter(access_scope)
         if mapped_element in private_filter:
             return private_filter[mapped_element]
-        return self._mapped_filter[mapped_element]
+        return self.__filter_cache[mapped_element]
 
-    def generate_sidebar_filter_format(self, access_scope):
+    def generate_sidebar_filter_format(self, private_filter):
         """
         Format for portal map integrated viewer sidebar
         """
         sidebar_format = []
-        for mapped_element in self._mapped_filter:
-            content = self._handle_element_content(mapped_element, access_scope)
+        for mapped_element in self.__filter_cache:
+            content = self._handle_element_content(mapped_element, private_filter)
             parent_format = {
                 "key": "",
                 "label": "",
@@ -48,18 +46,18 @@ class FilterFormatter:
             sidebar_format.append(parent_format)
         return sidebar_format
 
-    def generate_filter_format(self, access_scope):
+    def generate_filter_format(self, private_filter):
         """
         Format for portal data browser
         """
         format_ = {
-            "size": len(self._mapped_filter),
+            "size": len(self.__filter_cache),
             "titles": [],
             "nodes>fields": [],
             "elements": [],
         }
-        for mapped_element in self._mapped_filter:
-            content = self._handle_element_content(mapped_element, access_scope)
+        for mapped_element in self.__filter_cache:
+            content = self._handle_element_content(mapped_element, private_filter)
             format_["titles"].append(content["title"].capitalize())
             format_["nodes>fields"].append(f"{content['node']}>{content['field']}")
             format_["elements"].append(list(content["facets"].keys()))

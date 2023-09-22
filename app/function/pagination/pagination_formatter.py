@@ -8,11 +8,11 @@ import re
 
 class PaginationFormatter:
     """
-    fg -> filter generator object is required
+    fe -> filter editor object is required
     """
 
-    def __init__(self, fg):
-        self._mapped_filter = fg.get_mapped_filter()
+    def __init__(self, fe):
+        self.__filter_cache = fe.cache_loader()
 
     def _handle_thumbnail(self, data):
         """
@@ -138,7 +138,7 @@ class PaginationFormatter:
             return result
         for _ in data:
             if _["species"] != "NA":
-                species_filter = self._mapped_filter["MAPPED_SPECIES"]["facets"]
+                species_filter = self.__filter_cache["MAPPED_SPECIES"]["facets"]
                 species = list(species_filter.keys())[
                     list(species_filter.values()).index(_["species"])
                 ]

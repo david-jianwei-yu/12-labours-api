@@ -17,15 +17,14 @@ from app.data_schema import GraphQLPaginationItem, GraphQLQueryItem
 
 class PaginationLogic:
     """
-    fg -> filter generator object is required
-    f -> filter object is required
-    s -> search object is required
+    fe -> filter editor object is required
+    fl -> filter logic object is required
+    sl -> search logic object is required
     es -> external service object is required
     """
 
-    def __init__(self, fg, fl, sl, es):
-        self._fg = fg
-        self._mapped_filter = fg.get_mapped_filter()
+    def __init__(self, fe, fl, sl, es):
+        self.__filter_cache = fe.cache_loader()
         self._fl = fl
         self._sl = sl
         self._es = es
@@ -181,11 +180,11 @@ class PaginationLogic:
             # Use .capitalize() to make it non-case sensitive
             # Avoid mis-match
             facet_name = facet.capitalize()
-            for mapped_element in self._mapped_filter:
+            for mapped_element in self.__filter_cache:
                 if mapped_element in private_filter:
                     content = private_filter[mapped_element]
                 else:
-                    content = self._mapped_filter[mapped_element]
+                    content = self.__filter_cache[mapped_element]
                 # Check if title can match with a exist filter object
                 if content["field"] == filter_field:
                     # Check if ele_name is a key under filter object element field
@@ -202,17 +201,7 @@ class PaginationLogic:
                         value_list.append(facet_value)
         return {filter_field: value_list}
 
-    def _handle_access(self, access_scope):
-        """
-        Handler for generating private access
-        """
-        private_access = []
-        for scope in access_scope:
-            if scope != self.__public_access[0]:
-                private_access.append(scope)
-        return private_access
-
-    def process_pagination_item(self, item, input_):
+    def process_pagination_item(self, item, input_, private_filter):
         """
         Handler for process pagination item to fit the query code generator format
         """
@@ -221,8 +210,6 @@ class PaginationLogic:
 
         # FILTER
         if item.filter != {}:
-            private_access = self._handle_access(item.access)
-            private_filter = self._fg.generate_private_filter(private_access)
             items = []
             filter_dict = {"submitter_id": []}
             for node_filed, facets in item.filter.items():

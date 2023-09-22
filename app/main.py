@@ -24,6 +24,7 @@ from pyorthanc import find
 
 from app.config import iRODSConfig
 from app.data_schema import *
+from app.function.filter.filter_editor import FilterEditor
 from app.function.filter.filter_formatter import FilterFormatter
 from app.function.filter.filter_generator import FilterGenerator
 from app.function.filter.filter_logic import FilterLogic
@@ -55,11 +56,12 @@ app.add_middleware(
 CONNECTION = None
 FILTER_GENERATED = False
 ES = ExternalService()
-FG = FilterGenerator(ES)
-FF = FilterFormatter(FG)
-PF = PaginationFormatter(FG)
-PL = PaginationLogic(FG, FilterLogic(), SearchLogic(ES), ES)
-QF = QueryFormatter(FG)
+FE = FilterEditor()
+FG = FilterGenerator(FE, ES)
+FF = FilterFormatter(FE)
+PF = PaginationFormatter(FE)
+PL = PaginationLogic(FE, FilterLogic(), SearchLogic(ES), ES)
+QF = QueryFormatter(FE)
 A = Authenticator(ES)
 
 
@@ -259,6 +261,13 @@ async def get_gen3_graphql_query(
     return QF.process_data_output(handle_result())
 
 
+def _handle_private_filter(access_scope):
+    private_filter = {}
+    if len(access_scope) > 1:
+        private_filter = FG.generate_private_filter(access_scope)
+    return private_filter
+
+
 @app.post(
     "/graphql/pagination/",
     tags=["Gen3"],
@@ -300,7 +309,8 @@ async def get_gen3_graphql_pagination(
         )
 
     item.access = access_scope
-    is_public_access_filtered = PL.process_pagination_item(item, search)
+    private_filter = _handle_private_filter(access_scope)
+    is_public_access_filtered = PL.process_pagination_item(item, search, private_filter)
     data_count, match_pair = PL.get_pagination_count(item)
     query_result = PL.get_pagination_data(item, match_pair, is_public_access_filtered)
     # If both asc and desc are None, datasets ordered by self-written order function
@@ -338,9 +348,10 @@ async def get_gen3_filter(
     while retry < 12 and not FILTER_GENERATED:
         retry += 1
         time.sleep(retry)
+    private_filter = _handle_private_filter(access_scope)
     if sidebar:
-        return FF.generate_sidebar_filter_format(access_scope)
-    return FF.generate_filter_format(access_scope)
+        return FF.generate_sidebar_filter_format(private_filter)
+    return FF.generate_filter_format(private_filter)
 
 
 ############################################

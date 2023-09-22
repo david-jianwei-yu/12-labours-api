@@ -8,11 +8,11 @@ import re
 
 class QueryFormatter:
     """
-    fg -> filter generator object is required
+    fe -> filter editor object is required
     """
 
-    def __init__(self, fg):
-        self._mapped_filter = fg.get_mapped_filter()
+    def __init__(self, fe):
+        self.__filter_cache = fe.cache_loader()
         self.__query_mode = None
 
     def set_query_mode(self, mode):
@@ -83,7 +83,7 @@ class QueryFormatter:
         Handler for updating related facet
         """
         mapped_element = f"MAPPED_{field.upper()}"
-        content = self._mapped_filter[mapped_element]
+        content = self.__filter_cache[mapped_element]
         for facet_name, facet_value in content["facets"].items():
             for _ in data:
                 field_value = _[field]
@@ -98,10 +98,9 @@ class QueryFormatter:
         Handler for generating facet source
         """
         sources = []
-        for mapped_element in self._mapped_filter:
-            content = self._mapped_filter[mapped_element]
-            node = re.sub("_filter", "s", content["node"])
-            field = content["field"]
+        for mapped_content in self.__filter_cache.values():
+            node = re.sub("_filter", "s", mapped_content["node"])
+            field = mapped_content["field"]
             if node == "experiments":
                 pass
             elif node == "manifests":

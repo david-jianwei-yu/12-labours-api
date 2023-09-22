@@ -1,6 +1,5 @@
 """
 Functionality for generating the filter based on database files
-- MAPPED_FILTERS
 - generate_private_filter
 - generate_public_filter
 """
@@ -9,61 +8,6 @@ import threading
 
 from app.config import Gen3Config
 from app.data_schema import GraphQLQueryItem
-
-MAPPED_FILTERS = {
-    "MAPPED_AGE_CATEGORY": {
-        "title": "age category",
-        "node": "case_filter",
-        "field": "age_category",
-        "facets": {},
-    },
-    "MAPPED_STUDY_ORGAN_SYSTEM": {
-        "title": "anatomical structure",
-        "node": "dataset_description_filter",
-        "field": "study_organ_system",
-        "facets": {},
-    },
-    "MAPPED_SEX": {
-        "title": "sex",
-        "node": "case_filter",
-        "field": "sex",
-        "facets": {
-            "Female": ["F", "Female"],
-            "Male": ["M", "Male"],
-        },
-    },
-    "MAPPED_ADDITIONAL_TYPES": {
-        "title": "data type",
-        "node": "manifest_filter",
-        "field": "additional_types",
-        "facets": {
-            "Plot": ["text/vnd.abi.plot+tab-separated-values", "text/vnd.abi.plot+csv"],
-            "Scaffold": [
-                "application/x.vnd.abi.scaffold.meta+json",
-                "inode/vnd.abi.scaffold+file",
-            ],
-            "Dicom": ["application/dicom"],
-        },
-    },
-    "MAPPED_SPECIES": {
-        "title": "species",
-        "node": "case_filter",
-        "field": "species",
-        "facets": {
-            "Cat": "Felis catus",
-            "Human": "Homo sapiens",
-            "Mouse": "Mus musculus",
-            "Pig": "Sus scrofa",
-            "Rat": "Rattus norvegicus",
-        },
-    },
-    "MAPPED_PROJECT_ID": {
-        "title": "access scope",
-        "node": "experiment_filter",
-        "field": "project_id",
-        "facets": {},
-    },
-}
 
 DYNAMIC_FILTERS = [
     "MAPPED_AGE_CATEGORY",
@@ -74,19 +18,16 @@ DYNAMIC_FILTERS = [
 
 class FilterGenerator:
     """
+    fe -> filter editor object is required
     es -> external service object is required
     """
 
-    def __init__(self, es):
+    def __init__(self, fe, es):
+        self._fe = fe
+        self.__filter_cache = fe.cache_loader()
         self._es = es
         self.__public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
         self.__cache = {}
-
-    def get_mapped_filter(self):
-        """
-        Return MAPPED_FILTERS
-        """
-        return MAPPED_FILTERS
 
     def _reset_cache(self):
         """
@@ -124,7 +65,7 @@ class FilterGenerator:
     def _handle_filter_query_item(self, private_access=None):
         items = []
         for mapped_element in DYNAMIC_FILTERS:
-            node = MAPPED_FILTERS[mapped_element]["node"]
+            node = self.__filter_cache[mapped_element]["node"]
             query_item = GraphQLQueryItem(
                 node=node,
                 access=self.__public_access,
@@ -170,7 +111,7 @@ class FilterGenerator:
         private_filter = {}
         if private_access:
             self._update_cache(private_access)
-            for mapped_element, element_content in MAPPED_FILTERS.items():
+            for mapped_element, element_content in self.__filter_cache.items():
                 if mapped_element in DYNAMIC_FILTERS:
                     private_facets = self._handle_facet(element_content, private_access)
                     if private_facets:
@@ -189,11 +130,12 @@ class FilterGenerator:
         Generator for public dataset filter
         """
         self._update_cache()
-        for mapped_element, element_content in MAPPED_FILTERS.items():
+        for mapped_element, element_content in self.__filter_cache.items():
             if mapped_element in DYNAMIC_FILTERS:
                 public_facets = self._handle_facet(element_content)
                 if not public_facets:
                     return False
                 element_content["facets"] = dict(sorted(public_facets.items()))
         self._reset_cache()
+        self._fe.update_filter_cache(self.__filter_cache)
         return True
