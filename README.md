@@ -47,6 +47,8 @@ IRODS_ZONE =
 ## Running the app
 
 ```bash
+# Optional
+$ pip install --upgrade pip
 # Create the virtual environment
 $ python3 -m venv ./venv
 # Active the virtual environment
