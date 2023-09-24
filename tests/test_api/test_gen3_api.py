@@ -1,7 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.function.filter.filter_editor import FilterEditor
 from app.main import app
 
 
@@ -9,6 +8,15 @@ from app.main import app
 def client():
     with TestClient(app) as client:
         return client
+
+
+@pytest.fixture
+def token(client):
+    dummy_data = {
+        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
+    }
+    response = client.post("/access/token", json=dummy_data)
+    return response.json()
 
 
 def test_create_gen3_access(client):
@@ -27,33 +35,21 @@ def test_create_gen3_access(client):
     assert result["identity"] == dummy_data["identity"]
 
 
-def test_revoke_gen3_access(client):
-    dummy_data = {
-        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
-    }
-    response = client.post("/access/token", json=dummy_data)
-    dummy_token = response.json()
-
+def test_revoke_gen3_access(client, token):
     response = client.delete(
         "/access/revoke",
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 401
     assert result["detail"] == "Unable to remove default access authority"
 
 
-def test_get_gen3_record(client):
-    dummy_data = {
-        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
-    }
-    response = client.post("/access/token", json=dummy_data)
-    dummy_token = response.json()
-
+def test_get_gen3_record(client, token):
     UUID = "5b9ae1bd-e780-4869-a458-b3422084c480"
     response = client.get(
         f"/record/{UUID}",
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 200
@@ -65,7 +61,7 @@ def test_get_gen3_record(client):
     UUID = "5b9ae1bd-e780-4869-a458-fakeuuidsuffix"
     response = client.get(
         f"/record/{UUID}",
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 404
@@ -75,13 +71,7 @@ def test_get_gen3_record(client):
     )
 
 
-def test_get_gen3_graphql_query(client):
-    dummy_data = {
-        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
-    }
-    response = client.post("/access/token", json=dummy_data)
-    dummy_token = response.json()
-
+def test_get_gen3_graphql_query(client, token):
     DATASET_ID = "dataset-217-version-2"
     pass_case = {
         "node": "experiment_query",
@@ -91,7 +81,7 @@ def test_get_gen3_graphql_query(client):
     response = client.post(
         "/graphql/query/?mode=data",
         json=pass_case,
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 200
@@ -100,7 +90,7 @@ def test_get_gen3_graphql_query(client):
     response = client.post(
         "/graphql/query/?mode=detail",
         json=pass_case,
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 200
@@ -113,7 +103,7 @@ def test_get_gen3_graphql_query(client):
     response = client.post(
         "/graphql/query/?mode=facet",
         json=pass_case,
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 200
@@ -135,7 +125,7 @@ def test_get_gen3_graphql_query(client):
     response = client.post(
         "/graphql/query/?mode=data",
         json=missing_data,
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 400
@@ -147,7 +137,7 @@ def test_get_gen3_graphql_query(client):
     response = client.post(
         "/graphql/query/?mode=data",
         json=wrong_node,
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 404
@@ -162,7 +152,7 @@ def test_get_gen3_graphql_query(client):
     response = client.post(
         "/graphql/query/?mode=detail",
         json=wrong_filter,
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 400
@@ -172,13 +162,7 @@ def test_get_gen3_graphql_query(client):
     )
 
 
-def test_get_gen3_graphql_pagination(client):
-    dummy_data = {
-        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
-    }
-    response = client.post("/access/token", json=dummy_data)
-    dummy_token = response.json()
-
+def test_get_gen3_graphql_pagination(client, token):
     filter_pass_case = {
         "filter": {
             "dataset_description_filter>study_organ_system": ["Stomach", "Vagus nerve"],
@@ -190,7 +174,7 @@ def test_get_gen3_graphql_pagination(client):
     response = client.post(
         "/graphql/pagination/",
         json=filter_pass_case,
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 200
@@ -201,7 +185,7 @@ def test_get_gen3_graphql_pagination(client):
     response = client.post(
         "/graphql/pagination/?search=",
         json=order_pass_case,
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 200
@@ -211,7 +195,7 @@ def test_get_gen3_graphql_pagination(client):
     response = client.post(
         "/graphql/pagination/?search=rats",
         json=search_pass_case,
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 200
@@ -222,7 +206,7 @@ def test_get_gen3_graphql_pagination(client):
     response = client.post(
         "/graphql/pagination/?search=dog",
         json=wrong_search,
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 404
@@ -236,7 +220,7 @@ def test_get_gen3_graphql_pagination(client):
     response = client.post(
         "/graphql/pagination/",
         json=wrong_facet,
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 400
@@ -246,23 +230,17 @@ def test_get_gen3_graphql_pagination(client):
     response = client.post(
         "/graphql/pagination/",
         json=wrong_order,
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 400
     assert result["detail"] == f"{wrong_order['order']} order option not provided"
 
 
-def test_get_gen3_filter(client):
-    dummy_data = {
-        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
-    }
-    response = client.post("/access/token", json=dummy_data)
-    dummy_token = response.json()
-
+def test_get_gen3_filter(client, token):
     response = client.get(
         "/filter/?sidebar=true",
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 200
@@ -275,7 +253,7 @@ def test_get_gen3_filter(client):
 
     response = client.get(
         "/filter/?sidebar=false",
-        headers={"Authorization": f"Bearer {dummy_token['access_token']}"},
+        headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     print(result)
