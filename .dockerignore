@@ -1,5 +1,5 @@
 __pycache__/
-docs/
-tests/
-venv/
 *.env
+venv/
+.pytest_cache
+tests/
