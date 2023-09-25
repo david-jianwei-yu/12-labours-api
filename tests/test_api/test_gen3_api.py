@@ -256,7 +256,6 @@ def test_get_gen3_filter(client, token):
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
-    print(result)
     assert response.status_code == 200
     assert "size" in result
     assert "titles" in result
