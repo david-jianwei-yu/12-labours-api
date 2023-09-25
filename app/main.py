@@ -56,7 +56,10 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-description = """
+
+app = FastAPI(
+    title="12 Labours Portal",
+    description="""
 ## Access
 
 You will be able to:
@@ -87,11 +90,7 @@ You will be able to:
 
 * **Get Orthanc dicom file instance ids**
 * **Download Orthanc dicom file**
-"""
-
-app = FastAPI(
-    title="12 Labours Portal",
-    description=description,
+    """,
     contact={
         "name": "Auckland Bioengineering Institute",
         "url": "https://www.auckland.ac.nz/en/abi.html",
