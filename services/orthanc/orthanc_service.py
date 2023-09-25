@@ -5,9 +5,15 @@ Functionality for processing orthanc service
 - get_connection
 - connection
 """
+import logging
+
 from pyorthanc import Orthanc
 
 from app.config import OrthancConfig
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class OrthancService:
@@ -32,8 +38,9 @@ class OrthancService:
         try:
             self.__orthanc.get_patients()
             self.__status = True
-        except Exception:
-            print("Orthanc disconnected.")
+        except Exception as error:
+            logger.warning("Orthanc disconnected.")
+            logger.error(error)
             self.__orthanc = None
             self.__status = False
 
@@ -55,4 +62,4 @@ class OrthancService:
             )
             self.status()
         except Exception:
-            print("Failed to create the Orthanc client.")
+            logger.error("Failed to create the Orthanc client.")

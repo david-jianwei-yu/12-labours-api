@@ -7,6 +7,7 @@ Functionality for processing gen3 service
 - get_connection
 - connection
 """
+import logging
 import re
 import time
 
@@ -15,6 +16,10 @@ from gen3.auth import Gen3Auth, Gen3AuthError
 from gen3.submission import Gen3Submission
 
 from app.config import Gen3Config
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class Gen3Service:
@@ -91,15 +96,16 @@ class Gen3Service:
             self.__submission.get_programs()
             self.__status = True
             self.__retry = 0
-        except Gen3AuthError:
-            print("Gen3 disconnected.")
+        except Gen3AuthError as error:
+            logger.warning("Gen3 disconnected.")
             self.__submission = None
             self.__status = False
             if self.__retry == 12:
-                print("Hit the max retry limit.")
+                logger.error("Hit the max retry limit. Unable to reconnect.")
+                logger.error(error)
             if self.__retry < 12:
                 self.__retry += 1
-                print(f"Reconnecting...{self.__retry}...")
+                logger.warning("Reconnecting...%s...", self.__retry)
                 time.sleep(self.__retry)
                 self.connection()
 
@@ -125,4 +131,4 @@ class Gen3Service:
             )
             self.status()
         except Exception:
-            print("Failed to create the Gen3 submission.")
+            logger.error("Failed to create the Gen3 submission.")

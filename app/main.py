@@ -12,6 +12,7 @@ Functional APIs provided by the server
 - /dicom/export/{identifier}
 """
 import io
+import logging
 import mimetypes
 import re
 import time
@@ -34,6 +35,10 @@ from app.function.query.query_formatter import QueryFormatter
 from app.function.search.search_logic import SearchLogic
 from middleware.auth import Authenticator
 from services.external_service import ExternalService
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 app = FastAPI(
     title=title,
@@ -72,7 +77,7 @@ async def start_up():
     """
     global CONNECTION
     CONNECTION = ES.check_service_status(True)
-    print(CONNECTION)
+    logger.info(CONNECTION)
 
 
 @app.on_event("startup")
@@ -87,11 +92,11 @@ def periodic_execution():
         try:
             FILTER_GENERATED = FG.generate_public_filter()
         except Exception as error:
-            print(f"Invalid filter metadata {error} has been used.")
+            logger.error("Invalid filter metadata %s has been used.", error)
         if FILTER_GENERATED:
-            print("Default filter has been updated.")
+            logger.info("Default filter has been updated.")
     else:
-        print("Failed to update default filter.")
+        logger.warning("Failed to update default filter.")
 
     if A.get_authorized_user_number() > 1:
         A.cleanup_authorized_user()

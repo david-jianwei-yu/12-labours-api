@@ -8,6 +8,7 @@ Functionality for processing irods service
 - connection
 """
 import json
+import logging
 
 import yaml
 from fastapi import HTTPException, status
@@ -17,6 +18,10 @@ from irods.session import iRODSSession
 from yaml import SafeLoader
 
 from app.config import iRODSConfig
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class iRODSService:
@@ -86,8 +91,9 @@ class iRODSService:
         try:
             self.__session.collections.get(iRODSConfig.IRODS_ROOT_PATH)
             self.__status = True
-        except Exception:
-            print("iRODS disconnected.")
+        except Exception as error:
+            logging.warning("iRODS disconnected.")
+            logger.error(error)
             self.__session = None
             self.__status = False
 
@@ -114,4 +120,4 @@ class iRODSService:
             # self.__session.connection_timeout =
             self.status()
         except Exception:
-            print("Failed to create the iRODS session.")
+            logger.error("Failed to create the iRODS session.")

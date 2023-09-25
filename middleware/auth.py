@@ -7,6 +7,7 @@ Functionality for backend services access control
 - handle_get_authority
 - generate_access_token
 """
+import logging
 from datetime import datetime
 from multiprocessing import Manager
 
@@ -16,6 +17,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.config import Gen3Config
 from middleware.jwt import JWT
 from middleware.user import User
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 security = HTTPBearer()
 manager = Manager()
@@ -58,7 +63,7 @@ class Authenticator:
         for user in list(AUTHORIZED_USERS):
             if user != "public":
                 self._delete_expired_user(user)
-        print("All expired users have been deleted.")
+        logger.info("All expired users have been deleted.")
 
     def _handle_authenticate_token(self, token, auth_type=None):
         """
