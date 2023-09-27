@@ -28,15 +28,12 @@ def test_cache_loader(fe_class):
     assert template == {
         "MAPPED_ADDITIONAL_TYPES": {
             "facets": {
-                "Dicom": ["application/dicom"],
+                "Dicom": "application/dicom",
                 "Plot": [
                     "text/vnd.abi.plot+tab-separated-values",
                     "text/vnd.abi.plot+csv",
                 ],
-                "Scaffold": [
-                    "application/x.vnd.abi.scaffold.meta+json",
-                    "inode/vnd.abi.scaffold+file",
-                ],
+                "Scaffold": "application/x.vnd.abi.scaffold.meta+json",
             },
             "field": "additional_types",
             "node": "manifest_filter",
