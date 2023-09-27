@@ -1,6 +1,7 @@
 import pytest
-from app import app
 from fastapi.testclient import TestClient
+
+from app import app
 
 
 @pytest.fixture
@@ -16,25 +17,19 @@ def test_get_irods_collection(client):
     assert response.status_code == 200
     assert len(response.json()) == 2
 
-    pass_case_sub = {
-        "path": "/dataset-217-version-2"
-    }
+    pass_case_sub = {"path": "/dataset-217-version-2"}
     response = client.post("/collection", json=pass_case_sub)
     result = response.json()
     assert response.status_code == 200
     assert len(response.json()) == 2
 
-    empty_string_path = {
-        "path": ""
-    }
+    empty_string_path = {"path": ""}
     response = client.post("/collection", json=empty_string_path)
     result = response.json()
     assert response.status_code == 400
     assert response.json()["detail"] == "Invalid path format is used"
 
-    wrong_path = {
-        "path": "/dummy/folder/path"
-    }
+    wrong_path = {"path": "/dummy/folder/path"}
     response = client.post("/collection", json=wrong_path)
     result = response.json()
     assert response.status_code == 404
@@ -47,7 +42,10 @@ def test_get_irods_data_file(client):
     response = client.get(f"/data/{ACTION}/{FILEPATH}")
     result = response.json()
     assert response.status_code == 200
-    assert result["description"] == "Annotated brainstem scaffold for pig available for registration of segmented neural anatomical-functional mapping of neural circuits."
+    assert (
+        result["description"]
+        == "Annotated brainstem scaffold for pig available for registration of segmented neural anatomical-functional mapping of neural circuits."
+    )
     assert result["heading"] == "Generic pig brainstem scaffold"
 
     ACTION = "preview"

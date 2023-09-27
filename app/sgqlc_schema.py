@@ -1,27 +1,46 @@
+"""
+Functionality for support simple graphql client
+"""
+from sgqlc.types import Field, Int, String, Type, list_of
 from sgqlc.types.relay import Node
-from sgqlc.types import String, Int, Type, Field, list_of
 
 
 # FILTER USE ONLY
 # Minimize the query fields
 # Increase the generating speed
 class ExperimentFilter(Node):
+    """
+    Fields for experiment filter
+    """
+
     project_id = String
     submitter_id = String
 
 
 class DatasetDescriptionFilter(Node):
+    """
+    Fields for dataset description filter
+    """
+
     experiments = list_of(ExperimentFilter)
     keywords = list_of(String)
     study_organ_system = list_of(String)
 
 
 class ManifestFilter(Node):
+    """
+    Fields for manifest filter
+    """
+
     experiments = list_of(ExperimentFilter)
     additional_types = list_of(String)
 
 
 class CaseFilter(Node):
+    """
+    Fields for case filter
+    """
+
     experiments = list_of(ExperimentFilter)
     species = String
     sex = String
@@ -30,7 +49,10 @@ class CaseFilter(Node):
 
 # QUERY USE ONLY
 class DatasetDescriptionQuery(Node):
-    project_id = String
+    """
+    Fields for dataset description query
+    """
+
     type = String
     title = String
     subtitle = String
@@ -60,7 +82,10 @@ class DatasetDescriptionQuery(Node):
 
 
 class ManifestQuery(Node):
-    project_id = String
+    """
+    Fields for manifest query
+    """
+
     type = String
     timestamp = String
     submitter_id = String
@@ -76,7 +101,10 @@ class ManifestQuery(Node):
 
 
 class CaseQuery(Node):
-    project_id = String
+    """
+    Fields for case query
+    """
+
     type = String
     submitter_id = String
     subject_id = String
@@ -108,7 +136,10 @@ class CaseQuery(Node):
 
 
 class ExperimentQuery(Node):
-    project_id = String
+    """
+    Fields for experiment query
+    """
+
     submitter_id = String
     dataset_descriptions = list_of(DatasetDescriptionQuery)
     manifests1 = list_of(ManifestQuery)
@@ -122,6 +153,10 @@ class ExperimentQuery(Node):
 
 # PAGINATION USE ONLY
 class SubDatasetDescription(Node):
+    """
+    Fields for sub dataset description
+    """
+
     title = String
     study_organ_system = list_of(String)
     number_of_subjects = Int
@@ -131,6 +166,10 @@ class SubDatasetDescription(Node):
 
 
 class SubManifest(Node):
+    """
+    Fields for sub manifest
+    """
+
     filename = String
     file_type = String
     additional_metadata = list_of(String)
@@ -142,11 +181,18 @@ class SubManifest(Node):
 
 
 class SubCase(Node):
+    """
+    Fields for sub case
+    """
+
     species = String
 
 
 class ExperimentPagination(Node):
-    project_id = String
+    """
+    Fields for experiment pagination
+    """
+
     submitter_id = String
     dataset_descriptions = list_of(SubDatasetDescription)
     manifests1 = list_of(SubManifest)
@@ -159,20 +205,35 @@ class ExperimentPagination(Node):
 
 
 class ExperimentPaginationCount(Node):
-    project_id = String
+    """
+    Fields for experiment pagination count
+    """
+
     submitter_id = String
 
 
 class ExperimentOrder(Node):
+    """
+    Fields for experiment order
+    """
+
     submitter_id = String
 
 
 class PaginationOrderByDatasetDescription(Node):
+    """
+    Fields for pagination order by dataset description
+    """
+
     experiments = list_of(ExperimentOrder)
     title = String
 
 
 class Query(Type):
+    """
+    Used to generate query code
+    """
+
     # FILTER
     experimentFilter = Field(
         ExperimentFilter,
@@ -181,7 +242,7 @@ class Query(Type):
             "offset": Int,
             "submitter_id": list_of(String),
             "project_id": list_of(String),
-        }
+        },
     )
     datasetDescriptionFilter = Field(
         DatasetDescriptionFilter,
@@ -190,7 +251,7 @@ class Query(Type):
             "offset": Int,
             # "study_organ_system": list_of(String),
             "project_id": list_of(String),
-        }
+        },
     )
     manifestFilter = Field(
         ManifestFilter,
@@ -199,7 +260,7 @@ class Query(Type):
             "offset": Int,
             "additional_types": list_of(String),
             "project_id": list_of(String),
-        }
+        },
     )
     caseFilter = Field(
         CaseFilter,
@@ -210,7 +271,7 @@ class Query(Type):
             "sex": list_of(String),
             "age_category": list_of(String),
             "project_id": list_of(String),
-        }
+        },
     )
     # QUERY
     experimentQuery = Field(
@@ -220,7 +281,7 @@ class Query(Type):
             "offset": Int,
             "submitter_id": list_of(String),
             "project_id": list_of(String),
-        }
+        },
     )
     datasetDescriptionQuery = Field(
         DatasetDescriptionQuery,
@@ -229,7 +290,7 @@ class Query(Type):
             "offset": Int,
             "quick_search": String,
             "project_id": list_of(String),
-        }
+        },
     )
     manifestQuery = Field(
         ManifestQuery,
@@ -238,7 +299,7 @@ class Query(Type):
             "offset": Int,
             "quick_search": String,
             "project_id": list_of(String),
-        }
+        },
     )
     caseQuery = Field(
         CaseQuery,
@@ -247,7 +308,7 @@ class Query(Type):
             "offset": Int,
             "quick_search": String,
             "project_id": list_of(String),
-        }
+        },
     )
     # PAGINATION
     experimentPagination = Field(
@@ -259,7 +320,7 @@ class Query(Type):
             "project_id": list_of(String),
             "order_by_asc": String,
             "order_by_desc": String,
-        }
+        },
     )
     experimentPaginationCount = Field(
         ExperimentPaginationCount,
@@ -268,7 +329,7 @@ class Query(Type):
             "offset": Int,
             "submitter_id": list_of(String),
             "project_id": list_of(String),
-        }
+        },
     )
     paginationOrderByDatasetDescription = Field(
         PaginationOrderByDatasetDescription,
@@ -279,5 +340,5 @@ class Query(Type):
             "project_id": list_of(String),
             "order_by_asc": String,
             "order_by_desc": String,
-        }
+        },
     )

@@ -1,66 +1,66 @@
+"""
+Functionality for implementing data searching
+- generate_searched_dataset
+- implement_search_filter_relation
+"""
 import re
 
-from fastapi import HTTPException, status
-from irods.column import Like, In
 from irods.models import Collection, DataObjectMeta
 
 from app.config import iRODSConfig
-from app.data_schema import *
-
-SEARCHFIELD = [
-    "TITLE",
-    "SUBTITLE",
-    "CONTRIBUTOR"
-]
 
 
-class Search(object):
-    def __init__(self, service):
-        self.service = service
+class Search:
+    """
+    Search functionality
+    es -> external service object is required
+    """
 
-    def generate_searched_datasets(self, keyword_list):
+    def __init__(self, es):
+        self._es = es
+
+    def _handle_searched_data(self, keyword_list):
+        """
+        Handler for processing search result, store the number of keyword appear
+        """
         dataset_dict = {}
         for keyword in keyword_list:
-            try:
-                query = self.service["irods"].query(Collection.name, DataObjectMeta.value).filter(
-                    In(DataObjectMeta.name, SEARCHFIELD)).filter(
-                    Like(DataObjectMeta.value, f"%{keyword}%"))
-            except Exception as e:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-            # Any keyword that does not match with the database content will cause a search no result
-            if len(query.all()) == 0:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail="There is no matched content in the database")
-
-            for result in query:
+            search_result = self._es.process_irods_keyword_search(keyword)
+            for _ in search_result:
                 content_list = re.findall(
-                    fr'(\s{keyword}|{keyword}\s)', result[DataObjectMeta.value])
+                    rf"(\s{keyword}|{keyword}\s)", _[DataObjectMeta.value]
+                )
                 if content_list != []:
                     dataset = re.sub(
-                        f'{iRODSConfig.IRODS_ROOT_PATH}/', '', result[Collection.name])
+                        f"{iRODSConfig.IRODS_ROOT_PATH}/", "", _[Collection.name]
+                    )
                     if dataset not in dataset_dict:
                         dataset_dict[dataset] = 1
                     else:
                         dataset_dict[dataset] += 1
         return dataset_dict
 
-    # The dataset list order is based on how the dataset content is relevant to the input string.
-    def get_searched_datasets(self, input):
-        keyword_list = re.findall('[a-zA-Z0-9]+', input.lower())
-        dataset_dict = self.generate_searched_datasets(keyword_list)
-        dataset_list = sorted(
-            dataset_dict, key=dataset_dict.get, reverse=True)
-        return dataset_list
+    # The datasets order is based on how the dataset content is relevant to the input_ string.
+    def generate_searched_dataset(self, input_):
+        """
+        Handler for generating the searched dataset
+        """
+        keyword_list = re.findall("[a-zA-Z0-9]+", input_.lower())
+        dataset_dict = self._handle_searched_data(keyword_list)
+        datasets = sorted(dataset_dict, key=dataset_dict.get, reverse=True)
+        return datasets
 
-    def search_filter_relation(self, item):
+    def implement_search_filter_relation(self, item):
+        """
+        Handler for processing relation between search and filter
+        """
         # Search result has order, we need to update item.filter value based on search result
         # The relationship between search and filter will always be AND
         if item.filter != {}:
-            dataset_list = []
-            for dataset in item.search["submitter_id"]:
-                if dataset in item.filter["submitter_id"]:
-                    dataset_list.append(dataset)
-            item.filter["submitter_id"] = dataset_list
+            datasets = []
+            for dataset_id in item.search["submitter_id"]:
+                if dataset_id in item.filter["submitter_id"]:
+                    datasets.append(dataset_id)
+            item.filter["submitter_id"] = datasets
         else:
             item.filter["submitter_id"] = item.search["submitter_id"]

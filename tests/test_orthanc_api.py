@@ -1,6 +1,7 @@
 import pytest
-from app import app
 from fastapi.testclient import TestClient
+
+from app import app
 
 
 @pytest.fixture
@@ -12,7 +13,7 @@ def client():
 def test_get_orthanc_instance(client):
     pass_case = {
         "study": "1.3.6.1.4.1.14519.5.2.1.186051521067863971269584893740842397538",
-        "series": "1.3.6.1.4.1.14519.5.2.1.175414966301645518238419021688341658582"
+        "series": "1.3.6.1.4.1.14519.5.2.1.175414966301645518238419021688341658582",
     }
     response = client.post("/instance", json=pass_case)
     result = response.json()
@@ -25,10 +26,7 @@ def test_get_orthanc_instance(client):
     assert response.status_code == 400
     assert result["detail"] == "Missing one or more fields in the request body"
 
-    wrong_data = {
-        "study": "fakestudy",
-        "series": "fakeseries"
-    }
+    wrong_data = {"study": "fakestudy", "series": "fakeseries"}
     response = client.post("/instance", json=wrong_data)
     result = response.json()
     assert response.status_code == 404
