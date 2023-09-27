@@ -7,7 +7,7 @@ Functionality for generating different types of filter format
 
 class FilterFormatter:
     """
-    fg -> filter editor object is required
+    fe -> filter editor object is required
     """
 
     def __init__(self, fe):
