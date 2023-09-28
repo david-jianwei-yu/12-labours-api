@@ -234,10 +234,9 @@ class PaginationLogic:
 
         # SEARCH
         if input_ != "":
-            search_result = self.__sl.generate_searched_dataset(input_)
             # If input does not match any content in the database, item.search will be empty
-            item.search["submitter_id"] = search_result
-            if item.search != {} and (
+            item.search = self.__sl.generate_searched_dataset(input_)
+            if item.search["submitter_id"] != [] and (
                 "submitter_id" not in item.filter or item.filter["submitter_id"] != []
             ):
                 has_search_result = True

@@ -20,6 +20,7 @@ class SearchLogic:
 
     def __init__(self, es):
         self.__es = es
+        self.__search = SEARCHFIELD
 
     def _handle_searched_data(self, keyword_list):
         """
@@ -28,7 +29,7 @@ class SearchLogic:
         dataset_dict = {}
         for keyword in keyword_list:
             search_result = self.__es.get("irods").process_keyword_search(
-                SEARCHFIELD, keyword
+                self.__search, keyword
             )
             for _ in search_result:
                 content_list = re.findall(
@@ -49,10 +50,13 @@ class SearchLogic:
         """
         Handler for generating the searched dataset
         """
+        dataset_dict = {"submitter_id": []}
         keyword_list = re.findall("[a-zA-Z0-9]+", input_.lower())
-        dataset_dict = self._handle_searched_data(keyword_list)
-        datasets = sorted(dataset_dict, key=dataset_dict.get, reverse=True)
-        return datasets
+        searched_result = self._handle_searched_data(keyword_list)
+        dataset_dict["submitter_id"] = sorted(
+            searched_result, key=searched_result.get, reverse=True
+        )
+        return dataset_dict
 
     def implement_search_filter_relation(self, item):
         """
@@ -66,5 +70,6 @@ class SearchLogic:
                 if dataset_id in item.filter["submitter_id"]:
                     datasets.append(dataset_id)
             item.filter["submitter_id"] = datasets
-        else:
-            item.filter["submitter_id"] = item.search["submitter_id"]
+            return datasets
+        item.filter["submitter_id"] = item.search["submitter_id"]
+        return item.search["submitter_id"]
