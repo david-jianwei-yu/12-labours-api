@@ -1,10 +1,46 @@
+import pytest
+
 from app.data_schema import GraphQLPaginationItem
+from app.function.filter.filter_editor import FilterEditor
+from app.function.filter.filter_formatter import FilterFormatter
+from app.function.filter.filter_generator import FilterGenerator
+from app.function.filter.filter_logic import FilterLogic
+
+
+@pytest.fixture
+def fe_class():
+    return FilterEditor()
+
+
+@pytest.fixture
+def ff_class(dummy_filter_cache):
+    fe = FilterEditor()
+    fe.update_filter_cache(dummy_filter_cache)
+    return FilterFormatter(fe)
+
+
+@pytest.fixture
+def fg_fe_class(dummy_filter_cache_init):
+    fe = FilterEditor()
+    fe.update_filter_cache(dummy_filter_cache_init)
+    return fe
+
+
+@pytest.fixture
+def fg_class(fg_fe_class):
+    return FilterGenerator(fg_fe_class, DummyESClass)
+
+
+@pytest.fixture
+def fl_class():
+    return FilterLogic()
 
 
 class DummyESClass:
     pass
 
 
+@pytest.fixture
 def filter_template():
     return {
         "MAPPED_ADDITIONAL_TYPES": {
@@ -59,6 +95,7 @@ def filter_template():
     }
 
 
+@pytest.fixture
 def dummy_filter_cache_init():
     return {
         "MAPPED_AGE_CATEGORY": {
@@ -82,6 +119,7 @@ def dummy_filter_cache_init():
     }
 
 
+@pytest.fixture
 def dummy_filter_cache():
     return {
         "MAPPED_AGE_CATEGORY": {
@@ -105,6 +143,7 @@ def dummy_filter_cache():
     }
 
 
+@pytest.fixture
 def dummy_filter_cache_private():
     return {
         "MAPPED_PROJECT_ID": {
@@ -119,6 +158,7 @@ def dummy_filter_cache_private():
     }
 
 
+@pytest.fixture
 def dummy_data_cache():
     return {
         "case_filter": [
@@ -160,6 +200,7 @@ def dummy_data_cache():
     }
 
 
+@pytest.fixture
 def dummy_data_cache_private():
     return {
         "case_filter": [],
@@ -174,6 +215,7 @@ def dummy_data_cache_private():
     }
 
 
+@pytest.fixture
 def dummy_data_cache_failure():
     return {
         "case_filter": [],
@@ -182,6 +224,7 @@ def dummy_data_cache_failure():
     }
 
 
+@pytest.fixture
 def dummy_filter_data():
     return {
         '{"project_id": ["dummy project"]}': [
@@ -239,5 +282,6 @@ def dummy_filter_data():
     }
 
 
+@pytest.fixture
 def dummy_filter_item():
     return GraphQLPaginationItem(node="experiment_pagination_count")

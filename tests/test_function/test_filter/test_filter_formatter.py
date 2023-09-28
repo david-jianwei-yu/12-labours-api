@@ -1,27 +1,12 @@
-import pytest
-
-from app.function.filter.filter_editor import FilterEditor
-from app.function.filter.filter_formatter import FilterFormatter
 from tests.test_function.test_filter.fixture import (
     dummy_filter_cache,
     dummy_filter_cache_private,
+    ff_class,
 )
 
 
-@pytest.fixture
-def ff_class():
-    fe = FilterEditor()
-    fe.update_filter_cache(dummy_filter_cache())
-    return FilterFormatter(fe)
-
-
-@pytest.fixture
-def dummy_private_filter():
-    return dummy_filter_cache_private()
-
-
-def test_generate_sidebar_filter_format(ff_class, dummy_private_filter):
-    sidebar_format = ff_class.generate_sidebar_filter_format(dummy_private_filter)
+def test_generate_sidebar_filter_format(ff_class, dummy_filter_cache_private):
+    sidebar_format = ff_class.generate_sidebar_filter_format(dummy_filter_cache_private)
     assert sidebar_format == [
         {
             "key": "case_filter>age_category",
@@ -60,8 +45,8 @@ def test_generate_sidebar_filter_format(ff_class, dummy_private_filter):
     ]
 
 
-def test_generate_filter_format(ff_class, dummy_private_filter):
-    format_ = ff_class.generate_filter_format(dummy_private_filter)
+def test_generate_filter_format(ff_class, dummy_filter_cache_private):
+    format_ = ff_class.generate_filter_format(dummy_filter_cache_private)
     assert format_ == {
         "size": 3,
         "titles": ["Age category", "Access scope", "Anatomical structure"],

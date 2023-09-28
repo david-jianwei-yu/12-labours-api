@@ -1,11 +1,5 @@
 from unittest.mock import MagicMock
 
-import pytest
-
-from app.function.filter.filter_editor import FilterEditor
-from app.function.filter.filter_generator import FilterGenerator
-
-# from services.external_service import ExternalService
 from tests.test_function.test_filter.fixture import (
     DummyESClass,
     dummy_data_cache,
@@ -14,44 +8,34 @@ from tests.test_function.test_filter.fixture import (
     dummy_filter_cache,
     dummy_filter_cache_init,
     dummy_filter_cache_private,
+    fg_class,
+    fg_fe_class,
 )
 
 
-@pytest.fixture
-def dummy_data():
-    return dummy_data_cache()
+def test_generate_public_filter(
+    fg_fe_class, fg_class, dummy_data_cache, dummy_filter_cache
+):
+    fg_class._handle_cache = MagicMock(return_value=dummy_data_cache)
+    generate = fg_class.generate_public_filter()
+    public_filter = fg_fe_class.cache_loader()
+    assert generate is True
+    assert public_filter == dummy_filter_cache
 
 
-@pytest.fixture
-def fe_class():
-    fe = FilterEditor()
-    fe.update_filter_cache(dummy_filter_cache_init())
-    return fe
+def test_generate_public_filter_failure(fg_class, dummy_data_cache_failure):
+    fg_class._handle_cache = MagicMock(return_value=dummy_data_cache_failure)
+    generate = fg_class.generate_public_filter()
+    assert generate is False
 
 
-@pytest.fixture
-def fg_class(fe_class):
-    return FilterGenerator(fe_class, DummyESClass)
-
-
-def test_generate_public_filter(dummy_data, fe_class, fg_class):
-    fg_class._handle_cache = MagicMock(return_value=dummy_data)
-    assert fg_class.generate_public_filter() == True
-    assert fe_class.cache_loader() == dummy_filter_cache()
-
-
-def test_generate_public_filter_failure(fg_class):
-    fg_class._handle_cache = MagicMock(return_value=dummy_data_cache_failure())
-    assert fg_class.generate_public_filter() == False
-
-
-def test_generate_private_filter(dummy_data, fg_class):
+def test_generate_private_filter(
+    fg_class, dummy_data_cache, dummy_data_cache_private, dummy_filter_cache_private
+):
     # Generate private filter requires public filter
-    fg_class._handle_cache = MagicMock(return_value=dummy_data)
+    fg_class._handle_cache = MagicMock(return_value=dummy_data_cache)
     fg_class.generate_public_filter()
     fg_class._handle_private_access = MagicMock(return_value=["dummy access"])
-    fg_class._handle_cache = MagicMock(return_value=dummy_data_cache_private())
-    assert (
-        fg_class.generate_private_filter(["dummy access"])
-        == dummy_filter_cache_private()
-    )
+    fg_class._handle_cache = MagicMock(return_value=dummy_data_cache_private)
+    private_filter = fg_class.generate_private_filter(["dummy access"])
+    assert private_filter == dummy_filter_cache_private
