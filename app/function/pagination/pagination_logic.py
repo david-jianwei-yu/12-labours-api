@@ -211,7 +211,6 @@ class PaginationLogic:
         # FILTER
         if item.filter != {}:
             items = []
-            filter_dict = {"submitter_id": []}
             for node_filed, facets in item.filter.items():
                 filter_node = node_filed.split(">")[0]
                 filter_field = node_filed.split(">")[1]
@@ -230,12 +229,7 @@ class PaginationLogic:
                     query_item.access = item.access
                 items.append((query_item, json.dumps(valid_filter)))
             fetch_result = self._handle_thread_fetch(items)
-            for filter_, related_data in fetch_result.items():
-                filter_result = self.__fl.generate_filtered_dataset(
-                    json.loads(filter_), related_data
-                )
-                filter_dict["submitter_id"].append(filter_result)
-            item.filter = filter_dict
+            item.filter = self.__fl.generate_filtered_dataset(fetch_result)
             self.__fl.implement_filter_relation(item)
 
         # SEARCH

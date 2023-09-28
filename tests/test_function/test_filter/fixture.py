@@ -1,3 +1,6 @@
+from app.data_schema import GraphQLPaginationItem
+
+
 class DummyESClass:
     pass
 
@@ -177,3 +180,64 @@ def dummy_data_cache_failure():
         "dataset_description_filter": [],
         "experiment_filter": [],
     }
+
+
+def dummy_filter_data():
+    return {
+        '{"project_id": ["dummy project"]}': [
+            {
+                "id": "dummy id",
+                "project_id": "dummy project",
+                "submitter_id": "dummy dataset 1",
+            },
+            {
+                "id": "dummy id",
+                "project_id": "dummy project",
+                "submitter_id": "dummy dataset 2",
+            },
+            {
+                "id": "dummy id",
+                "project_id": "dummy project",
+                "submitter_id": "dummy dataset 3",
+            },
+        ],
+        '{"additional_types": ["dummy type"]}': [
+            {
+                "additional_types": "dummy type",
+                "experiments": [
+                    {
+                        "id": "dummy id",
+                        "project_id": "dummy project",
+                        "submitter_id": "dummy dataset 2",
+                    }
+                ],
+                "id": "dummy id",
+            },
+            {
+                "additional_types": "dummy type",
+                "experiments": [
+                    {
+                        "id": "dummy id",
+                        "project_id": "dummy project",
+                        "submitter_id": "dummy dataset 3",
+                    }
+                ],
+                "id": "dummy id",
+            },
+            {
+                "additional_types": "dummy type",
+                "experiments": [
+                    {
+                        "id": "dummy id",
+                        "project_id": "dummy project",
+                        "submitter_id": "dummy dataset 4",
+                    }
+                ],
+                "id": "dummy id",
+            },
+        ],
+    }
+
+
+def dummy_filter_item():
+    return GraphQLPaginationItem(node="experiment_pagination_count")
