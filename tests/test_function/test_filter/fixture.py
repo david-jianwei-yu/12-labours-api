@@ -56,7 +56,7 @@ def filter_template():
     }
 
 
-def dummy_filter_cache_empty():
+def dummy_filter_cache_init():
     return {
         "MAPPED_AGE_CATEGORY": {
             "title": "Age category",
