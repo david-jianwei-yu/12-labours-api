@@ -39,11 +39,11 @@ def test_generate_sidebar_filter_format(ff_class, dummy_private_filter):
             "children": [
                 {
                     "facetPropPath": "experiment_filter>project_id",
-                    "label": "Dummy project",
+                    "label": "Dummy private project",
                 },
                 {
                     "facetPropPath": "experiment_filter>project_id",
-                    "label": "Dummy private project",
+                    "label": "Dummy project",
                 },
             ],
         },
@@ -72,7 +72,7 @@ def test_generate_filter_format(ff_class, dummy_private_filter):
         ],
         "elements": [
             ["Dummy age category"],
-            ["Dummy project", "Dummy private project"],
+            ["Dummy private project", "Dummy project"],
             ["Dummy organ"],
         ],
     }

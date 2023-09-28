@@ -1,5 +1,8 @@
 {
     "MAPPED_ADDITIONAL_TYPES": {
+        "title": "data type",
+        "node": "manifest_filter",
+        "field": "additional_types",
         "facets": {
             "Dicom": "application/dicom",
             "Plot": [
@@ -7,24 +10,24 @@
                 "text/vnd.abi.plot+csv"
             ],
             "Scaffold": "application/x.vnd.abi.scaffold.meta+json"
-        },
-        "field": "additional_types",
-        "node": "manifest_filter",
-        "title": "data type"
+        }
     },
     "MAPPED_AGE_CATEGORY": {
-        "facets": {},
-        "field": "age_category",
+        "title": "age category",
         "node": "case_filter",
-        "title": "age category"
+        "field": "age_category",
+        "facets": {}
     },
     "MAPPED_PROJECT_ID": {
-        "facets": {},
-        "field": "project_id",
+        "title": "access scope",
         "node": "experiment_filter",
-        "title": "access scope"
+        "field": "project_id",
+        "facets": {}
     },
     "MAPPED_SEX": {
+        "title": "sex",
+        "node": "case_filter",
+        "field": "sex",
         "facets": {
             "Female": [
                 "F",
@@ -34,27 +37,24 @@
                 "M",
                 "Male"
             ]
-        },
-        "field": "sex",
-        "node": "case_filter",
-        "title": "sex"
+        }
     },
     "MAPPED_SPECIES": {
+        "title": "species",
+        "node": "case_filter",
+        "field": "species",
         "facets": {
             "Cat": "Felis catus",
             "Human": "Homo sapiens",
             "Mouse": "Mus musculus",
             "Pig": "Sus scrofa",
             "Rat": "Rattus norvegicus"
-        },
-        "field": "species",
-        "node": "case_filter",
-        "title": "species"
+        }
     },
     "MAPPED_STUDY_ORGAN_SYSTEM": {
-        "facets": {},
-        "field": "study_organ_system",
+        "title": "anatomical structure",
         "node": "dataset_description_filter",
-        "title": "anatomical structure"
+        "field": "study_organ_system",
+        "facets": {}
     }
 }

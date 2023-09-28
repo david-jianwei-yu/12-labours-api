@@ -5,6 +5,9 @@ class DummyESClass:
 def filter_template():
     return {
         "MAPPED_ADDITIONAL_TYPES": {
+            "title": "data type",
+            "node": "manifest_filter",
+            "field": "additional_types",
             "facets": {
                 "Dicom": "application/dicom",
                 "Plot": [
@@ -13,29 +16,29 @@ def filter_template():
                 ],
                 "Scaffold": "application/x.vnd.abi.scaffold.meta+json",
             },
-            "field": "additional_types",
-            "node": "manifest_filter",
-            "title": "data type",
         },
         "MAPPED_AGE_CATEGORY": {
-            "facets": {},
-            "field": "age_category",
-            "node": "case_filter",
             "title": "age category",
+            "node": "case_filter",
+            "field": "age_category",
+            "facets": {},
         },
         "MAPPED_PROJECT_ID": {
-            "facets": {},
-            "field": "project_id",
-            "node": "experiment_filter",
             "title": "access scope",
+            "node": "experiment_filter",
+            "field": "project_id",
+            "facets": {},
         },
         "MAPPED_SEX": {
-            "facets": {"Female": ["F", "Female"], "Male": ["M", "Male"]},
-            "field": "sex",
-            "node": "case_filter",
             "title": "sex",
+            "node": "case_filter",
+            "field": "sex",
+            "facets": {"Female": ["F", "Female"], "Male": ["M", "Male"]},
         },
         "MAPPED_SPECIES": {
+            "title": "species",
+            "node": "case_filter",
+            "field": "species",
             "facets": {
                 "Cat": "Felis catus",
                 "Human": "Homo sapiens",
@@ -43,15 +46,12 @@ def filter_template():
                 "Pig": "Sus scrofa",
                 "Rat": "Rattus norvegicus",
             },
-            "field": "species",
-            "node": "case_filter",
-            "title": "species",
         },
         "MAPPED_STUDY_ORGAN_SYSTEM": {
-            "facets": {},
-            "field": "study_organ_system",
-            "node": "dataset_description_filter",
             "title": "anatomical structure",
+            "node": "dataset_description_filter",
+            "field": "study_organ_system",
+            "facets": {},
         },
     }
 
@@ -59,22 +59,22 @@ def filter_template():
 def dummy_filter_cache_empty():
     return {
         "MAPPED_AGE_CATEGORY": {
-            "facets": {},
-            "field": "age_category",
+            "title": "Age category",
             "node": "case_filter",
-            "title": "age category",
+            "field": "age_category",
+            "facets": {},
         },
         "MAPPED_PROJECT_ID": {
-            "facets": {},
-            "field": "project_id",
+            "title": "Access scope",
             "node": "experiment_filter",
-            "title": "access scope",
+            "field": "project_id",
+            "facets": {},
         },
         "MAPPED_STUDY_ORGAN_SYSTEM": {
-            "facets": {},
-            "field": "study_organ_system",
+            "title": "Anatomical structure",
             "node": "dataset_description_filter",
-            "title": "anatomical structure",
+            "field": "study_organ_system",
+            "facets": {},
         },
     }
 
@@ -82,48 +82,36 @@ def dummy_filter_cache_empty():
 def dummy_filter_cache():
     return {
         "MAPPED_AGE_CATEGORY": {
-            "facets": {"Dummy age category": "dummy age category"},
-            "field": "age_category",
+            "title": "Age category",
             "node": "case_filter",
-            "title": "age category",
+            "field": "age_category",
+            "facets": {"Dummy age category": "dummy age category"},
         },
         "MAPPED_PROJECT_ID": {
-            "facets": {"Dummy project": "dummy project"},
-            "field": "project_id",
+            "title": "Access scope",
             "node": "experiment_filter",
-            "title": "access scope",
+            "field": "project_id",
+            "facets": {"Dummy project": "dummy project"},
         },
         "MAPPED_STUDY_ORGAN_SYSTEM": {
-            "facets": {"Dummy organ": "dummy organ"},
-            "field": "study_organ_system",
+            "title": "Anatomical structure",
             "node": "dataset_description_filter",
-            "title": "anatomical structure",
+            "field": "study_organ_system",
+            "facets": {"Dummy organ": "dummy organ"},
         },
     }
 
 
 def dummy_filter_cache_private():
     return {
-        "MAPPED_AGE_CATEGORY": {
-            "facets": {"Dummy age category": "dummy age category"},
-            "field": "age_category",
-            "node": "case_filter",
-            "title": "age category",
-        },
         "MAPPED_PROJECT_ID": {
-            "facets": {
-                "Dummy project": "dummy project",
-                "Dummy private project": "dummy private project",
-            },
-            "field": "project_id",
+            "title": "Access scope",
             "node": "experiment_filter",
-            "title": "access scope",
-        },
-        "MAPPED_STUDY_ORGAN_SYSTEM": {
-            "facets": {"Dummy organ": "dummy organ"},
-            "field": "study_organ_system",
-            "node": "dataset_description_filter",
-            "title": "anatomical structure",
+            "field": "project_id",
+            "facets": {
+                "Dummy private project": "dummy private project",
+                "Dummy project": "dummy project",
+            },
         },
     }
 
@@ -165,6 +153,20 @@ def dummy_cache():
                 "project_id": "dummy project",
                 "submitter_id": "dummy submitter",
             }
+        ],
+    }
+
+
+def dummy_cache_private():
+    return {
+        "case_filter": [],
+        "dataset_description_filter": [],
+        "experiment_filter": [
+            {
+                "id": "dummy uuid",
+                "project_id": "dummy private project",
+                "submitter_id": "dummy submitter",
+            },
         ],
     }
 
