@@ -72,7 +72,16 @@ def filter_template():
             "title": "sex",
             "node": "case_filter",
             "field": "sex",
-            "facets": {"Female": ["F", "Female"], "Male": ["M", "Male"]},
+            "facets": {
+                "Female": [
+                    "F",
+                    "Female",
+                ],
+                "Male": [
+                    "M",
+                    "Male",
+                ],
+            },
         },
         "MAPPED_SPECIES": {
             "title": "species",
@@ -126,19 +135,25 @@ def dummy_filter_cache():
             "title": "Age category",
             "node": "case_filter",
             "field": "age_category",
-            "facets": {"Dummy age category": "dummy age category"},
+            "facets": {
+                "Dummy age category": "dummy age category",
+            },
         },
         "MAPPED_PROJECT_ID": {
             "title": "Access scope",
             "node": "experiment_filter",
             "field": "project_id",
-            "facets": {"Dummy project": "dummy project"},
+            "facets": {
+                "Dummy project": "dummy project",
+            },
         },
         "MAPPED_STUDY_ORGAN_SYSTEM": {
             "title": "Anatomical structure",
             "node": "dataset_description_filter",
             "field": "study_organ_system",
-            "facets": {"Dummy organ": "dummy organ"},
+            "facets": {
+                "Dummy organ": "dummy organ",
+            },
         },
     }
 
@@ -186,8 +201,12 @@ def dummy_data_cache():
                     }
                 ],
                 "id": "dummy uuid",
-                "keywords": ["dummy keywords"],
-                "study_organ_system": ["dummy organ"],
+                "keywords": [
+                    "dummy keywords",
+                ],
+                "study_organ_system": [
+                    "dummy organ",
+                ],
             }
         ],
         "experiment_filter": [
@@ -283,5 +302,5 @@ def dummy_filter_data():
 
 
 @pytest.fixture
-def dummy_filter_item():
+def dummy_pagination_item():
     return GraphQLPaginationItem(node="experiment_pagination_count")

@@ -49,7 +49,11 @@ def test_generate_filter_format(ff_class, dummy_filter_cache_private):
     format_ = ff_class.generate_filter_format(dummy_filter_cache_private)
     assert format_ == {
         "size": 3,
-        "titles": ["Age category", "Access scope", "Anatomical structure"],
+        "titles": [
+            "Age category",
+            "Access scope",
+            "Anatomical structure",
+        ],
         "nodes>fields": [
             "case_filter>age_category",
             "experiment_filter>project_id",
