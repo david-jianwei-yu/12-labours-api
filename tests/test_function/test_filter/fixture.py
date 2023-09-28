@@ -116,7 +116,7 @@ def dummy_filter_cache_private():
     }
 
 
-def dummy_cache():
+def dummy_data_cache():
     return {
         "case_filter": [
             {
@@ -157,7 +157,7 @@ def dummy_cache():
     }
 
 
-def dummy_cache_private():
+def dummy_data_cache_private():
     return {
         "case_filter": [],
         "dataset_description_filter": [],
@@ -171,7 +171,7 @@ def dummy_cache_private():
     }
 
 
-def dummy_cache_failure():
+def dummy_data_cache_failure():
     return {
         "case_filter": [],
         "dataset_description_filter": [],
