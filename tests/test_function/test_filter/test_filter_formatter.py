@@ -2,66 +2,77 @@ import pytest
 
 from app.function.filter.filter_editor import FilterEditor
 from app.function.filter.filter_formatter import FilterFormatter
+from tests.test_function.test_filter.fixture import (
+    dummy_filter_cache,
+    dummy_filter_cache_private,
+)
 
 
 @pytest.fixture
-def dummy_filter():
-    return {
-        "MAPPED_DUMMY_FILTER": {
-            "facets": {
-                "Dummy_facet1": "dummy_value1",
-                "Dummy_facet2": ["dummy_value2"],
-            },
-            "field": "dummy_field",
-            "node": "dummy_node",
-            "title": "dummy_title",
-        }
-    }
-
-
-@pytest.fixture
-def fe_class(dummy_filter):
+def ff_class():
     fe = FilterEditor()
-    fe.update_filter_cache(dummy_filter)
-    return fe
+    fe.update_filter_cache(dummy_filter_cache())
+    return FilterFormatter(fe)
 
 
 @pytest.fixture
-def ff_class(fe_class):
-    return FilterFormatter(fe_class)
-
-
-@pytest.fixture
-def dummy_private_filter(dummy_filter):
-    private_filter = dummy_filter["MAPPED_DUMMY_FILTER"]["facets"][
-        "Dummy_private_facet"
-    ] = "dummy_private_value"
-    return private_filter
+def dummy_private_filter():
+    return dummy_filter_cache_private()
 
 
 def test_generate_sidebar_filter_format(ff_class, dummy_private_filter):
     sidebar_format = ff_class.generate_sidebar_filter_format(dummy_private_filter)
     assert sidebar_format == [
         {
-            "key": "dummy_node>dummy_field",
-            "label": "Dummy_title",
+            "key": "case_filter>age_category",
+            "label": "Age category",
             "children": [
-                {"facetPropPath": "dummy_node>dummy_field", "label": "Dummy_facet1"},
-                {"facetPropPath": "dummy_node>dummy_field", "label": "Dummy_facet2"},
                 {
-                    "facetPropPath": "dummy_node>dummy_field",
-                    "label": "Dummy_private_facet",
+                    "facetPropPath": "case_filter>age_category",
+                    "label": "Dummy age category",
+                }
+            ],
+        },
+        {
+            "key": "experiment_filter>project_id",
+            "label": "Access scope",
+            "children": [
+                {
+                    "facetPropPath": "experiment_filter>project_id",
+                    "label": "Dummy project",
+                },
+                {
+                    "facetPropPath": "experiment_filter>project_id",
+                    "label": "Dummy private project",
                 },
             ],
-        }
+        },
+        {
+            "key": "dataset_description_filter>study_organ_system",
+            "label": "Anatomical structure",
+            "children": [
+                {
+                    "facetPropPath": "dataset_description_filter>study_organ_system",
+                    "label": "Dummy organ",
+                }
+            ],
+        },
     ]
 
 
 def test_generate_filter_format(ff_class, dummy_private_filter):
     format_ = ff_class.generate_filter_format(dummy_private_filter)
     assert format_ == {
-        "size": 1,
-        "titles": ["Dummy_title"],
-        "nodes>fields": ["dummy_node>dummy_field"],
-        "elements": [["Dummy_facet1", "Dummy_facet2", "Dummy_private_facet"]],
+        "size": 3,
+        "titles": ["Age category", "Access scope", "Anatomical structure"],
+        "nodes>fields": [
+            "case_filter>age_category",
+            "experiment_filter>project_id",
+            "dataset_description_filter>study_organ_system",
+        ],
+        "elements": [
+            ["Dummy age category"],
+            ["Dummy project", "Dummy private project"],
+            ["Dummy organ"],
+        ],
     }
