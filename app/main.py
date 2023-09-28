@@ -48,6 +48,7 @@ from app.function.filter.filter_logic import FilterLogic
 from app.function.pagination.pagination_formatter import PaginationFormatter
 from app.function.pagination.pagination_logic import PaginationLogic
 from app.function.query.query_formatter import QueryFormatter
+from app.function.query.query_logic import QueryLogic
 from app.function.search.search_logic import SearchLogic
 from middleware.auth import Authenticator
 from services.external_service import ExternalService
@@ -145,6 +146,7 @@ FF = FilterFormatter(FE)
 PF = PaginationFormatter(FE)
 PL = PaginationLogic(FE, FilterLogic(), SearchLogic(ES), ES)
 QF = QueryFormatter(FE)
+QL = QueryLogic(ES)
 A = Authenticator(ES)
 
 
@@ -334,7 +336,7 @@ async def get_gen3_graphql_query(
 
     QF.set_query_mode(mode)
     item.access = access_scope
-    query_result = ES.get("gen3").process_graphql_query(item)
+    query_result = QL.get_query_data(item)
 
     def handle_result():
         if len(query_result) == 1:
