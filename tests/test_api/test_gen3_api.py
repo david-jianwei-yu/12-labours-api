@@ -131,6 +131,32 @@ def test_get_gen3_graphql_query(client, token):
     assert response.status_code == 400
     assert result["detail"] == "Missing field in the request body"
 
+    wrong_node = {
+        "node": "fakenode",
+    }
+    response = client.post(
+        "/graphql/query/?mode=data",
+        json=wrong_node,
+        headers={"Authorization": f"Bearer {token['access_token']}"},
+    )
+    result = response.json()
+    assert response.status_code == 400
+    assert result["detail"] == "Invalid query node is used"
+
+    invalid_search = {
+        "node": "experiment_query",
+        "filter": {"submitter_id": [DATASET_ID]},
+        "search": "dummy content",
+    }
+    response = client.post(
+        "/graphql/query/?mode=data",
+        json=invalid_search,
+        headers={"Authorization": f"Bearer {token['access_token']}"},
+    )
+    result = response.json()
+    assert response.status_code == 405
+    assert result["detail"] == "Search does not provide in current node"
+
     DATASET_ID2 = "dataset-46-version-2"
     wrong_filter = {
         "node": "experiment_query",
