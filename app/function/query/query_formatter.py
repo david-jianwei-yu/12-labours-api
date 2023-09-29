@@ -14,12 +14,19 @@ class QueryFormatter:
     def __init__(self, fe):
         self.__filter_cache = fe.cache_loader()
         self.__query_mode = None
+        self.__private_filter = None
 
     def set_query_mode(self, mode):
         """
         Handler for setting query_mode
         """
         self.__query_mode = mode
+
+    def set_private_filter(self, filter_):
+        """
+        Handler for setting private_filter
+        """
+        self.__private_filter = filter_
 
     def _handle_mri_path(self, data):
         """
@@ -84,6 +91,8 @@ class QueryFormatter:
         """
         mapped_element = f"MAPPED_{field.upper()}"
         content = self.__filter_cache[mapped_element]
+        if mapped_element in self.__private_filter:
+            content = self.__private_filter[mapped_element]
         for facet_name, facet_value in content["facets"].items():
             for _ in data:
                 field_value = _[field]

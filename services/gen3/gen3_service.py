@@ -38,12 +38,6 @@ class Gen3Service:
         """
         Handler for fetching gen3 data with graphql query code
         """
-        if item.node is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Missing field in the request body",
-            )
-
         query_code = self.__sgqlc.handle_graphql_query_code(item)
         try:
             query_result = self.__submission.query(query_code)["data"][item.node]

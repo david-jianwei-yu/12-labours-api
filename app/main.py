@@ -11,6 +11,7 @@ Functional APIs provided by the server
 - /instance
 - /dicom/export/{identifier}
 """
+import copy
 import io
 import logging
 import mimetypes
@@ -23,7 +24,7 @@ from fastapi.responses import Response, StreamingResponse
 from fastapi_utils.tasks import repeat_every
 from pyorthanc import find
 
-from app.config import iRODSConfig
+from app.config import Gen3Config, iRODSConfig
 from app.data_schema import (
     ActionParam,
     CollectionItem,
@@ -286,6 +287,18 @@ async def get_gen3_record(
     return result
 
 
+def _handle_private_filter(access_scope):
+    """
+    Handler for generating private access and private filter
+    """
+    private_filter = {}
+    private_access = copy.deepcopy(access_scope)
+    private_access.remove(Gen3Config.GEN3_PUBLIC_ACCESS)
+    if private_access:
+        private_filter = FG.generate_private_filter(private_access)
+    return private_filter
+
+
 @app.post(
     "/graphql/query/",
     tags=["Gen3"],
@@ -333,8 +346,14 @@ async def get_gen3_graphql_query(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Mode {mode} only available when query one dataset in experiment node",
         )
+    if item.node is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing field in the request body",
+        )
 
     QF.set_query_mode(mode)
+    QF.set_private_filter(_handle_private_filter(access_scope))
     item.access = access_scope
     query_result = QL.get_query_data(item)
 
@@ -344,13 +363,6 @@ async def get_gen3_graphql_query(
         return query_result
 
     return QF.process_data_output(handle_result())
-
-
-def _handle_private_filter(access_scope):
-    private_filter = {}
-    if len(access_scope) > 1:
-        private_filter = FG.generate_private_filter(access_scope)
-    return private_filter
 
 
 @app.post(
@@ -393,9 +405,9 @@ async def get_gen3_graphql_pagination(
             detail="Please check the service (Gen3/iRODS) status",
         )
 
+    PL.set_private_filter(_handle_private_filter(access_scope))
     item.access = access_scope
-    private_filter = _handle_private_filter(access_scope)
-    is_public_access_filtered = PL.process_pagination_item(item, search, private_filter)
+    is_public_access_filtered = PL.process_pagination_item(item, search)
     data_count, match_pair = PL.get_pagination_count(item)
     query_result = PL.get_pagination_data(item, match_pair, is_public_access_filtered)
     # If both asc and desc are None, datasets ordered by self-written order function
@@ -433,10 +445,10 @@ async def get_gen3_filter(
     while retry < 12 and not FILTER_GENERATED:
         retry += 1
         time.sleep(retry)
-    private_filter = _handle_private_filter(access_scope)
+    FF.set_private_filter(_handle_private_filter(access_scope))
     if sidebar:
-        return FF.generate_sidebar_filter_format(private_filter)
-    return FF.generate_filter_format(private_filter)
+        return FF.generate_sidebar_filter_format()
+    return FF.generate_filter_format()
 
 
 ############################################
