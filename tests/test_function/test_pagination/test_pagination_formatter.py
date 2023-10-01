@@ -185,6 +185,62 @@ def test_reconstruct_data_structure(pf_class, dummy_pagination_data):
             "identifier": "dummy id",
             "name": "dummy_metadata.json",
         },
+        {
+            "image_url": "",
+            "additional_mimetype": {
+                "name": "application/x.vnd.abi.scaffold.meta+json",
+            },
+            "datacite": {
+                "isDerivedFrom": {
+                    "path": [
+                        "",
+                    ],
+                    "relative": {
+                        "path": [
+                            "",
+                        ],
+                    },
+                },
+                "isDescribedBy": {
+                    "path": [
+                        "",
+                    ],
+                    "relative": {
+                        "path": [
+                            "",
+                        ],
+                    },
+                },
+                "isSourceOf": {
+                    "path": [
+                        "dummy_filepath/dummy_view1.json",
+                        "dummy_filepath/dummy_view2.json",
+                        "dummy_filepath/dummy_view3.json",
+                        "dummy_filepath/dummy_view4.json",
+                    ],
+                    "relative": {
+                        "path": [
+                            "dummy_view1.json",
+                            "dummy_view2.json",
+                            "dummy_view3.json",
+                            "dummy_view4.json",
+                        ],
+                    },
+                },
+                "supplemental_json_metadata": {
+                    "description": "",
+                },
+            },
+            "dataset": {
+                "identifier": "dummy id",
+                "path": "dummy_filepath/dummy_metadata.json",
+            },
+            "file_type": {
+                "name": ".json",
+            },
+            "identifier": "dummy id",
+            "name": "dummy_metadata.json",
+        },
     ]
     assert result["thumbnails"] == [
         {

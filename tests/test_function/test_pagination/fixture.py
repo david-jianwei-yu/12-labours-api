@@ -60,7 +60,7 @@ def dummy_pagination_data():
                     "title": [
                         "dummy title",
                     ],
-                }
+                },
             ],
             "dicomImages": [
                 {
@@ -100,7 +100,7 @@ def dummy_pagination_data():
                     "is_described_by": None,
                     "is_source_of": None,
                     "supplemental_json_metadata": None,
-                }
+                },
             ],
             "scaffoldViews": [
                 {
@@ -113,7 +113,7 @@ def dummy_pagination_data():
                     "is_described_by": None,
                     "is_source_of": "dummy_thumbnail.jpeg",
                     "supplemental_json_metadata": None,
-                }
+                },
             ],
             "scaffolds": [
                 {
@@ -126,7 +126,18 @@ def dummy_pagination_data():
                     "is_described_by": None,
                     "is_source_of": "dummy_view.json",
                     "supplemental_json_metadata": None,
-                }
+                },
+                {
+                    "additional_metadata": None,
+                    "additional_types": "application/x.vnd.abi.scaffold.meta+json",
+                    "file_type": ".json",
+                    "filename": "dummy_filepath/dummy_metadata.json",
+                    "id": "dummy id",
+                    "is_derived_from": None,
+                    "is_described_by": None,
+                    "is_source_of": "['dummy_view1.json', 'dummy_view2.json', 'dummy_view3.json', 'dummy_view4.json']",
+                    "supplemental_json_metadata": None,
+                },
             ],
             "submitter_id": "dummy submitter",
             "thumbnails": [
