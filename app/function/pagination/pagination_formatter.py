@@ -139,9 +139,12 @@ class PaginationFormatter:
         for _ in data:
             if _["species"] != "NA":
                 species_filter = self.__filter_cache["MAPPED_SPECIES"]["facets"]
-                species = list(species_filter.keys())[
-                    list(species_filter.values()).index(_["species"])
-                ]
+                facets = species_filter.values()
+                if _["species"] in facets:
+                    index = list(facets).index(_["species"])
+                    species = list(species_filter.keys())[index]
+                else:
+                    species = _["species"]
                 if species not in result:
                     result.append(species)
         return result
