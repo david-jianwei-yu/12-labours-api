@@ -203,7 +203,8 @@ async def root():
     responses=access_token_responses,
 )
 async def create_gen3_access(
-    item: IdentityItem, connection: dict = Depends(ES.check_service_status)
+    item: IdentityItem,
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     Return user identity and the authorized access token.
@@ -234,7 +235,9 @@ async def create_gen3_access(
     summary="Revoke gen3 access for authorized user",
     responses=access_revoke_responses,
 )
-async def revoke_gen3_access(is_revoked: bool = Depends(A.handle_revoke_authority)):
+async def revoke_gen3_access(
+    is_revoked: bool = Depends(A.handle_revoke_authority),
+):
     """
     Return revoke message if success.
     """
@@ -292,9 +295,9 @@ def _handle_private_filter(access_scope):
     Handler for generating private access and private filter
     """
     private_filter = {}
-    private_access = copy.deepcopy(access_scope)
-    private_access.remove(Gen3Config.GEN3_PUBLIC_ACCESS)
-    if private_access:
+    if len(access_scope) > 1:
+        private_access = copy.deepcopy(access_scope)
+        private_access.remove(Gen3Config.GEN3_PUBLIC_ACCESS)
         private_filter = FG.generate_private_filter(private_access)
     return private_filter
 
@@ -475,6 +478,20 @@ async def get_gen3_filter(
 ############################################
 
 
+def _handle_irods_access(path, access_scope):
+    submitter = list(filter(None, path.split("/")))
+    filter_ = {}
+    if submitter:
+        filter_["submitter_id"] = submitter
+    query_item = GraphQLQueryItem(
+        node="experiment_filter",
+        filter=filter_,
+        access=access_scope,
+    )
+    query_result = ES.get("gen3").process_graphql_query(query_item)
+    return list(map(lambda d: d["submitter_id"], query_result))
+
+
 @app.post(
     "/collection",
     tags=["iRODS"],
@@ -482,7 +499,9 @@ async def get_gen3_filter(
     responses=collection_responses,
 )
 async def get_irods_collection(
-    item: CollectionItem, connection: dict = Depends(ES.check_service_status)
+    item: CollectionItem,
+    access_scope: list = Depends(A.handle_get_authority),
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     Return all collections from the required folder.
@@ -500,9 +519,18 @@ async def get_irods_collection(
             detail="Invalid path format is used",
         )
 
+    accessible = _handle_irods_access(item.path, access_scope)
+    if not accessible:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unable to access the data",
+        )
+
     def handle_collection(data):
         collection = []
         for ele in data:
+            if item.path == "/" and ele.name not in accessible:
+                continue
             collection.append(
                 {
                     "name": ele.name,
@@ -512,12 +540,13 @@ async def get_irods_collection(
         return collection
 
     try:
-        collect = connection["irods"].collections.get(
+        coll = connection["irods"].collections.get(
             f"{iRODSConfig.IRODS_ROOT_PATH}{item.path}"
         )
-        folder = handle_collection(collect.subcollections)
-        file = handle_collection(collect.data_objects)
-        result = {"folders": folder, "files": file}
+        result = {
+            "folders": handle_collection(coll.subcollections),
+            "files": handle_collection(coll.data_objects),
+        }
         return result
     except Exception as error:
         raise HTTPException(
@@ -535,6 +564,7 @@ async def get_irods_collection(
 async def get_irods_data_file(
     action: ActionParam,
     filepath: str,
+    access_scope: list = Depends(A.handle_get_authority),
     connection: dict = Depends(ES.check_service_status),
 ):
     """
@@ -556,6 +586,13 @@ async def get_irods_data_file(
         raise HTTPException(
             status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
             detail=f"The action ({action}) is not provided in this API",
+        )
+
+    accessible = _handle_irods_access(filepath, access_scope)
+    if not accessible:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unable to access the data",
         )
 
     try:
