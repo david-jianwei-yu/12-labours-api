@@ -620,19 +620,12 @@ async def get_orthanc_instance(
             detail="Missing one or more fields in the request body",
         )
 
-    try:
-        patients = find(
-            orthanc=connection["orthanc"],
-            study_filter=lambda s: s.uid == item.study,
-            series_filter=lambda s: s.uid == item.series,
-        )
-    except Exception as error:
-        if "401" in str(error):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid orthanc username or password are used",
-            ) from error
-    if patients == []:
+    patients = find(
+        orthanc=connection["orthanc"],
+        study_filter=lambda s: s.uid == item.study,
+        series_filter=lambda s: s.uid == item.series,
+    )
+    if not patients:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Resource is not found in the orthanc server",
