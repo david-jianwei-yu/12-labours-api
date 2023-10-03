@@ -508,10 +508,10 @@ async def get_irods_collection(
 
     Root folder will be returned if no item or "/" is passed.
     """
-    if connection["irods"] is None:
+    if connection["gen3"] is None or connection["irods"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Please check the service (iRODS) status",
+            detail="Please check the service (Gen3/iRODS) status",
         )
     if not re.match("(/(.)*)+", item.path):
         raise HTTPException(
@@ -577,10 +577,10 @@ async def get_irods_data_file(
     """
     chunk_size = 1024 * 1024 * 1024
 
-    if connection["irods"] is None:
+    if connection["gen3"] is None or connection["irods"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Please check the service (iRODS) status",
+            detail="Please check the service (Gen3/iRODS) status",
         )
     if action not in ["preview", "download"]:
         raise HTTPException(
