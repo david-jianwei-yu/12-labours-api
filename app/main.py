@@ -363,7 +363,6 @@ async def get_gen3_graphql_query(
         )
     if (
         item.node == "experiment_query"
-        and isinstance(item.search, str)
         and item.search != ""
     ):
         raise HTTPException(
