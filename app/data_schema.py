@@ -229,7 +229,7 @@ record_responses = {
         "content": {
             "application/json": {
                 "example": {
-                    "detail": "Unable to find xxx and check if the correct project or uuid is used"
+                    "detail": "Data does not exist or unable to access the data"
                 }
             }
         }

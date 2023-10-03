@@ -65,10 +65,7 @@ def test_get_gen3_record(client, token):
     )
     result = response.json()
     assert response.status_code == 404
-    assert (
-        result["detail"]
-        == f"Unable to find {UUID} and check if the correct project or uuid is used"
-    )
+    assert result["detail"] == "Data does not exist or unable to access the data"
 
 
 def test_get_gen3_graphql_query(client, token):

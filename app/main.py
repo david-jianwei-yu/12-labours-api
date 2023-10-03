@@ -275,18 +275,24 @@ async def get_gen3_record(
         )
 
     def handle_access(access):
-        access_list = access[0].split("-")
+        access_list = access.split("-")
         return access_list[0], access_list[1]
 
-    program, project = handle_access(access_scope)
-    record = connection["gen3"].export_record(program, project, uuid, "json")
-    if "message" in record:
+    records = []
+    for access in access_scope:
+        program, project = handle_access(access)
+        record = connection["gen3"].export_record(program, project, uuid, "json")
+        if "message" not in record:
+            records.append(record[0])
+    if not records:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"{record['message']} and check if the correct project or uuid is used",
+            detail="Data does not exist or unable to access the data",
         )
 
-    result = {"record": record[0]}
+    result = {
+        "record": records[0],
+    }
     return result
 
 
