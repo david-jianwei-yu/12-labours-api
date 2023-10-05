@@ -76,7 +76,7 @@ def test_get_irods_data_file(client, token):
     FILEPATH = "dataset-217-version-2/derivative/scaffold_context_info.json"
     response = client.get(
         f"/data/{ACTION}/{FILEPATH}",
-        headers={"Authorization": f"Bearer {token['access_token']}"},
+        # headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 200
@@ -90,27 +90,27 @@ def test_get_irods_data_file(client, token):
     INVALID_FILEPATH = "dataset-217-version-2/derivative/scaffold_context_info"
     response = client.get(
         f"/data/{ACTION}/{INVALID_FILEPATH}",
-        headers={"Authorization": f"Bearer {token['access_token']}"},
+        # headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 404
     assert result["detail"] == "Data not found in the provided path"
 
-    ACTION = "preview"
-    INVALID_FILEPATH = "dataset-12L_0-version-1/dummy_filename"
-    response = client.get(
-        f"/data/{ACTION}/{INVALID_FILEPATH}",
-        headers={"Authorization": f"Bearer {token['access_token']}"},
-    )
-    result = response.json()
-    assert response.status_code == 401
-    assert result["detail"] == "Unable to access the data"
+    # ACTION = "preview"
+    # INVALID_FILEPATH = "dataset-12L_0-version-1/dummy_filename"
+    # response = client.get(
+    #     f"/data/{ACTION}/{INVALID_FILEPATH}",
+    #     headers={"Authorization": f"Bearer {token['access_token']}"},
+    # )
+    # result = response.json()
+    # assert response.status_code == 401
+    # assert result["detail"] == "Unable to access the data"
 
     INVALID_ACTION = "preload"
     FILEPATH = "dataset-217-version-2/derivative/scaffold_context_info.json"
     response = client.get(
         f"/data/{INVALID_ACTION}/{FILEPATH}",
-        headers={"Authorization": f"Bearer {token['access_token']}"},
+        # headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
     assert response.status_code == 422

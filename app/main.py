@@ -279,6 +279,7 @@ async def get_gen3_record(
         return access_list[0], access_list[1]
 
     records = []
+    # The uuid is unique, so there will only be zero or one record in all projects
     for access in access_scope:
         program, project = handle_access(access)
         record = connection["gen3"].export_record(program, project, uuid, "json")
@@ -461,6 +462,7 @@ async def get_gen3_graphql_pagination(
 async def get_gen3_filter(
     sidebar: bool = False,
     access_scope: list = Depends(A.handle_get_authority),
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     /filter/?sidebar=<boolean>
@@ -469,6 +471,12 @@ async def get_gen3_filter(
 
     - **sidebar**: boolean content.
     """
+    if connection["gen3"] is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Please check the service (Gen3) status",
+        )
+
     retry = 0
     while retry < 12 and not FILTER_GENERATED:
         retry += 1
@@ -487,6 +495,7 @@ async def get_gen3_filter(
 def _handle_irods_access(path, access_scope):
     submitter = list(filter(None, path.split("/")))
     filter_ = {}
+    # Query specific dataset if submitter id exist
     if submitter:
         filter_["submitter_id"] = submitter
     query_item = GraphQLQueryItem(
@@ -570,7 +579,7 @@ async def get_irods_collection(
 async def get_irods_data_file(
     action: ActionParam,
     filepath: str,
-    access_scope: list = Depends(A.handle_get_authority),
+    # access_scope: list = Depends(A.handle_get_authority),
     connection: dict = Depends(ES.check_service_status),
 ):
     """
@@ -594,12 +603,12 @@ async def get_irods_data_file(
             detail=f"The action ({action}) is not provided in this API",
         )
 
-    accessible = _handle_irods_access(filepath, access_scope)
-    if not accessible:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unable to access the data",
-        )
+    # accessible = _handle_irods_access(filepath, access_scope)
+    # if not accessible:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Unable to access the data",
+    #     )
 
     try:
         file = connection["irods"].data_objects.get(
@@ -648,7 +657,8 @@ async def get_irods_data_file(
     responses=instance_responses,
 )
 async def get_orthanc_instance(
-    item: InstanceItem, connection: dict = Depends(ES.check_service_status)
+    item: InstanceItem,
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     Return a list of dicom instance uuids
@@ -698,7 +708,8 @@ async def get_orthanc_instance(
     response_description="Successfully return a file with data",
 )
 async def get_orthanc_dicom_file(
-    identifier: str, connection: dict = Depends(ES.check_service_status)
+    identifier: str,
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     Export a specific dicom file from Orthanc server
