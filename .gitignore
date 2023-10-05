@@ -1,17 +1,5 @@
-.DS_Store
-dist
-.vscode/
-node_modules
-
-venv/
-env/
 *.env
-.nuxt
+venv/
 
-*.pyc
 __pycache__/
-.idea
-*.iml
-
-tests/__init__.py
-docs/_build
+.pytest_cache

@@ -12,6 +12,7 @@ Functional APIs provided by the server
 - /dicom/export/{identifier}
 """
 import io
+import logging
 import mimetypes
 import re
 import time
@@ -23,23 +24,105 @@ from fastapi_utils.tasks import repeat_every
 from pyorthanc import find
 
 from app.config import iRODSConfig
-from app.data_schema import *
-from app.external_service import ExternalService
-from app.filter import Filter
-from app.filter_format import FilterFormat
-from app.filter_generator import FilterGenerator
-from app.pagination import Pagination
-from app.pagination_format import PaginationFormat
-from app.query_format import QueryFormat
-from app.search import Search
-from app.sgqlc import SimpleGraphQLClient
+from app.data_schema import (
+    ActionParam,
+    CollectionItem,
+    GraphQLPaginationItem,
+    GraphQLQueryItem,
+    IdentityItem,
+    InstanceItem,
+    ModeParam,
+    access_revoke_responses,
+    access_token_responses,
+    collection_responses,
+    filter_responses,
+    instance_responses,
+    pagination_responses,
+    query_responses,
+    record_responses,
+)
+from app.function.filter.filter_editor import FilterEditor
+from app.function.filter.filter_formatter import FilterFormatter
+from app.function.filter.filter_generator import FilterGenerator
+from app.function.filter.filter_logic import FilterLogic
+from app.function.pagination.pagination_formatter import PaginationFormatter
+from app.function.pagination.pagination_logic import PaginationLogic
+from app.function.query.query_formatter import QueryFormatter
+from app.function.search.search_logic import SearchLogic
 from middleware.auth import Authenticator
+from services.external_service import ExternalService
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 app = FastAPI(
-    title=title,
-    description=description,
-    contact=contact,
-    openapi_tags=tags_metadata,
+    title="12 Labours Portal",
+    description="""
+## Access
+
+You will be able to:
+
+* **Create Gen3 access based on authority**
+* **Revoke Gen3 access**
+
+## Gen3
+
+You will be able to:
+
+* **Get Gen3 program/project**
+* **Get Gen3 node dictionary**
+* **Get Gen3 record(s) metadata**
+* **Use GraphQL query Gen3 metadata**
+* **Download Gen3 metadata file**
+
+## iRODS
+
+You will be able to:
+
+* **Get iRODS root/sub-folder(s)/sub-file(s)**
+* **Download iRODS data file**
+
+## Orthanc
+
+You will be able to:
+
+* **Get Orthanc dicom file instance ids**
+* **Download Orthanc dicom file**
+    """,
+    contact={
+        "name": "Auckland Bioengineering Institute",
+        "url": "https://www.auckland.ac.nz/en/abi.html",
+        # "email": "bioeng-enquiries@auckland.ac.nz",
+    },
+    openapi_tags=[
+        {
+            "name": "Gen3",
+            "description": "Gen3 is a data platform for building data commons and data ecosystems",
+            "externalDocs": {
+                "description": "Gen3 official website",
+                "url": "https://gen3.org/",
+            },
+        },
+        {
+            "name": "iRODS",
+            "description": "iRODS is an open source data management software",
+            "externalDocs": {
+                "description": "iRODS official website",
+                "url": "https://irods.org/",
+            },
+        },
+        {
+            "name": "Orthanc",
+            "description": "Orthanc is a free and open-source, "
+            + "lightweight DICOM server for medical imaging",
+            "externalDocs": {
+                "description": "Orthanc official website",
+                "url": "https://www.orthanc-server.com/",
+            },
+        },
+    ],
 )
 
 origins = ["*"]
@@ -53,32 +136,45 @@ app.add_middleware(
     expose_headers=["X-File-Name"],
 )
 
+CONNECTION = None
 FILTER_GENERATED = False
-ES = ExternalService(SimpleGraphQLClient())
-FG = FilterGenerator(ES)
-FF = FilterFormat(FG)
-PF = PaginationFormat(FG)
-P = Pagination(FG, Filter(), Search(ES), ES)
-QF = QueryFormat(FG)
+ES = ExternalService()
+FE = FilterEditor()
+FG = FilterGenerator(FE, ES)
+FF = FilterFormatter(FE)
+PF = PaginationFormatter(FE)
+PL = PaginationLogic(FE, FilterLogic(), SearchLogic(ES), ES)
+QF = QueryFormatter(FE)
 A = Authenticator(ES)
 
 
 @app.on_event("startup")
+async def start_up():
+    """
+    Create service connection.
+    """
+    global CONNECTION
+    CONNECTION = ES.check_service_status(True)
+    logger.info(CONNECTION)
+
+
+@app.on_event("startup")
 @repeat_every(seconds=60 * 60 * 24)
-async def periodic_execution():
+def periodic_execution():
     """
     Update filter and cleanup users periodically.
     """
-    ES.check_service_status()
-    try:
-        global FILTER_GENERATED
-        FILTER_GENERATED = False
-        while not FILTER_GENERATED:
+    global FILTER_GENERATED
+    FILTER_GENERATED = False
+    if CONNECTION["gen3"]:
+        try:
             FILTER_GENERATED = FG.generate_public_filter()
-            if FILTER_GENERATED:
-                print("Default filter has been updated.")
-    except Exception:
-        print("Failed to update the default filter.")
+        except Exception as error:
+            logger.error("Invalid filter metadata %s has been used.", error)
+        if FILTER_GENERATED:
+            logger.info("Default filter has been updated.")
+    else:
+        logger.warning("Failed to update default filter.")
 
     if A.get_authorized_user_number() > 1:
         A.cleanup_authorized_user()
@@ -104,14 +200,14 @@ async def root():
     responses=access_token_responses,
 )
 async def create_gen3_access(
-    item: IdentityItem, service: dict = Depends(ES.check_service_status)
+    item: IdentityItem, connection: dict = Depends(ES.check_service_status)
 ):
     """
     Return user identity and the authorized access token.
 
     Example identity: email@gmail.com>machine_id>expiration_time
     """
-    if service["gen3"] is None or service["irods"] is None:
+    if connection["gen3"] is None or connection["irods"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (Gen3/iRODS) status",
@@ -159,14 +255,14 @@ async def revoke_gen3_access(is_revoked: bool = Depends(A.handle_revoke_authorit
 async def get_gen3_record(
     uuid: str,
     access_scope: list = Depends(A.handle_get_authority),
-    service: dict = Depends(ES.check_service_status),
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     Return record information in the Gen3 Data Commons.
 
     - **uuid**: uuid of the record.
     """
-    if service["gen3"] is None:
+    if connection["gen3"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (Gen3) status",
@@ -177,7 +273,7 @@ async def get_gen3_record(
         return access_list[0], access_list[1]
 
     program, project = handle_access(access_scope)
-    record = service["gen3"].export_record(program, project, uuid, "json")
+    record = connection["gen3"].export_record(program, project, uuid, "json")
     if "message" in record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -198,7 +294,7 @@ async def get_gen3_graphql_query(
     item: GraphQLQueryItem,
     mode: ModeParam,
     access_scope: list = Depends(A.handle_get_authority),
-    service: dict = Depends(ES.check_service_status),
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     Return queries metadata records. The API uses GraphQL query language.
@@ -216,7 +312,7 @@ async def get_gen3_graphql_query(
     - string content,
     - only available in dataset_description/manifest/case nodes
     """
-    if service["gen3"] is None:
+    if connection["gen3"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (Gen3) status",
@@ -238,7 +334,7 @@ async def get_gen3_graphql_query(
 
     QF.set_query_mode(mode)
     item.access = access_scope
-    query_result = ES.process_gen3_graphql_query(item)
+    query_result = ES.get("gen3").process_graphql_query(item)
 
     def handle_result():
         if len(query_result) == 1:
@@ -246,6 +342,13 @@ async def get_gen3_graphql_query(
         return query_result
 
     return QF.process_data_output(handle_result())
+
+
+def _handle_private_filter(access_scope):
+    private_filter = {}
+    if len(access_scope) > 1:
+        private_filter = FG.generate_private_filter(access_scope)
+    return private_filter
 
 
 @app.post(
@@ -258,7 +361,7 @@ async def get_gen3_graphql_pagination(
     item: GraphQLPaginationItem,
     search: str = "",
     access_scope: list = Depends(A.handle_get_authority),
-    service: dict = Depends(ES.check_service_status),
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     /graphql/pagination/?search=<string>
@@ -282,16 +385,17 @@ async def get_gen3_graphql_pagination(
     **search(parameter)**:
     - string content
     """
-    if service["gen3"] is None or service["irods"] is None:
+    if connection["gen3"] is None or connection["irods"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (Gen3/iRODS) status",
         )
 
     item.access = access_scope
-    is_public_access_filtered = P.process_pagination_item(item, search)
-    data_count, match_pair = P.get_pagination_count(item)
-    query_result = P.get_pagination_data(item, match_pair, is_public_access_filtered)
+    private_filter = _handle_private_filter(access_scope)
+    is_public_access_filtered = PL.process_pagination_item(item, search, private_filter)
+    data_count, match_pair = PL.get_pagination_count(item)
+    query_result = PL.get_pagination_data(item, match_pair, is_public_access_filtered)
     # If both asc and desc are None, datasets ordered by self-written order function
     if item.asc is None and item.desc is None:
         query_result = sorted(
@@ -324,21 +428,13 @@ async def get_gen3_filter(
     - **sidebar**: boolean content.
     """
     retry = 0
-    # Stop waiting for the filter generator after hitting the retry limits
-    # The retry limit here may need to be increased if there is a large database
-    # This also depends on how fast the filter will be generated
     while retry < 12 and not FILTER_GENERATED:
         retry += 1
         time.sleep(retry)
-    if not FILTER_GENERATED:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Failed to generate filter or the maximum retry limit was reached",
-        )
-
+    private_filter = _handle_private_filter(access_scope)
     if sidebar:
-        return FF.generate_sidebar_filter_format(access_scope)
-    return FF.generate_filter_format(access_scope)
+        return FF.generate_sidebar_filter_format(private_filter)
+    return FF.generate_filter_format(private_filter)
 
 
 ############################################
@@ -353,14 +449,14 @@ async def get_gen3_filter(
     responses=collection_responses,
 )
 async def get_irods_collection(
-    item: CollectionItem, service: dict = Depends(ES.check_service_status)
+    item: CollectionItem, connection: dict = Depends(ES.check_service_status)
 ):
     """
     Return all collections from the required folder.
 
     Root folder will be returned if no item or "/" is passed.
     """
-    if service["irods"] is None:
+    if connection["irods"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (iRODS) status",
@@ -383,7 +479,7 @@ async def get_irods_collection(
         return collection
 
     try:
-        collect = service["irods"].collections.get(
+        collect = connection["irods"].collections.get(
             f"{iRODSConfig.IRODS_ROOT_PATH}{item.path}"
         )
         folder = handle_collection(collect.subcollections)
@@ -406,7 +502,7 @@ async def get_irods_collection(
 async def get_irods_data_file(
     action: ActionParam,
     filepath: str,
-    service: dict = Depends(ES.check_service_status),
+    connection: dict = Depends(ES.check_service_status),
 ):
     """
     Used to preview most types of data files in iRODS (.xlsx and .csv not supported yet).
@@ -418,7 +514,7 @@ async def get_irods_data_file(
     """
     chunk_size = 1024 * 1024 * 1024
 
-    if service["irods"] is None:
+    if connection["irods"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (iRODS) status",
@@ -430,7 +526,7 @@ async def get_irods_data_file(
         )
 
     try:
-        file = service["irods"].data_objects.get(
+        file = connection["irods"].data_objects.get(
             f"{iRODSConfig.IRODS_ROOT_PATH}/{filepath}"
         )
         filename = file.name
@@ -476,17 +572,17 @@ async def get_irods_data_file(
     responses=instance_responses,
 )
 async def get_orthanc_instance(
-    item: InstanceItem, service: dict = Depends(ES.check_service_status)
+    item: InstanceItem, connection: dict = Depends(ES.check_service_status)
 ):
     """
     Return a list of dicom instance uuids
     """
-    if service["orthanc"] is None:
+    if connection["orthanc"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Please check the service (Orthanc) status",
         )
-    if item.study == None or item.series == None:
+    if item.study is None or item.series is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Missing one or more fields in the request body",
@@ -494,16 +590,16 @@ async def get_orthanc_instance(
 
     try:
         patients = find(
-            orthanc=service["orthanc"],
+            orthanc=connection["orthanc"],
             study_filter=lambda s: s.uid == item.study,
             series_filter=lambda s: s.uid == item.series,
         )
-    except Exception as e:
-        if "401" in str(e):
+    except Exception as error:
+        if "401" in str(error):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid orthanc username or password are used",
-            )
+            ) from error
     if patients == []:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -526,21 +622,21 @@ async def get_orthanc_instance(
     response_description="Successfully return a file with data",
 )
 async def get_orthanc_dicom_file(
-    identifier: str, service: dict = Depends(ES.check_service_status)
+    identifier: str, connection: dict = Depends(ES.check_service_status)
 ):
     """
     Export a specific dicom file from Orthanc server
 
     - **identifier**: dicom instance uuid.
     """
-    if service["orthanc"] is None:
+    if connection["orthanc"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Please check the service (Orthanc) status",
+            detail="Please check the service (Orthanc) status",
         )
 
     try:
-        instance_file = service["orthanc"].get_instances_id_file(identifier)
+        instance_file = connection["orthanc"].get_instances_id_file(identifier)
         bytes_file = io.BytesIO(instance_file)
         return Response(bytes_file.getvalue(), media_type="application/dicom")
     except Exception as error:

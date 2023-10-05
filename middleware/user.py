@@ -12,24 +12,24 @@ class User:
     """
 
     def __init__(self, identity, access_scope, expire_time):
-        self.identity = identity
-        self.access_scope = access_scope
-        self.expire_time = expire_time
+        self.__identity = identity
+        self.__access_scope = access_scope
+        self.__expire_time = expire_time
 
     def get_user_identity(self):
         """
         Handler for returning user identity
         """
-        return self.identity
+        return self.__identity
 
     def get_user_access_scope(self):
         """
         Handler for returning user access scope
         """
-        return self.access_scope
+        return self.__access_scope
 
     def get_user_expire_time(self):
         """
         Handler for returning user expire time
         """
-        return self.expire_time
+        return self.__expire_time

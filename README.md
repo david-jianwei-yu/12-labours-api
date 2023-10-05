@@ -36,12 +36,12 @@ GEN3_API_KEY =
 GEN3_KEY_ID =
 GEN3_PUBLIC_ACCESS =
 
-IRODS_ROOT_PATH =
 IRODS_HOST =
 IRODS_PASSWORD =
 IRODS_PORT =
 IRODS_USER =
 IRODS_ZONE =
+IRODS_ROOT_PATH =
 
 ORTHANC_ENDPOINT_URL =
 ORTHANC_USERNAME =
@@ -59,8 +59,8 @@ $ python3 -m venv ./venv
 $ . ./venv/bin/activate
 # Install all required dependencies
 $ pip install -r requirements.txt
-# Run the backend application
-$ uvicorn main:app or uvicorn main:app --port <port number>
+# Run the backend application, optional to use --port to run at specific port
+$ uvicorn main:app (--port <port number>)
 ```
 
 ## Database
@@ -70,15 +70,15 @@ $ uvicorn main:app or uvicorn main:app --port <port number>
 The connection between the backend and Gen3 Data Commons is directly through sending requests to Gen3 API. The backend will frequently request the access token to keep continuous interactions.
 
 ```bash
-self.services["gen3"] = Gen3Submission(
-                Gen3Auth(
-                    endpoint=Gen3Config.GEN3_ENDPOINT_URL,
-                    refresh_token={
-                        "api_key": Gen3Config.GEN3_API_KEY,
-                        "key_id": Gen3Config.GEN3_KEY_ID,
-                    },
-                )
-            )
+Gen3Submission(
+    Gen3Auth(
+        endpoint=Gen3Config.GEN3_ENDPOINT_URL,
+        refresh_token={
+            "api_key": Gen3Config.GEN3_API_KEY,
+            "key_id": Gen3Config.GEN3_KEY_ID,
+        },
+    )
+)
 ```
 
 More information about the usage of this database in [the documentation](https://gen3.org/resources/user/using-api/).
@@ -88,23 +88,23 @@ More information about the usage of this database in [the documentation](https:/
 iRODS provides Python SDK. Using the iRODSession to create the session to provide further features.
 
 ```bash
-self.services["irods"] = iRODSSession(
-                host=iRODSConfig.IRODS_HOST,
-                port=iRODSConfig.IRODS_PORT,
-                user=iRODSConfig.IRODS_USER,
-                password=iRODSConfig.IRODS_PASSWORD,
-                zone=iRODSConfig.IRODS_ZONE,
-            )
+iRODSSession(
+    host=iRODSConfig.IRODS_HOST,
+    port=iRODSConfig.IRODS_PORT,
+    user=iRODSConfig.IRODS_USER,
+    password=iRODSConfig.IRODS_PASSWORD,
+    zone=iRODSConfig.IRODS_ZONE,
+)
 ```
 
 ### `Orthanc`
 
 ```bash
-self.services["orthanc"] = Orthanc(
-                OrthancConfig.ORTHANC_ENDPOINT_URL,
-                username=OrthancConfig.ORTHANC_USERNAME,
-                password=OrthancConfig.ORTHANC_PASSWORD,
-            )
+Orthanc(
+    OrthancConfig.ORTHANC_ENDPOINT_URL,
+    username=OrthancConfig.ORTHANC_USERNAME,
+    password=OrthancConfig.ORTHANC_PASSWORD,
+)
 ```
 
 More information about the usage of this database in [the documentation](https://github.com/irods/python-irodsclient).
@@ -144,9 +144,32 @@ Otherwise, you only need to run the following commands:
 $ pip install -r requirements-dev.txt
 # Set the python path to the current diectory
 $ export PYTHONPATH=.
-# Run the pytest
-$ pytest --timeout=<time in second>
+# Run the pytest, optional to use --timeout= to limit the time for each test case
+$ pytest (--timeout=<time in second>)
 ```
 
-Developer Code Standards
-Black, Pylint, Mypy, isort
+# Developer Code Standards
+
+Recommend to use following package to assist API development:
+
+### `Black` - The Uncompromising Code Formatter
+
+Black makes code review faster by producing the smallest diffs possible. Blackened code looks the same regardless of the project you’re reading. Formatting becomes transparent after a while and you can focus on the content instead.
+
+For official documentation, click [here](https://black.readthedocs.io/en/stable/).
+
+### `Pylint` - Static code analyser
+
+Pylint analyses your code without actually running it. It checks for errors, enforces a coding standard, looks for code smells, and can make suggestions about how the code could be refactored.
+
+For official documentation, click [here](https://pylint.readthedocs.io/en/stable/).
+
+### `Mypy` - Optional static typing for Python
+
+Mypy is essentially a Python linter on steroids, and it can catch many programming errors by analyzing your program, without actually having to run it. Mypy has a powerful type system with features such as type inference, gradual typing, generics and union types.
+
+### `isort`
+
+isort is a Python utility / library to sort imports alphabetically, and automatically separated into sections and by type.
+
+For official documentation, click [here](https://pycqa.github.io/isort/).
