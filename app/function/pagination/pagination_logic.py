@@ -29,6 +29,13 @@ class PaginationLogic:
         self.__sl = sl
         self.__es = es
         self.__public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
+        self.__private_filter = None
+
+    def set_private_filter(self, filter_):
+        """
+        Handler for setting private_filter
+        """
+        self.__private_filter = filter_
 
     def _handle_dataset(self, data):
         """
@@ -171,7 +178,7 @@ class PaginationLogic:
                 match_pair.append(dataset_id)
         return len(displayed_dataset), match_pair
 
-    def _handle_pagination_item_filter(self, filter_field, facets, private_filter):
+    def _handle_pagination_item_filter(self, filter_field, facets):
         """
         Handler for updating filter in pagination item
         """
@@ -181,8 +188,8 @@ class PaginationLogic:
             # Avoid mis-match
             facet_name = facet.capitalize()
             for mapped_element in self.__filter_cache:
-                if mapped_element in private_filter:
-                    content = private_filter[mapped_element]
+                if mapped_element in self.__private_filter:
+                    content = self.__private_filter[mapped_element]
                 else:
                     content = self.__filter_cache[mapped_element]
                 # Check if title can match with a exist filter object
@@ -201,7 +208,7 @@ class PaginationLogic:
                         value_list.append(facet_value)
         return {filter_field: value_list}
 
-    def process_pagination_item(self, item, input_, private_filter):
+    def process_pagination_item(self, item, input_):
         """
         Handler for process pagination item to fit the query code generator format
         """
@@ -211,14 +218,11 @@ class PaginationLogic:
         # FILTER
         if item.filter != {}:
             items = []
-            filter_dict = {"submitter_id": []}
             for node_filed, facets in item.filter.items():
                 filter_node = node_filed.split(">")[0]
                 filter_field = node_filed.split(">")[1]
                 # Update filter based on authority
-                valid_filter = self._handle_pagination_item_filter(
-                    filter_field, facets, private_filter
-                )
+                valid_filter = self._handle_pagination_item_filter(filter_field, facets)
                 query_item = GraphQLQueryItem(
                     node=filter_node, filter=valid_filter, access=self.__public_access
                 )
@@ -230,20 +234,14 @@ class PaginationLogic:
                     query_item.access = item.access
                 items.append((query_item, json.dumps(valid_filter)))
             fetch_result = self._handle_thread_fetch(items)
-            for filter_, related_data in fetch_result.items():
-                filter_result = self.__fl.generate_filtered_dataset(
-                    json.loads(filter_), related_data
-                )
-                filter_dict["submitter_id"].append(filter_result)
-            item.filter = filter_dict
+            item.filter = self.__fl.generate_filtered_dataset(fetch_result)
             self.__fl.implement_filter_relation(item)
 
         # SEARCH
         if input_ != "":
-            search_result = self.__sl.generate_searched_dataset(input_)
             # If input does not match any content in the database, item.search will be empty
-            item.search["submitter_id"] = search_result
-            if item.search != {} and (
+            item.search = self.__sl.generate_searched_dataset(input_)
+            if item.search["submitter_id"] != [] and (
                 "submitter_id" not in item.filter or item.filter["submitter_id"] != []
             ):
                 has_search_result = True

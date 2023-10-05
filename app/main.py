@@ -11,6 +11,7 @@ Functional APIs provided by the server
 - /instance
 - /dicom/export/{identifier}
 """
+import copy
 import io
 import logging
 import mimetypes
@@ -23,7 +24,7 @@ from fastapi.responses import Response, StreamingResponse
 from fastapi_utils.tasks import repeat_every
 from pyorthanc import find
 
-from app.config import iRODSConfig
+from app.config import Gen3Config, iRODSConfig
 from app.data_schema import (
     ActionParam,
     CollectionItem,
@@ -48,6 +49,7 @@ from app.function.filter.filter_logic import FilterLogic
 from app.function.pagination.pagination_formatter import PaginationFormatter
 from app.function.pagination.pagination_logic import PaginationLogic
 from app.function.query.query_formatter import QueryFormatter
+from app.function.query.query_logic import QueryLogic
 from app.function.search.search_logic import SearchLogic
 from middleware.auth import Authenticator
 from services.external_service import ExternalService
@@ -145,6 +147,7 @@ FF = FilterFormatter(FE)
 PF = PaginationFormatter(FE)
 PL = PaginationLogic(FE, FilterLogic(), SearchLogic(ES), ES)
 QF = QueryFormatter(FE)
+QL = QueryLogic(ES)
 A = Authenticator(ES)
 
 
@@ -284,6 +287,18 @@ async def get_gen3_record(
     return result
 
 
+def _handle_private_filter(access_scope):
+    """
+    Handler for generating private access and private filter
+    """
+    private_filter = {}
+    private_access = copy.deepcopy(access_scope)
+    private_access.remove(Gen3Config.GEN3_PUBLIC_ACCESS)
+    if private_access:
+        private_filter = FG.generate_private_filter(private_access)
+    return private_filter
+
+
 @app.post(
     "/graphql/query/",
     tags=["Gen3"],
@@ -331,10 +346,31 @@ async def get_gen3_graphql_query(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Mode {mode} only available when query one dataset in experiment node",
         )
+    if item.node is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing field in the request body",
+        )
+    if item.node not in [
+        "experiment_query",
+        "dataset_description_query",
+        "manifest_query",
+        "case_query",
+    ]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid query node is used",
+        )
+    if item.node == "experiment_query" and item.search != "":
+        raise HTTPException(
+            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+            detail="Search does not provide in current node",
+        )
 
     QF.set_query_mode(mode)
+    QF.set_private_filter(_handle_private_filter(access_scope))
     item.access = access_scope
-    query_result = ES.get("gen3").process_graphql_query(item)
+    query_result = QL.get_query_data(item)
 
     def handle_result():
         if len(query_result) == 1:
@@ -342,13 +378,6 @@ async def get_gen3_graphql_query(
         return query_result
 
     return QF.process_data_output(handle_result())
-
-
-def _handle_private_filter(access_scope):
-    private_filter = {}
-    if len(access_scope) > 1:
-        private_filter = FG.generate_private_filter(access_scope)
-    return private_filter
 
 
 @app.post(
@@ -391,9 +420,9 @@ async def get_gen3_graphql_pagination(
             detail="Please check the service (Gen3/iRODS) status",
         )
 
+    PL.set_private_filter(_handle_private_filter(access_scope))
     item.access = access_scope
-    private_filter = _handle_private_filter(access_scope)
-    is_public_access_filtered = PL.process_pagination_item(item, search, private_filter)
+    is_public_access_filtered = PL.process_pagination_item(item, search)
     data_count, match_pair = PL.get_pagination_count(item)
     query_result = PL.get_pagination_data(item, match_pair, is_public_access_filtered)
     # If both asc and desc are None, datasets ordered by self-written order function
@@ -431,10 +460,10 @@ async def get_gen3_filter(
     while retry < 12 and not FILTER_GENERATED:
         retry += 1
         time.sleep(retry)
-    private_filter = _handle_private_filter(access_scope)
+    FF.set_private_filter(_handle_private_filter(access_scope))
     if sidebar:
-        return FF.generate_sidebar_filter_format(private_filter)
-    return FF.generate_filter_format(private_filter)
+        return FF.generate_sidebar_filter_format()
+    return FF.generate_filter_format()
 
 
 ############################################
@@ -588,19 +617,12 @@ async def get_orthanc_instance(
             detail="Missing one or more fields in the request body",
         )
 
-    try:
-        patients = find(
-            orthanc=connection["orthanc"],
-            study_filter=lambda s: s.uid == item.study,
-            series_filter=lambda s: s.uid == item.series,
-        )
-    except Exception as error:
-        if "401" in str(error):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid orthanc username or password are used",
-            ) from error
-    if patients == []:
+    patients = find(
+        orthanc=connection["orthanc"],
+        study_filter=lambda s: s.uid == item.study,
+        series_filter=lambda s: s.uid == item.series,
+    )
+    if not patients:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Resource is not found in the orthanc server",

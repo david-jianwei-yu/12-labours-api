@@ -7,27 +7,34 @@ Functionality for generating different types of filter format
 
 class FilterFormatter:
     """
-    fg -> filter editor object is required
+    fe -> filter editor object is required
     """
 
     def __init__(self, fe):
         self.__filter_cache = fe.cache_loader()
+        self.__private_filter = None
 
-    def _handle_element_content(self, mapped_element, private_filter):
+    def set_private_filter(self, filter_):
+        """
+        Handler for setting private_filter
+        """
+        self.__private_filter = filter_
+
+    def _handle_element_content(self, mapped_element):
         """
         Handler for switching element content between public and private
         """
-        if mapped_element in private_filter:
-            return private_filter[mapped_element]
+        if mapped_element in self.__private_filter:
+            return self.__private_filter[mapped_element]
         return self.__filter_cache[mapped_element]
 
-    def generate_sidebar_filter_format(self, private_filter):
+    def generate_sidebar_filter_format(self):
         """
         Format for portal map integrated viewer sidebar
         """
         sidebar_format = []
         for mapped_element in self.__filter_cache:
-            content = self._handle_element_content(mapped_element, private_filter)
+            content = self._handle_element_content(mapped_element)
             parent_format = {
                 "key": "",
                 "label": "",
@@ -46,7 +53,7 @@ class FilterFormatter:
             sidebar_format.append(parent_format)
         return sidebar_format
 
-    def generate_filter_format(self, private_filter):
+    def generate_filter_format(self):
         """
         Format for portal data browser
         """
@@ -57,7 +64,7 @@ class FilterFormatter:
             "elements": [],
         }
         for mapped_element in self.__filter_cache:
-            content = self._handle_element_content(mapped_element, private_filter)
+            content = self._handle_element_content(mapped_element)
             format_["titles"].append(content["title"].capitalize())
             format_["nodes>fields"].append(f"{content['node']}>{content['field']}")
             format_["elements"].append(list(content["facets"].keys()))

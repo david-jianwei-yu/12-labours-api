@@ -28,6 +28,7 @@ class FilterGenerator:
         self.__es = es
         self.__public_access = [Gen3Config.GEN3_PUBLIC_ACCESS]
         self.__cache = {}
+        self.__dynamic = DYNAMIC_FILTERS
 
     def _reset_cache(self):
         """
@@ -64,7 +65,7 @@ class FilterGenerator:
 
     def _handle_filter_query_item(self, private_access=None):
         items = []
-        for mapped_element in DYNAMIC_FILTERS:
+        for mapped_element in self.__dynamic:
             node = self.__filter_cache[mapped_element]["node"]
             query_item = GraphQLQueryItem(
                 node=node,
@@ -75,7 +76,7 @@ class FilterGenerator:
             items.append((query_item, node))
         return items
 
-    def _update_cache(self, private_access=None):
+    def _handle_cache(self, private_access=None):
         """
         Handler for using thread to update data cache
         """
@@ -90,38 +91,28 @@ class FilterGenerator:
             thread.start()
         for thread in threads_pool:
             thread.join()
+        cache = {}
         while not queue_.empty():
-            self.__cache.update(queue_.get())
+            cache.update(queue_.get())
+        return cache
 
-    def _handle_private_access(self, access_scope):
-        """
-        Handler for removing public access from access, keep private access only
-        """
-        private_access = []
-        for scope in access_scope:
-            if scope != self.__public_access[0]:
-                private_access.append(scope)
-        return private_access
-
-    def generate_private_filter(self, access_scope):
+    def generate_private_filter(self, private_access):
         """
         Generator for private dataset filter
         """
-        private_access = self._handle_private_access(access_scope)
         private_filter = {}
-        if private_access:
-            self._update_cache(private_access)
-            for mapped_element, element_content in self.__filter_cache.items():
-                if mapped_element in DYNAMIC_FILTERS:
-                    private_facets = self._handle_facet(element_content, private_access)
-                    if private_facets:
-                        updated_facets = element_content["facets"] | private_facets
-                        private_filter[mapped_element] = {
-                            "title": element_content["title"].capitalize(),
-                            "node": element_content["node"],
-                            "field": element_content["field"],
-                            "facets": dict(sorted(updated_facets.items())),
-                        }
+        self.__cache = self._handle_cache(private_access)
+        for mapped_element, element_content in self.__filter_cache.items():
+            if mapped_element in self.__dynamic:
+                private_facets = self._handle_facet(element_content, private_access)
+                if private_facets:
+                    updated_facets = element_content["facets"] | private_facets
+                    private_filter[mapped_element] = {
+                        "title": element_content["title"].capitalize(),
+                        "node": element_content["node"],
+                        "field": element_content["field"],
+                        "facets": dict(sorted(updated_facets.items())),
+                    }
         self._reset_cache()
         return private_filter
 
@@ -129,9 +120,9 @@ class FilterGenerator:
         """
         Generator for public dataset filter
         """
-        self._update_cache()
+        self.__cache = self._handle_cache()
         for mapped_element, element_content in self.__filter_cache.items():
-            if mapped_element in DYNAMIC_FILTERS:
+            if mapped_element in self.__dynamic:
                 public_facets = self._handle_facet(element_content)
                 if not public_facets:
                     return False
