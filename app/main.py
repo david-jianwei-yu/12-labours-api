@@ -371,11 +371,7 @@ async def get_gen3_graphql_query(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid query node is used",
         )
-    if (
-        item.node == "experiment_query"
-        and isinstance(item.search, str)
-        and item.search != ""
-    ):
+    if item.node == "experiment_query" and item.search != "":
         raise HTTPException(
             status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
             detail="Search does not provide in current node",
@@ -674,19 +670,12 @@ async def get_orthanc_instance(
             detail="Missing one or more fields in the request body",
         )
 
-    try:
-        patients = find(
-            orthanc=connection["orthanc"],
-            study_filter=lambda s: s.uid == item.study,
-            series_filter=lambda s: s.uid == item.series,
-        )
-    except Exception as error:
-        if "401" in str(error):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid orthanc username or password are used",
-            ) from error
-    if patients == []:
+    patients = find(
+        orthanc=connection["orthanc"],
+        study_filter=lambda s: s.uid == item.study,
+        series_filter=lambda s: s.uid == item.series,
+    )
+    if not patients:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Resource is not found in the orthanc server",

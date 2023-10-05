@@ -35,7 +35,6 @@ def test_generate_private_filter(
     # Generate private filter requires public filter
     fg_class._handle_cache = MagicMock(return_value=dummy_data_cache)
     fg_class.generate_public_filter()
-    fg_class._handle_private_access = MagicMock(return_value=["dummy access"])
     fg_class._handle_cache = MagicMock(return_value=dummy_data_cache_private)
     private_filter = fg_class.generate_private_filter(["dummy access"])
     assert private_filter == dummy_filter_cache_private
