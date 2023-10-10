@@ -14,7 +14,9 @@ def client():
 @pytest.fixture
 def token(client):
     dummy_data = {
-        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
+        "email": "dummy_email@gmail.com",
+        "machine": "dummy_machine_id",
+        "expiration": "dummy_expiration_time",
     }
     response = client.post("/access/token", json=dummy_data)
     return response.json()

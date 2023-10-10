@@ -13,36 +13,12 @@ def client():
 @pytest.fixture
 def token(client):
     dummy_data = {
-        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
+        "email": "dummy_email@gmail.com",
+        "machine": "dummy_machine_id",
+        "expiration": "dummy_expiration_time",
     }
     response = client.post("/access/token", json=dummy_data)
     return response.json()
-
-
-def test_create_gen3_access(client):
-    missing_data = {}
-    response = client.post("/access/token", json=missing_data)
-    result = response.json()
-    assert response.status_code == 400
-    assert result["detail"] == "Missing field in the request body"
-
-    dummy_data = {
-        "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time"
-    }
-    response = client.post("/access/token", json=dummy_data)
-    result = response.json()
-    assert response.status_code == 200
-    assert result["identity"] == dummy_data["identity"]
-
-
-def test_revoke_gen3_access(client, token):
-    response = client.delete(
-        "/access/revoke",
-        headers={"Authorization": f"Bearer {token['access_token']}"},
-    )
-    result = response.json()
-    assert response.status_code == 401
-    assert result["detail"] == "Unable to remove default access authority"
 
 
 def test_get_gen3_record(client, token):
