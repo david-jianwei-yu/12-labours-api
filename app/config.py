@@ -20,7 +20,7 @@ class Config:
 
     JWT_SECURE_KEY = os.environ.get("JWT_SECURE_KEY")
     PUBLIC_IDENTITY = os.environ.get("PUBLIC_IDENTITY")
-    PUBLIC_TOKEN = os.environ.get("PUBLIC_TOKEN")
+    PUBLIC_ACCESS_TOKEN = os.environ.get("PUBLIC_ACCESS_TOKEN")
 
 
 class Gen3Config:

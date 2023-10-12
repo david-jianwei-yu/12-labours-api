@@ -137,7 +137,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-File-Name", "X-One-Off"],
+    expose_headers=[
+        "X-File-Name",
+        "X-One-Off",
+        "X-Public-Access",
+    ],
 )
 
 CONNECTION = None
@@ -262,16 +266,23 @@ async def create_one_off_access(
     responses=access_revoke_responses,
 )
 async def revoke_access(
-    is_revoked: bool = Depends(A.handle_revoke_authority),
+    revoke: bool = Depends(A.handle_revoke_authority),
 ):
     """
     Return revoke message if success.
     """
-    if is_revoked:
-        raise HTTPException(
-            status_code=status.HTTP_200_OK,
-            detail="Successfully revoke the access",
-        )
+    content = {
+        "message": "Successfully revoke the access",
+    }
+    status_code = status.HTTP_200_OK
+    if not revoke:
+        content["message"] = "Unable to remove default access authority"
+        # status_code = status.HTTP_401_UNAUTHORIZED
+    return JSONResponse(
+        status_code=status_code,
+        content=content,
+        headers={"X-Public-Access": Config.PUBLIC_ACCESS_TOKEN},
+    )
 
 
 #########################
@@ -337,7 +348,7 @@ def _handle_private_filter(access_scope):
 
 
 @app.post(
-    "/graphql/query/",
+    "/graphql/query",
     tags=["Gen3"],
     summary="GraphQL query gen3 metadata information",
     responses=query_responses,
@@ -421,7 +432,7 @@ async def get_gen3_graphql_query(
 
 
 @app.post(
-    "/graphql/pagination/",
+    "/graphql/pagination",
     tags=["Gen3"],
     summary="Display datasets",
     responses=pagination_responses,
@@ -482,7 +493,7 @@ async def get_gen3_graphql_pagination(
 
 
 @app.get(
-    "/filter/",
+    "/filter",
     tags=["Gen3"],
     summary="Get filter information",
     responses=filter_responses,
@@ -617,7 +628,7 @@ async def get_irods_collection(
 
 
 @app.get(
-    "/data/{action}/{filepath:path}/",
+    "/data/{action}/{filepath:path}",
     tags=["iRODS"],
     summary="Download irods file",
     response_description="Successfully return a file with data",
@@ -625,7 +636,7 @@ async def get_irods_collection(
 async def get_irods_data_file(
     action: ActionParam,
     filepath: str,
-    token: str = Config.PUBLIC_TOKEN,
+    token: str = None,
     connection: dict = Depends(ES.check_service_status),
 ):
     """

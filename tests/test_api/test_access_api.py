@@ -55,5 +55,5 @@ def test_revoke_access(client, token):
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
-    assert response.status_code == 401
-    assert result["detail"] == "Unable to remove default access authority"
+    assert response.status_code == 200
+    assert result["message"] == "Unable to remove default access authority"

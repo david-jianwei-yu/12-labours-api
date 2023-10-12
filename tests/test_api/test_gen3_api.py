@@ -52,7 +52,7 @@ def test_get_gen3_graphql_query(client, token):
         "search": "",
     }
     response = client.post(
-        "/graphql/query/?mode=data",
+        "/graphql/query?mode=data",
         json=pass_case,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -61,7 +61,7 @@ def test_get_gen3_graphql_query(client, token):
     assert result["data"]["submitter_id"] == DATASET_ID
 
     response = client.post(
-        "/graphql/query/?mode=detail",
+        "/graphql/query?mode=detail",
         json=pass_case,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -74,7 +74,7 @@ def test_get_gen3_graphql_query(client, token):
     }
 
     response = client.post(
-        "/graphql/query/?mode=facet",
+        "/graphql/query?mode=facet",
         json=pass_case,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -96,7 +96,7 @@ def test_get_gen3_graphql_query(client, token):
 
     missing_data = {}
     response = client.post(
-        "/graphql/query/?mode=data",
+        "/graphql/query?mode=data",
         json=missing_data,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -108,7 +108,7 @@ def test_get_gen3_graphql_query(client, token):
         "node": "fakenode",
     }
     response = client.post(
-        "/graphql/query/?mode=data",
+        "/graphql/query?mode=data",
         json=wrong_node,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -122,7 +122,7 @@ def test_get_gen3_graphql_query(client, token):
         "search": "dummy content",
     }
     response = client.post(
-        "/graphql/query/?mode=data",
+        "/graphql/query?mode=data",
         json=invalid_search,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -137,7 +137,7 @@ def test_get_gen3_graphql_query(client, token):
         "search": "",
     }
     response = client.post(
-        "/graphql/query/?mode=detail",
+        "/graphql/query?mode=detail",
         json=wrong_filter,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -159,7 +159,7 @@ def test_get_gen3_graphql_pagination(client, token):
         }
     }
     response = client.post(
-        "/graphql/pagination/",
+        "/graphql/pagination",
         json=filter_pass_case,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -170,7 +170,7 @@ def test_get_gen3_graphql_pagination(client, token):
 
     order_pass_case = {"order": "Title(desc)"}
     response = client.post(
-        "/graphql/pagination/?search=",
+        "/graphql/pagination?search=",
         json=order_pass_case,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -180,7 +180,7 @@ def test_get_gen3_graphql_pagination(client, token):
 
     search_pass_case = {}
     response = client.post(
-        "/graphql/pagination/?search=rats",
+        "/graphql/pagination?search=rats",
         json=search_pass_case,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -191,7 +191,7 @@ def test_get_gen3_graphql_pagination(client, token):
 
     wrong_search = {}
     response = client.post(
-        "/graphql/pagination/?search=dog",
+        "/graphql/pagination?search=dog",
         json=wrong_search,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -205,7 +205,7 @@ def test_get_gen3_graphql_pagination(client, token):
         }
     }
     response = client.post(
-        "/graphql/pagination/",
+        "/graphql/pagination",
         json=wrong_facet,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -215,7 +215,7 @@ def test_get_gen3_graphql_pagination(client, token):
 
     wrong_order = {"order": "Author(asc)"}
     response = client.post(
-        "/graphql/pagination/",
+        "/graphql/pagination",
         json=wrong_order,
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
@@ -226,7 +226,7 @@ def test_get_gen3_graphql_pagination(client, token):
 
 def test_get_gen3_filter(client, token):
     response = client.get(
-        "/filter/?sidebar=true",
+        "/filter?sidebar=true",
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()
@@ -239,7 +239,7 @@ def test_get_gen3_filter(client, token):
     assert len(result) == 6
 
     response = client.get(
-        "/filter/?sidebar=false",
+        "/filter?sidebar=false",
         headers={"Authorization": f"Bearer {token['access_token']}"},
     )
     result = response.json()

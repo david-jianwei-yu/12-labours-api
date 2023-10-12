@@ -86,7 +86,7 @@ def test_get_irods_data_file(client, one_off_token):
     ACTION = "preview"
     FILEPATH = "dataset-217-version-2/derivative/scaffold_context_info.json"
     response = client.get(
-        f"/data/{ACTION}/{FILEPATH}/?token={one_off_token['one_off_token']}"
+        f"/data/{ACTION}/{FILEPATH}?token={one_off_token['one_off_token']}"
     )
     result = response.json()
     assert response.status_code == 200

@@ -39,7 +39,7 @@ class Authenticator:
         self.__es = es
         self.__public = {
             "identity": Config.PUBLIC_IDENTITY,
-            "token": Config.PUBLIC_TOKEN,
+            "token": Config.PUBLIC_ACCESS_TOKEN,
         }
         AUTHORIZED_USERS[self.__public["identity"]] = User(
             self.__public["identity"],
@@ -101,11 +101,7 @@ class Authenticator:
         """
         verify_user = self._handle_authenticate_token(token.credentials, "revoke")
         if verify_user.get_user_identity() == self.__public["identity"]:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Unable to remove default access authority",
-            )
-
+            return False
         del AUTHORIZED_USERS[verify_user.get_user_identity()]
         return True
 
