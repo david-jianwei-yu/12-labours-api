@@ -18,9 +18,9 @@ class Config:
     General environment variable
     """
 
-    JWT_SECURE_KEY = os.environ.get("JWT_SECURE_KEY")
-    PUBLIC_IDENTITY = os.environ.get("PUBLIC_IDENTITY")
-    PUBLIC_ACCESS_TOKEN = os.environ.get("PUBLIC_ACCESS_TOKEN")
+    QUERY_SECURE_KEY = os.environ.get("QUERY_SECURE_KEY")
+    QUERY_IDENTITY = os.environ.get("QUERY_IDENTITY")
+    QUERY_ACCESS_TOKEN = os.environ.get("QUERY_ACCESS_TOKEN")
 
 
 class Gen3Config:

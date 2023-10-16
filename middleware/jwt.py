@@ -15,7 +15,7 @@ class JWT:
 
     def __init__(self):
         self.__algorithm = "HS256"
-        self.__secure = Config.JWT_SECURE_KEY
+        self.__secure = Config.QUERY_SECURE_KEY
 
     def encoding_token(self, payload):
         """

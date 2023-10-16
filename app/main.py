@@ -281,7 +281,7 @@ async def revoke_access(
     return JSONResponse(
         status_code=status_code,
         content=content,
-        headers={"X-Public-Access": Config.PUBLIC_ACCESS_TOKEN},
+        headers={"X-Public-Access": Config.QUERY_ACCESS_TOKEN},
     )
 
 
