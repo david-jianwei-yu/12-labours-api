@@ -119,18 +119,16 @@ class Authenticator:
         Handler for returning user access scope if token is valid
         """
         verify_user = self._handle_authenticate_token(token.credentials)
+        one_off_token = jwt.encoding_token(
+            {
+                "identity": verify_user.get_user_identity(),
+                "exp": datetime.now(tz=timezone.utc) + timedelta(seconds=60),
+            }
+        )
         authority = {
             "access_scope": verify_user.get_user_access_scope(),
-            "one_off_token": self.__public["token"],
+            "one_off_token": one_off_token,
         }
-        if verify_user.get_user_identity() != self.__public["identity"]:
-            one_off = jwt.encoding_token(
-                {
-                    "identity": verify_user.get_user_identity(),
-                    "exp": datetime.now(tz=timezone.utc) + timedelta(seconds=60),
-                }
-            )
-            authority["one_off_token"] = one_off
         return authority
 
     def _handle_user_authority(self, item, user_yaml):
