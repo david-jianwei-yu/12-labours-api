@@ -30,7 +30,6 @@ The environment variables template has been shown below:
 
 ```bash
 QUERY_SECURE_KEY =
-QUERY_IDENTITY =
 QUERY_ACCESS_TOKEN =
 
 GEN3_ENDPOINT_URL =

@@ -38,7 +38,7 @@ class Authenticator:
     def __init__(self, es):
         self.__es = es
         self.__public = {
-            "identity": Config.QUERY_IDENTITY,
+            "identity": "public",
             "token": Config.QUERY_ACCESS_TOKEN,
         }
         AUTHORIZED_USERS[self.__public["identity"]] = User(

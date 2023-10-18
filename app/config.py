@@ -19,7 +19,6 @@ class Config:
     """
 
     QUERY_SECURE_KEY = os.environ.get("QUERY_SECURE_KEY")
-    QUERY_IDENTITY = os.environ.get("QUERY_IDENTITY")
     QUERY_ACCESS_TOKEN = os.environ.get("QUERY_ACCESS_TOKEN")
 
 
