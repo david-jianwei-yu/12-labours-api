@@ -4,11 +4,11 @@ Functional APIs provided by the server
 - /access/oneoff
 - /access/revoke
 - /record/{uuid}
-- /graphql/query/?mode=data/detail/facet/mri
-- /graphql/pagination/?search=<string>
-- /filter/?sidebar=<boolean>
+- /graphql/query?mode=data/detail/facet/mri
+- /graphql/pagination?search=<string>
+- /filter?sidebar=<boolean>
 - /collection
-- /data/{action}/{filepath:path}/?token=<token>
+- /data/{action}/{filepath:path}?token=<token>
 - /instance
 - /dicom/export/{identifier}
 """
