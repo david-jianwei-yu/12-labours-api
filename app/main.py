@@ -465,10 +465,15 @@ async def get_gen3_graphql_pagination(
     **search(parameter)**:
     - string content
     """
-    if connection["gen3"] is None or connection["irods"] is None:
+    if connection["gen3"] is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Please check the service (Gen3/iRODS) status",
+            detail="Please check the service (Gen3) status",
+        )
+    if search and connection["irods"] is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Please check the service (iRODS) status",
         )
 
     PL.set_private_filter(_handle_private_filter(authority["access_scope"]))
