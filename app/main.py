@@ -25,7 +25,7 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi_utils.tasks import repeat_every
 from pyorthanc import find
 
-from app.config import Config, Gen3Config, iRODSConfig
+from app.config import Gen3Config, iRODSConfig
 from app.data_schema import (
     ActionParam,
     CollectionItem,
@@ -140,7 +140,6 @@ app.add_middleware(
     expose_headers=[
         "X-File-Name",
         "X-One-Off",
-        "X-Public-Access",
     ],
 )
 
@@ -278,11 +277,7 @@ async def revoke_access(
     if not revoke:
         content["message"] = "Unable to remove default access authority"
         # status_code = status.HTTP_401_UNAUTHORIZED
-    return JSONResponse(
-        status_code=status_code,
-        content=content,
-        headers={"X-Public-Access": Config.QUERY_ACCESS_TOKEN},
-    )
+    return JSONResponse(status_code=status_code, content=content)
 
 
 #########################

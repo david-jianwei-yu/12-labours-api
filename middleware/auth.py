@@ -89,7 +89,7 @@ class Authenticator:
         except Exception as error:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Invalid authentication credentials - {error}",
+                detail="Invalid authentication credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             ) from error
 
