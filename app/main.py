@@ -196,6 +196,24 @@ async def root():
 ######################
 
 
+@app.get(
+    "/access",
+    tags=["access"],
+    summary="Get gen3 project information",
+)
+async def get_gen3_project(
+    connection: dict = Depends(ES.check_service_status),
+):
+    if connection["gen3"] is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Please check the service (Gen3) status",
+        )
+
+    result = ES.get("gen3").process_program_project()
+    return result
+
+
 @app.post(
     "/access/token",
     tags=["Access"],

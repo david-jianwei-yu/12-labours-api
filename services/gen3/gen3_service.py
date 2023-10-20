@@ -49,7 +49,7 @@ class Gen3Service:
                 status_code=status.HTTP_404_NOT_FOUND, detail=str(error)
             ) from error
 
-    def process_program_project(self, policies):
+    def process_program_project(self, policies=None):
         """
         Handler for processing gen3 program/project name
         Temporary function
@@ -67,7 +67,9 @@ class Gen3Service:
         try:
             program_list = handle_name(self.__submission.get_programs())
             project = {"links": []}
-            for program in list(set(policies).intersection(program_list)):
+            if policies:
+                program_list = list(set(policies).intersection(program_list))
+            for program in program_list:
                 project["links"] += handle_name(self.__submission.get_projects(program))
         except Exception as error:
             raise HTTPException(
