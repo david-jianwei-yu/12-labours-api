@@ -15,10 +15,11 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     """
-    Token security environment variable
+    General environment variable
     """
 
-    JWT_SECURE_KEY = os.environ.get("JWT_SECURE_KEY")
+    QUERY_SECURE_KEY = os.environ.get("QUERY_SECURE_KEY")
+    QUERY_ACCESS_TOKEN = os.environ.get("QUERY_ACCESS_TOKEN")
 
 
 class Gen3Config:

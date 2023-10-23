@@ -5,7 +5,8 @@ services:
     container_name: querybackend
     image: 12labours/api-dev:latest
     environment:
-      JWT_SECURE_KEY: ${JWT_SECURE_KEY}
+      QUERY_SECURE_KEY: ${QUERY_SECURE_KEY}
+      QUERY_ACCESS_TOKEN: ${QUERY_ACCESS_TOKEN}
       GEN3_ENDPOINT_URL: ${GEN3_ENDPOINT_URL}
       GEN3_API_KEY: ${GEN3_API_KEY}
       GEN3_KEY_ID: ${GEN3_KEY_ID}

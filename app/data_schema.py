@@ -10,7 +10,6 @@ from typing import Union
 
 from pydantic import BaseModel
 
-
 #############
 ### PARAM ###
 #############
@@ -46,7 +45,9 @@ class IdentityItem(BaseModel):
     Access identity item
     """
 
-    identity: Union[str, None] = None
+    email: Union[str, None] = None
+    machine: Union[str, None] = None
+    expiration: Union[str, None] = None
 
     class Config:
         """
@@ -55,7 +56,9 @@ class IdentityItem(BaseModel):
 
         schema_extra = {
             "example": {
-                "identity": "dummy_email@gmail.com>dummy_machine_id>dummy_expiration_time",
+                "email": "dummy_email@gmail.com",
+                "machine": "dummy_machine_id",
+                "expiration": "dummy_expiration_time",
             }
         }
 
@@ -165,7 +168,7 @@ class InstanceItem(BaseModel):
 
 access_token_responses = {
     200: {
-        "description": "Successfully return the gen3 access token",
+        "description": "Successfully return the access token",
         "content": {
             "application/json": {"example": {"identity": "", "access_token": ""}}
         },
@@ -173,18 +176,27 @@ access_token_responses = {
     400: {
         "content": {
             "application/json": {
-                "example": {"detail": "Missing field in the request body"}
+                "example": {"detail": "Missing one or more fields in the request body"}
             }
         }
+    },
+}
+
+one_off_access_responses = {
+    200: {
+        "description": "Successfully return the one off access token",
+        "content": {"application/json": {"example": {"one_off_token": ""}}},
     },
 }
 
 
 access_revoke_responses = {
     200: {
-        "description": "Successfully remove the gen3 access",
+        "description": "Successfully remove the access",
         "content": {
-            "application/json": {"example": {"detail": "Revoke access successfully"}}
+            "application/json": {
+                "example": {"detail": "Successfully revoke the access"}
+            }
         },
     },
     401: {
@@ -229,7 +241,7 @@ record_responses = {
         "content": {
             "application/json": {
                 "example": {
-                    "detail": "Unable to find xxx and check if the correct project or uuid is used"
+                    "detail": "Data does not exist or unable to access the data"
                 }
             }
         }

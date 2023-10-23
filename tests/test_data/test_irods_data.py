@@ -10,9 +10,24 @@ def client():
         return client
 
 
-def test_irods_collection(client):
+@pytest.fixture
+def token(client):
+    dummy_data = {
+        "email": "dummy_email@gmail.com",
+        "machine": "dummy_machine_id",
+        "expiration": "dummy_expiration_time",
+    }
+    response = client.post("/access/token", json=dummy_data)
+    return response.json()
+
+
+def test_irods_collection(client, token):
     payload1 = {"path": "/dataset-217-version-2"}
-    response = client.post("/collection", json=payload1)
+    response = client.post(
+        "/collection",
+        json=payload1,
+        headers={"Authorization": f"Bearer {token['access_token']}"},
+    )
     result = response.json()
     assert result["folders"] == [
         {"name": "derivative", "path": "/dataset-217-version-2/derivative"},
@@ -34,7 +49,11 @@ def test_irods_collection(client):
     ]
 
     payload2 = {"path": "/dataset-46-version-2"}
-    response = client.post("/collection", json=payload2)
+    response = client.post(
+        "/collection",
+        json=payload2,
+        headers={"Authorization": f"Bearer {token['access_token']}"},
+    )
     result = response.json()
     assert result["folders"] == [
         {"name": "derivative", "path": "/dataset-46-version-2/derivative"},

@@ -29,7 +29,8 @@ Please fill in the environment variables in the `env.txt` file and rename the fi
 The environment variables template has been shown below:
 
 ```bash
-JWT_SECURE_KEY =
+QUERY_SECURE_KEY =
+QUERY_ACCESS_TOKEN =
 
 GEN3_ENDPOINT_URL =
 GEN3_API_KEY =
